@@ -7,7 +7,6 @@
 :root {
   --fs: 1; /* розмір тексту з налаштувань: 0.9 / 1 / 1.12 / 1.25 */
   --bg: #10131c;
-  --grid: rgb(140 160 220 / .05);
   --surface: #171b27;
   --surface-2: #1f2433;
   --line: #2a3145;
@@ -38,7 +37,6 @@
 
 :root[data-theme="light"] {
   --bg: #f6f7fb;
-  --grid: rgb(60 90 170 / .07);
   --surface: #ffffff;
   --surface-2: #eef0f7;
   --line: #d9dde9;
@@ -64,8 +62,6 @@
 html {
   -webkit-text-size-adjust: 100%;
   background-color: var(--bg);
-  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 22px 22px;
 }
 body {
   margin: 0;
