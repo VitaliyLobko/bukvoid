@@ -3,7 +3,7 @@
   "short_name": "Буквоїд",
   "description": "Друк наосліп, український правопис і англійська: уроки, тести, тренажер",
   "lang": "uk",
-  "id": "./app",
+  "id": "/bukvoid/app",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
