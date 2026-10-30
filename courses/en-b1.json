@@ -2,10 +2,11 @@
  "format": "bukvoid-course",
  "v": 1,
  "id": "en-b1",
- "version": 1,
+ "version": 2,
  "title": "English B1 · Intermediate",
  "subtitle": "Робоча англійська: правило, приклади з озвученням, фрази в колоді повторення",
  "lang": "en",
+ "icon": "languages",
  "pass": 0.8,
  "author": "Буквоїд",
  "source": {

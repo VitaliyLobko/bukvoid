@@ -8,13 +8,14 @@ import * as SRS from './srs.js';
 import * as Sync from './sync.js';
 import * as Bot from './bot.js';
 import * as Courses from './courses.js';
+import { iconSvg } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const view = () => $('view');
 const st = () => S.get();
 const set = () => st().settings;
 
-const TABS = { druk: 'druk', lesson: 'druk', free: 'druk', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', progress: 'progress', settings: 'settings' };
+const TABS = { druk: 'druk', lesson: 'kursy', free: 'druk', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', progress: 'progress', settings: 'settings' };
 
 const PRAISE = ['Смачно! Буквоїд ситий.', 'Чисто, як у відмінника в зошиті.', 'Літери з\'їдено без кісточок.', 'Рівно й без поспіху — саме так.'];
 const SCOLD = ['Буквоїд вдавився: забагато помилок. Повільніше — і ще раз.', 'Поспіх — ворог точності. Спробуйте на третину повільніше.', 'Пальці випередили голову. Пригальмуйте й повторіть.'];
@@ -51,10 +52,14 @@ function lessonStars(l) {
   return s.done ? stars(Math.min(...accs)) : 0;
 }
 
+const nextLesson = (lang) => {
+  const list = lessons(lang);
+  return list.find((l) => !lessonState(l.id).done) || list[list.length - 1];
+};
+
 function renderDruk() {
   const lang = set().lang;
-  const list = lessons(lang);
-  const next = list.find((l) => !lessonState(l.id).done) || list[list.length - 1];
+  const next = nextLesson(lang);
   const day = S.day(S.today());
   const weak = weakKeys(S.keyStats(lang));
   view().innerHTML = `
@@ -62,7 +67,7 @@ function renderDruk() {
     <section class="hero">
       <div class="hero-main">
         <div class="hero-num">${day.chars}<small>букв з'їдено сьогодні</small></div>
-        <div class="muted">${day.chars ? `${Math.round(day.ms / 60000)} хв · точність ${day.chars ? Math.round((day.chars / (day.chars + day.errors)) * 1000) / 10 : 100}%` : 'Почніть з уроку нижче — 15 хвилин на день досить.'}</div>
+        <div class="muted">${day.chars ? `${Math.round(day.ms / 60000)} хв · точність ${day.chars ? Math.round((day.chars / (day.chars + day.errors)) * 1000) / 10 : 100}%` : 'Почніть з уроку курсу — 15 хвилин на день досить.'}</div>
       </div>
       <a class="btn primary big" href="#lesson/${lang}/${next.n}">${lessonState(next.id).parts.a ? 'Продовжити' : 'Почати'}: урок ${next.n}</a>
     </section>
@@ -79,12 +84,31 @@ function renderDruk() {
       <a class="tile" href="#free/own"><b>Свій текст</b><span class="muted">вставте будь-що</span></a>
     </div>
 
+    <a class="btn" href="#kurs/druk-${lang}">Уроки — курс «${esc(typingTitle(lang))}»</a>`;
+  view().querySelectorAll('[data-lang]').forEach((b) => {
+    b.onclick = () => { S.update((s) => { s.settings.lang = b.dataset.lang; }); renderDruk(); };
+  });
+}
+
+// ---------- Друк як курс ----------
+
+// Вбудовані курси друку: уроки будуються з розкладки (course.js), тому файлу курсу в них немає
+const TYPING_COURSES = ['uk', 'en', 'ru'].map((lang) => ({ id: `druk-${lang}`, lang }));
+const typingTitle = (lang) => `Друк наосліп · ${LANG_NAMES[lang]}`;
+const typingOn = () => TYPING_COURSES.filter((c) => Courses.builtinOn(c.id));
+const typingDone = (lang) => lessons(lang).filter((l) => lessonState(l.id).done).length;
+
+function renderTypingCourse(lang) {
+  const list = lessons(lang);
+  const next = nextLesson(lang);
+  view().innerHTML = `
+    ${head(typingTitle(lang), '#kursy', `${list.length} уроків: основний ряд → верхній → нижній → знаки й цифри → текст`)}
+    <a class="btn primary big" href="#lesson/${lang}/${next.n}">${lessonState(next.id).parts.a ? 'Продовжити' : 'Почати'}: урок ${next.n}</a>
     <h2 class="section-title">Перш ніж почати</h2>
     <div class="theory-list">
       ${THEORY.map((t) => `<details class="fold"${t.id === 'home' && !lessonState(list[0].id).done ? ' open' : ''}><summary>${esc(t.title)}</summary><div class="prose">${blocksHtml(t.blocks)}${t.id === 'home' ? handsHtml(lang) + keyboardHtml(lang, { zones: true }) : ''}</div></details>`).join('')}
     </div>
-
-    <h2 class="section-title">Уроки: ${LANG_NAMES[lang].toLowerCase()} розкладка</h2>
+    <h2 class="section-title">Уроки</h2>
     <ol class="lessons">
       ${list.map((l) => {
         const s = lessonState(l.id);
@@ -96,9 +120,6 @@ function renderDruk() {
         </a></li>`;
       }).join('')}
     </ol>`;
-  view().querySelectorAll('[data-lang]').forEach((b) => {
-    b.onclick = () => { S.update((s) => { s.settings.lang = b.dataset.lang; }); renderDruk(); };
-  });
 }
 
 function resultHtml(r, passed) {
@@ -117,7 +138,7 @@ function resultHtml(r, passed) {
 function renderLesson(lang, n) {
   const list = lessons(lang);
   const lesson = list[Number(n) - 1];
-  if (!lesson) return go('druk');
+  if (!lesson) return go(`kurs/druk-${lang}`);
   const exs = exercisesFor(lang, lesson);
   const s = lessonState(lesson.id);
   let current = exs.find((e) => (s.parts[e.key]?.acc ?? 0) < PASS_ACC)?.key || 'a';
@@ -125,7 +146,7 @@ function renderLesson(lang, n) {
   const draw = () => {
     const state = lessonState(lesson.id);
     view().innerHTML = `
-      ${head(`Урок ${lesson.n}. ${lesson.title}`, '#druk', lesson.fresh.length ? `Нові клавіші: ${lesson.fresh.map((c) => `<kbd>${esc(c.toUpperCase())}</kbd>`).join(' ')}` : esc(lesson.note || ''))}
+      ${head(`Урок ${lesson.n}. ${lesson.title}`, `#kurs/druk-${lang}`, lesson.fresh.length ? `Нові клавіші: ${lesson.fresh.map((c) => `<kbd>${esc(c.toUpperCase())}</kbd>`).join(' ')}` : esc(lesson.note || ''))}
       <div class="parts">
         ${exs.map((e) => {
           const p = state.parts[e.key];
@@ -250,25 +271,40 @@ function srsHero() {
     </a>`;
 }
 
+function courseTile({ href, icon, title, subtitle, done, started, total, word }) {
+  return `<a class="tile course-tile" href="${href}">
+        <span class="course-ico">${iconSvg(icon)}</span>
+        <b>${esc(title)}</b>
+        <span class="muted">${esc(subtitle || '')}</span>
+        <span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>
+        <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small></a>`;
+}
+
 function renderCourses() {
   const list = Courses.enabled();
+  const typing = typingOn();
+  const tiles = [
+    ...typing.map(({ id, lang }) => {
+      const ls = lessons(lang);
+      return courseTile({ href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
+        done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' });
+    }),
+    ...list.map(({ id, pack }) => {
+      const p = courseProgress(id);
+      return courseTile({ href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
+        done: pack.units.filter((u) => unitDone(p[u.id], pack)).length, started: pack.units.filter((u) => p[u.id]).length, total: pack.units.length, word: 'тем' });
+    }),
+  ];
   view().innerHTML = `
     ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
     ${srsHero()}
-    ${list.length ? `<div class="tiles courses">${list.map(({ id, pack }) => {
-      const p = courseProgress(id);
-      const done = pack.units.filter((u) => unitDone(p[u.id], pack)).length;
-      const started = pack.units.filter((u) => p[u.id]).length;
-      return `<a class="tile course-tile" href="#kurs/${esc(id)}">
-        <b>${esc(pack.title)}</b>
-        <span class="muted">${esc(pack.subtitle || '')}</span>
-        <span class="course-meter" aria-label="Пройдено ${done} з ${pack.units.length}"><span style="width:${(done / pack.units.length) * 100}%"></span></span>
-        <small class="muted">${done ? `пройдено ${done} з ${pack.units.length}` : started ? `почато ${started} з ${pack.units.length}` : `${pack.units.length} тем`}</small></a>`;
-    }).join('')}</div>` : '<div class="card"><p>Курсів не ввімкнено.</p></div>'}
+    ${tiles.length ? `<div class="tiles courses">${tiles.join('')}</div>` : '<div class="card"><p>Курсів не ввімкнено.</p></div>'}
     <a class="btn" href="#settings/courses">Каталог курсів і курс із файлу</a>`;
 }
 
 function renderCourse(cid) {
+  const typing = TYPING_COURSES.find((c) => c.id === cid);
+  if (typing) return renderTypingCourse(typing.lang);
   const pack = Courses.get(cid);
   if (!pack) return go('kursy');
   const p = courseProgress(cid);
@@ -438,7 +474,6 @@ function renderProgress() {
   }
   const max = Math.max(1, ...days.map((d) => d.chars));
   const langs = ['uk', 'en', 'ru'];
-  const typingDone = (lang) => lessons(lang).filter((l) => lessonState(l.id).done).length;
   const c = SRS.counts(Courses.enabled());
   view().innerHTML = `
     ${head('Прогрес', '')}
@@ -454,7 +489,7 @@ function renderProgress() {
     </div>
     <h2 class="section-title">Курси</h2>
     <div class="card list">
-      ${langs.map((l) => `<div class="li"><span>Друк · ${LANG_NAMES[l]}</span><b>${typingDone(l)}/${lessons(l).length}</b></div>`).join('')}
+      ${langs.filter((l) => Courses.builtinOn(`druk-${l}`) || typingDone(l)).map((l) => `<div class="li"><span>${esc(typingTitle(l))}</span><b>${typingDone(l)}/${lessons(l).length}</b></div>`).join('')}
       ${Courses.enabled().map(({ id, pack }) => `<div class="li"><span>${esc(pack.title)}</span><b>${pack.units.filter((u) => unitDone(s.courses[id]?.[u.id], pack)).length}/${pack.units.length}</b></div>`).join('')}
       <div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>
     </div>
@@ -492,15 +527,15 @@ function renderSettings(section) {
         ${radio('theme', 'auto', 'Як у системі', s.theme)}${radio('theme', 'dark', 'Темна', s.theme)}${radio('theme', 'light', 'Світла', s.theme)}
       </fieldset>
     </form>
-    <div class="card stack" id="courses-card">
-      <h2>Курси</h2>
+    <details class="card stack fold-card" id="courses-card"${section === 'courses' ? ' open' : ''}>
+      <summary><h2>Курси</h2><span class="muted" id="courses-count"></span></summary>
       <div id="courses-installed" class="stack"></div>
       <h3 class="sub-title">Каталог</h3>
       <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
       <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json" hidden></label></div>
       <div id="courses-msg" class="muted" role="status"></div>
       <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>
-    </div>
+    </details>
     <div class="card stack" id="server-card">
       <h2>Синхронізація</h2>
       <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
@@ -571,12 +606,23 @@ function mountCourses() {
   const drawInstalled = () => {
     if (!$('courses-installed')) return;
     const list = Courses.list();
-    $('courses-installed').innerHTML = list.length ? list.map(({ id, pack, enabled, from }) => `
+    $('courses-count').textContent = `увімкнено ${typingOn().length + Courses.enabled().length} з ${TYPING_COURSES.length + list.length}`;
+    const typing = TYPING_COURSES.map(({ id, lang }) => `
+      <div class="course-row">
+        <label class="opt"><input type="checkbox" data-typing-on="${id}"${Courses.builtinOn(id) ? ' checked' : ''}>
+          <span class="course-ico small">${iconSvg('keyboard')}</span>
+          <span><b>${esc(typingTitle(lang))}</b><br><span class="muted small">${lessons(lang).length} уроків · вбудований</span></span></label>
+      </div>`).join('');
+    $('courses-installed').innerHTML = typing + (list.length ? list.map(({ id, pack, enabled, from }) => `
       <div class="course-row">
         <label class="opt"><input type="checkbox" data-course-on="${esc(id)}"${enabled ? ' checked' : ''}>
+          <span class="course-ico small">${iconSvg(pack.icon)}</span>
           <span><b>${esc(pack.title)}</b><br><span class="muted small">${pack.units.length} тем · ${from === 'file' ? 'з файлу' : 'з каталогу'}</span></span></label>
         <button type="button" class="btn danger" data-course-del="${esc(id)}">Видалити</button>
-      </div>`).join('') : '<p class="muted">Жодного курсу. Додайте з каталогу нижче.</p>';
+      </div>`).join('') : '<p class="muted">Жодного курсу з файлом. Додайте з каталогу нижче.</p>');
+    $('courses-installed').querySelectorAll('[data-typing-on]').forEach((c) => {
+      c.onchange = () => Courses.setBuiltin(c.dataset.typingOn, c.checked);
+    });
     $('courses-installed').querySelectorAll('[data-course-on]').forEach((c) => {
       c.onchange = () => Courses.setEnabled(c.dataset.courseOn, c.checked);
     });
@@ -596,7 +642,7 @@ function mountCourses() {
     const fresh = cat.filter((c) => !Courses.get(c.id));
     $('courses-catalog').innerHTML = fresh.length ? fresh.map((c) => `
       <div class="course-row">
-        <span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.subtitle || '')}${c.units ? ` · ${c.units} тем` : ''}</span></span>
+        <span class="opt"><span class="course-ico small">${iconSvg(c.icon)}</span><span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.subtitle || '')}${c.units ? ` · ${c.units} тем` : ''}</span></span></span>
         <button type="button" class="btn primary" data-course-add="${esc(c.id)}">Додати</button>
       </div>`).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>';
     $('courses-catalog').querySelectorAll('[data-course-add]').forEach((b) => {

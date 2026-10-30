@@ -2,10 +2,11 @@
  "format": "bukvoid-course",
  "v": 1,
  "id": "uk-pravopys",
- "version": 1,
+ "version": 2,
  "title": "Український правопис",
  "subtitle": "Мінімальний курс за Українським правописом 2019 року",
  "lang": "uk",
+ "icon": "pen",
  "author": "Буквоїд",
  "source": {
   "title": "Український правопис (2019)",

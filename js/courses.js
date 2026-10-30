@@ -2,6 +2,8 @@
 // Встановлені курси лежать в IndexedDB (localStorage на github.io спільний з іншими застосунками й малий).
 // Каталог — courses/index.json у репо; курс із файлу живе лише на цьому пристрої.
 
+import { ICONS } from './icons.js';
+
 const DB_NAME = 'bukvoid-courses';
 const STORE = 'packs';
 const CATALOG_URL = './courses/index.json';
@@ -26,6 +28,7 @@ export function validate(pack) {
   if (!ID_RE.test(pack.id ?? '')) err.push('id курсу — латиниця, цифри й дефіс, 2–40 знаків (напр. geometry-8).');
   if (!str(pack.title)) err.push('Немає назви курсу (title).');
   if (pack.lang && !['uk', 'en'].includes(pack.lang)) err.push('lang — uk або en (мова друку в курсі).');
+  if (pack.icon !== undefined && !ICONS.includes(pack.icon)) err.push(`icon — один зі значків: ${ICONS.join(', ')}.`);
   if (pack.pass !== undefined && !(typeof pack.pass === 'number' && pack.pass > 0 && pack.pass <= 1)) err.push('pass — частка правильних для «пройдено», від 0 до 1 (напр. 0.8).');
   if (!Array.isArray(pack.units) || !pack.units.length) err.push('Немає юнітів (units).');
   else if (pack.units.length > MAX_UNITS) err.push(`Забагато юнітів: ${pack.units.length}, можна до ${MAX_UNITS}.`);
@@ -95,6 +98,20 @@ export const list = () => [...installed.values()].sort((a, b) => (a.added || 0) 
 export const enabled = () => list().filter((x) => x.enabled);
 export const get = (id) => installed.get(id)?.pack ?? null;
 export const unit = (cid, uid) => get(cid)?.units.find((u) => u.id === uid) ?? null;
+
+// Вбудовані курси без файлу (друк — уроки з розкладки): лише «показувати чи ні», видалити не можна.
+// Російську розкладку типово сховано — російського курсу користувач не хоче, а друк лишається доступним.
+const OFF_KEY = 'bukvoid:courses-off';
+function off() {
+  try { const raw = localStorage.getItem(OFF_KEY); return new Set(raw ? JSON.parse(raw) : ['druk-ru']); } catch { return new Set(['druk-ru']); }
+}
+export const builtinOn = (id) => !off().has(id);
+export function setBuiltin(id, on) {
+  const ids = off();
+  if (on) ids.delete(id); else ids.add(id);
+  try { localStorage.setItem(OFF_KEY, JSON.stringify([...ids])); } catch { /* приватний режим */ }
+  window.dispatchEvent(new Event('courses-change'));
+}
 
 /** Курси, які людина видалила на цьому пристрої: самі вже не ставляться, навіть якщо є прогрес. */
 function removed() {

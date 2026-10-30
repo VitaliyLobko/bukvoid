@@ -4,30 +4,33 @@
  "courses": [
   {
    "id": "uk-pravopys",
-   "version": 1,
+   "version": 2,
    "title": "Український правопис",
    "subtitle": "Мінімальний курс за Українським правописом 2019 року",
    "units": 11,
    "file": "uk-pravopys.json",
-   "builtIn": true
+   "builtIn": true,
+   "icon": "pen"
   },
   {
    "id": "en-a2",
-   "version": 1,
+   "version": 2,
    "title": "English A2 · Elementary",
    "subtitle": "Основа: правило, приклади з озвученням, фрази в колоді повторення",
    "units": 12,
    "file": "en-a2.json",
-   "builtIn": true
+   "builtIn": true,
+   "icon": "languages"
   },
   {
    "id": "en-b1",
-   "version": 1,
+   "version": 2,
    "title": "English B1 · Intermediate",
    "subtitle": "Робоча англійська: правило, приклади з озвученням, фрази в колоді повторення",
    "units": 12,
    "file": "en-b1.json",
-   "builtIn": true
+   "builtIn": true,
+   "icon": "languages"
   }
  ]
 }
