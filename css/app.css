@@ -128,14 +128,11 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .tabs a svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .tabs a.on { color: var(--accent); }
 .tabs a > span { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Поточний курс — посередині й помітніше за сусідів */
-.tabs a.tab-current { min-width: 0; color: var(--text); }
-.tabs a.tab-current svg { box-sizing: content-box; padding: 7px; margin-top: -6px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
-.tabs a.tab-current.on { color: var(--accent); }
+/* Поточний курс — посередині, виглядає як сусідні вкладки; довга назва обрізається */
+.tabs a.tab-current { min-width: 0; }
 
 @media (min-width: 900px) {
   .tabs a.tab-current { max-width: 260px; }
-  .tabs a.tab-current svg { padding: 0; margin: 0; background: none; color: inherit; }
   body { padding-bottom: 32px; }
   .tabs { position: static; display: flex; background: none; border: 0; padding: 0; gap: 2px; }
   .tabs a { height: 40px; flex-direction: row; padding: 0 12px; border-radius: 10px; font-size: calc(14px * var(--fs)); gap: 7px; }

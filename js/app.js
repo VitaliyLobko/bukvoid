@@ -373,7 +373,7 @@ function renderCourseUnit(cid, uid) {
     <div class="card pairs">${t.words.map((w) => pairHtml(`<b>${esc(w.en)}</b>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}`, esc(w.uk), w.ex || w.en, lang)).join('')}</div>` : ''}
     ${t.media?.length ? `<h2 class="section-title" id="u-media">Відео й матеріали</h2><div class="media">${t.media.map((m) => `<a class="tile" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
     ${t.exercises.length ? '<h2 class="section-title" id="u-test">Тест</h2><div id="quiz" class="card"></div>' : ''}
-    <h2 class="section-title" id="u-typing">${lang === 'en' ? 'Надрукуйте фрази' : 'Надрукуйте правильно'}</h2>
+    <h2 class="section-title" id="u-typing">${lang === 'en' ? 'Надрукуйте фрази' : cid === S.SPELLING_COURSE ? 'Надрукуйте правильно' : 'Надрукуйте головне'}</h2>
     <div id="typer" class="card"></div><div id="after"></div>
     ${next ? `<a class="btn next-topic" href="#k/${esc(cid)}/${esc(next.id)}">Наступна тема: ${esc(next.title)} ›</a>` : ''}`;
   view().querySelectorAll('[data-say]').forEach((b) => { b.onclick = () => speak(b.dataset.say); });
@@ -903,7 +903,8 @@ function drawCurrentTab() {
   a.href = `#kurs/${id}`;
   a.title = title;
   a.setAttribute('aria-label', `Поточний курс: ${title}`);
-  a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(title)}</span>`;
+  // У панелі коротко: «Друк · Українська» — повна назва на вузькому екрані обрізалась би
+  a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(typing ? `Друк · ${LANG_NAMES[typing.lang]}` : title)}</span>`;
 }
 
 function route() {
