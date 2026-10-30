@@ -115,7 +115,7 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(3, 1fr);
   background: var(--surface);
   border-top: 1px solid var(--line);
   padding: 0 max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
@@ -370,7 +370,7 @@ th { color: var(--muted); font-weight: 600; font-size: calc(13px * var(--fs)); }
 .result { padding: 16px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); }
 .result.pass { border-color: var(--good); }
 .result.fail { border-color: var(--bad); }
-.result-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.result-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .result-nums div { display: flex; flex-direction: column; }
 .result-nums b { font: 700 calc(26px * var(--fs)) var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .result-nums span { color: var(--muted); font-size: calc(12px * var(--fs)); }

@@ -5,8 +5,9 @@
 const DB_NAME = 'bukvoid-courses';
 const STORE = 'packs';
 const CATALOG_URL = './courses/index.json';
-// Без жодного встановленого курсу ці ставляться самі
-const DEFAULTS = ['uk-pravopys'];
+// Ставляться самі, доки людина їх не видалила (видалення пам'ятає цей пристрій)
+const DEFAULTS = ['uk-pravopys', 'en-a2', 'en-b1'];
+const REMOVED_KEY = 'bukvoid:courses-removed';
 const MAX_UNITS = 200;
 const MAX_BYTES = 3_000_000;
 
@@ -25,6 +26,7 @@ export function validate(pack) {
   if (!ID_RE.test(pack.id ?? '')) err.push('id курсу — латиниця, цифри й дефіс, 2–40 знаків (напр. geometry-8).');
   if (!str(pack.title)) err.push('Немає назви курсу (title).');
   if (pack.lang && !['uk', 'en'].includes(pack.lang)) err.push('lang — uk або en (мова друку в курсі).');
+  if (pack.pass !== undefined && !(typeof pack.pass === 'number' && pack.pass > 0 && pack.pass <= 1)) err.push('pass — частка правильних для «пройдено», від 0 до 1 (напр. 0.8).');
   if (!Array.isArray(pack.units) || !pack.units.length) err.push('Немає юнітів (units).');
   else if (pack.units.length > MAX_UNITS) err.push(`Забагато юнітів: ${pack.units.length}, можна до ${MAX_UNITS}.`);
   const ids = new Set();
@@ -43,7 +45,8 @@ export function validate(pack) {
       else if (key === 'table' && !(Array.isArray(b.table) && b.table.length > 1 && b.table.every((r) => Array.isArray(r) && r.every((c) => typeof c === 'string')))) err.push(`${at}, теорія ${k + 1}: table — рядки з комірок-рядків, перший — заголовок.`);
       else if (!['ul', 'table'].includes(key) && !str(b[key])) err.push(`${at}, теорія ${k + 1}: порожній текст.`);
     });
-    if (u.examples && !(Array.isArray(u.examples) && u.examples.every((x) => str(x) || (x && str(x.w))))) err.push(`${at}: examples — рядки або {w, note}.`);
+    if (u.examples && !(Array.isArray(u.examples) && u.examples.every((x) => str(x) || (x && (str(x.w) || (str(x.en) && str(x.uk))))))) err.push(`${at}: examples — рядки, {w, note} або {en, uk}.`);
+    if (u.words && !(Array.isArray(u.words) && u.words.every((w) => w && str(w.en) && str(w.uk) && (w.ex === undefined || str(w.ex))))) err.push(`${at}: words — фрази {en, uk, ex?} для повторення.`);
     if (u.typing && !(Array.isArray(u.typing) && u.typing.every(str))) err.push(`${at}: typing — список речень.`);
     if (u.media && !(Array.isArray(u.media) && u.media.every((m) => m && str(m.title) && /^https:\/\//.test(m.url ?? '')))) err.push(`${at}: media — {title, url https://…}.`);
     if (!Array.isArray(u.exercises)) err.push(`${at}: exercises має бути списком.`);
@@ -93,7 +96,18 @@ export const enabled = () => list().filter((x) => x.enabled);
 export const get = (id) => installed.get(id)?.pack ?? null;
 export const unit = (cid, uid) => get(cid)?.units.find((u) => u.id === uid) ?? null;
 
+/** Курси, які людина видалила на цьому пристрої: самі вже не ставляться, навіть якщо є прогрес. */
+function removed() {
+  try { return new Set(JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]')); } catch { return new Set(); }
+}
+function markRemoved(id, on) {
+  const ids = removed();
+  if (on) ids.add(id); else ids.delete(id);
+  try { localStorage.setItem(REMOVED_KEY, JSON.stringify([...ids])); } catch { /* приватний режим */ }
+}
+
 async function put(rec) {
+  markRemoved(rec.id, false);
   await tx('readwrite', (s) => s.put(rec));
   installed.set(rec.id, rec);
   window.dispatchEvent(new Event('courses-change'));
@@ -145,13 +159,15 @@ export async function setEnabled(id, on) {
 }
 
 export async function remove(id) {
+  markRemoved(id, true);
   await tx('readwrite', (s) => s.delete(id));
   installed.delete(id);
   window.dispatchEvent(new Event('courses-change'));
 }
 
 /**
- * Перед першим екраном: встановлені — в пам'ять; нічого немає — курси за замовчуванням.
+ * Перед першим екраном: встановлені — в пам'ять, курси за замовчуванням, яких бракує, — ставляться
+ * (на 0.1.4 стояв лише правопис — англійська з'являється сама).
  * Далі, у фоні: курси каталогу з новішою версією оновлюються, а ті, де є прогрес з іншого пристрою, — ставляться.
  */
 export async function ready() {
@@ -159,19 +175,19 @@ export async function ready() {
     const all = await tx('readonly', (s) => s.getAll());
     for (const rec of all ?? []) installed.set(rec.id, rec);
   } catch { /* IndexedDB недоступна (приватний режим) — курси підтягнуться з мережі */ }
-  if (!installed.size) {
-    for (const id of DEFAULTS) await install(id).catch(() => {});
-  }
+  const skip = removed();
+  for (const id of DEFAULTS) if (!installed.has(id) && !skip.has(id)) await install(id).catch(() => {});
 }
 
-/** Фоново: новіші версії з каталогу й курси, по яких є прогрес (прийшов з іншого пристрою). */
+/** Фоново: новіші версії з каталогу; вбудовані й ті, по яких є прогрес з іншого пристрою, — якщо їх тут не видаляли. */
 export async function refresh(progressIds = []) {
   const cat = await catalog();
   if (!cat) return;
+  const skip = removed();
   for (const c of cat) {
     const rec = installed.get(c.id);
     const stale = rec?.from === 'catalog' && (rec.pack.version || 0) < (c.version || 0);
-    const wanted = !rec && progressIds.includes(c.id);
+    const wanted = !rec && !skip.has(c.id) && (c.builtIn || progressIds.includes(c.id));
     if (stale || wanted) await install(c.id).catch(() => {});
   }
 }

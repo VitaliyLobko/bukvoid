@@ -94,8 +94,8 @@ const SRS_UNIT = (id) => id.slice(0, id.indexOf(':'));
 function pieces() {
   const s = S.get();
   const { epoch = 0 } = s;
-  // spelling — копія правопису для пристроїв на 0.1.x
-  const out = { core: { epoch, typing: s.typing, courses: s.courses, spelling: s.courses[S.SPELLING_COURSE] ?? {}, english: s.english } };
+  // spelling і english — копії курсів для пристроїв на старих версіях
+  const out = { core: { epoch, typing: s.typing, courses: s.courses, ...S.legacyMirrors() } };
   const units = {};
   for (const [id, c] of Object.entries(s.srs)) (units[SRS_UNIT(id)] ||= {})[id] = c;
   for (const [u, srs] of Object.entries(units)) out[`srs:${u}`] = { epoch, srs };

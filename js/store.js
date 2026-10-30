@@ -6,6 +6,9 @@ const KEY = 'bukvoid:state';
 const DEVICE_KEY = 'bukvoid:device';
 // Правопис до курсів (0.1.x) — поле spelling; тепер це курс uk-pravopys
 export const SPELLING_COURSE = 'uk-pravopys';
+// Англійська до курсів (0.1.4 і раніше) — поле english; юніти a2-… і b1-… тепер у курсах en-a2 і en-b1
+export const ENGLISH_COURSES = ['en-a2', 'en-b1'];
+const englishCourse = (unitId) => `en-${String(unitId).slice(0, 2)}`;
 
 export const device = (() => {
   try {
@@ -22,10 +25,9 @@ const emptyDev = () => ({ keys: {}, days: {}, chars: 0, ms: 0, sessions: 0, best
 const empty = () => ({
   v: 2,
   epoch: 0,       // мітка «Стерти» чи відновлення з копії: новіша епоха замінює все старе
-  settings: { theme: 'auto', lang: 'uk', mode: 'stop', keyboard: true, level: 'a2', fontSize: 'm' },
+  settings: { theme: 'auto', lang: 'uk', mode: 'stop', keyboard: true, fontSize: 'm' },
   typing: {},     // 'uk:3' → {parts: {a: {acc, cpm}}, done}
-  courses: {},    // курс → юніт → {best, total, at} (правопис до 0.2 — у spelling, див. foldSpelling)
-  english: {},    // unitId → {best, total, at}
+  courses: {},    // курс → юніт → {best, total, at} (до курсів — spelling і english, див. foldLegacy)
   srs: {},        // cardId → {box, due, at}
   dev: {},        // пристрій → {keys: {uk: {'п': {n, e, t}}}, days: {дата: {chars, ms, errors}}, chars, ms, sessions, bestCpm}
 });
@@ -44,18 +46,21 @@ function load() {
   return empty();
 }
 
-/** spelling старої версії → courses[uk-pravopys]: найкращий бал з обох. */
-function foldSpelling(x) {
-  const old = x.spelling;
+/** Поля старих версій → courses: spelling → uk-pravopys, english → en-a2 / en-b1; найкращий бал з обох. */
+function foldLegacy(x) {
   const courses = { ...x.courses };
-  if (old && Object.keys(old).length) courses[SPELLING_COURSE] = mergeMap(courses[SPELLING_COURSE], old, bestOf);
-  const { spelling, ...rest } = x;
+  const fold = (cid, old) => { courses[cid] = mergeMap(courses[cid], old, bestOf); };
+  if (x.spelling && Object.keys(x.spelling).length) fold(SPELLING_COURSE, x.spelling);
+  for (const [uid, r] of Object.entries(x.english ?? {})) {
+    if (ENGLISH_COURSES.includes(englishCourse(uid))) fold(englishCourse(uid), { [uid]: r });
+  }
+  const { spelling, english, ...rest } = x;
   return { ...rest, courses };
 }
 
 function normalize(raw) {
   const def = empty();
-  return foldSpelling({ ...def, ...raw, settings: { ...def.settings, ...raw.settings } });
+  return foldLegacy({ ...def, ...raw, settings: { ...def.settings, ...raw.settings } });
 }
 
 /** 0.1.0 тримав лічильники спільно — переносимо їх на цей пристрій. */
@@ -180,7 +185,7 @@ export function recordPassed(lessonId) {
 // ---------- злиття двох копій (цей пристрій і Google Диск) ----------
 
 const better = (a, b) => (!a ? b : !b ? a : (b.acc > a.acc || (b.acc === a.acc && b.cpm > a.cpm)) ? b : a);
-// Функція, не const: потрібна вже під час load() (foldSpelling), до цього рядка
+// Функція, не const: потрібна вже під час load() (foldLegacy), до цього рядка
 function bestOf(a, b) {
   return !a ? b : !b ? a : (b.best > a.best || (b.best === a.best && (b.at || '') > (a.at || ''))) ? b : a;
 }
@@ -196,8 +201,9 @@ function mergeMap(a = {}, b = {}, pick) {
 }
 
 /** Синхронізовані частини; налаштування лишаються свої на кожному пристрої. */
-export function merge(local, remote) {
-  if (!remote) return local;
+export function merge(localRaw, remote) {
+  if (!remote) return localRaw;
+  const local = foldLegacy(localRaw);
   const le = local.epoch || 0;
   const re = remote.epoch || 0;
   if (re > le) return { ...normalize(remote), settings: local.settings };
@@ -210,18 +216,22 @@ export function merge(local, remote) {
   return {
     ...local,
     typing,
-    courses: mergeMap(local.courses, foldSpelling(remote).courses, (a, b) => mergeMap(a, b, bestOf)),
-    english: mergeMap(local.english, remote.english, bestOf),
+    courses: mergeMap(local.courses, foldLegacy(remote).courses, (a, b) => mergeMap(a, b, bestOf)),
     srs: mergeMap(local.srs, remote.srs, newer),
     dev: mergeMap(local.dev, remote.dev, fuller),
   };
 }
 
+/** Копії курсів у старих полях — для пристроїв на старих версіях: 0.1.x знають лише spelling і english. */
+export const legacyMirrors = () => ({
+  spelling: state.courses[SPELLING_COURSE] ?? {},
+  english: Object.assign({}, ...ENGLISH_COURSES.map((cid) => state.courses[cid] ?? {})),
+});
+
 /** Частина стану, що їде на Диск. */
 export const synced = () => {
   const { settings, ...rest } = state;
-  // Копія правопису в старому полі — для пристроїв, що ще на 0.1.x (вони знають лише spelling)
-  return { ...rest, spelling: state.courses[SPELLING_COURSE] ?? {} };
+  return { ...rest, ...legacyMirrors() };
 };
 
 /** Найкращий результат тесту юніту курсу. */

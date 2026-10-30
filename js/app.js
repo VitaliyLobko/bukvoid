@@ -8,16 +8,13 @@ import * as SRS from './srs.js';
 import * as Sync from './sync.js';
 import * as Bot from './bot.js';
 import * as Courses from './courses.js';
-import A2 from './data/en-a2.js';
-import B1 from './data/en-b1.js';
 
-const LEVELS = [A2, B1];
 const $ = (id) => document.getElementById(id);
 const view = () => $('view');
 const st = () => S.get();
 const set = () => st().settings;
 
-const TABS = { druk: 'druk', lesson: 'druk', free: 'druk', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'english', unit: 'english', srs: 'english', progress: 'progress', settings: 'settings' };
+const TABS = { druk: 'druk', lesson: 'druk', free: 'druk', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', progress: 'progress', settings: 'settings' };
 
 const PRAISE = ['Смачно! Буквоїд ситий.', 'Чисто, як у відмінника в зошиті.', 'Літери з\'їдено без кісточок.', 'Рівно й без поспіху — саме так.'];
 const SCOLD = ['Буквоїд вдавився: забагато помилок. Повільніше — і ще раз.', 'Поспіх — ворог точності. Спробуйте на третину повільніше.', 'Пальці випередили голову. Пригальмуйте й повторіть.'];
@@ -236,16 +233,31 @@ function renderFree(kind) {
 
 // ---------- Курси ----------
 
-const unitDone = (r) => r && r.best === r.total;
+// «Пройдено» — частка правильних не нижче pass курсу (англійська — 0.8, як до курсів; типово — без помилок)
+const unitDone = (r, pack) => Boolean(r?.total) && r.best / r.total >= (pack?.pass ?? 1);
 const courseProgress = (cid) => st().courses[cid] ?? {};
+
+/** Колода повторення: показується, коли в увімкнених курсах є фрази. */
+function srsHero() {
+  const packs = Courses.enabled();
+  if (!packs.some(({ pack }) => pack.units.some((u) => u.words?.length))) return '';
+  const c = SRS.counts(packs);
+  return `<a class="hero srs-card" href="#srs">
+      <div class="hero-main"><div class="eyebrow">Повторення фраз</div>
+      <div class="hero-num">${c.due}<small> на сьогодні</small></div>
+      <div class="muted">${c.total ? `у колоді ${c.total}, вивчено ${c.learned}` : 'Відкрийте тему англійської — її фрази додадуться в колоду'}</div></div>
+      <span class="btn primary big">${c.due ? 'Повторити' : 'Колода'}</span>
+    </a>`;
+}
 
 function renderCourses() {
   const list = Courses.enabled();
   view().innerHTML = `
     ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
+    ${srsHero()}
     ${list.length ? `<div class="tiles courses">${list.map(({ id, pack }) => {
       const p = courseProgress(id);
-      const done = pack.units.filter((u) => unitDone(p[u.id])).length;
+      const done = pack.units.filter((u) => unitDone(p[u.id], pack)).length;
       const started = pack.units.filter((u) => p[u.id]).length;
       return `<a class="tile course-tile" href="#kurs/${esc(id)}">
         <b>${esc(pack.title)}</b>
@@ -265,9 +277,9 @@ function renderCourse(cid) {
     <ol class="lessons topics">
       ${pack.units.map((u, i) => {
         const r = p[u.id];
-        return `<li><a href="#k/${esc(cid)}/${esc(u.id)}" class="${unitDone(r) ? 'done' : ''}">
+        return `<li><a href="#k/${esc(cid)}/${esc(u.id)}" class="${unitDone(r, pack) ? 'done' : ''}">
           <span class="num">${i + 1}</span>
-          <span class="l-title">${esc(u.title)}<span class="muted small">${esc(u.source || '')}</span></span>
+          <span class="l-title">${esc(u.title)}<span class="muted small">${esc(u.topic || u.source || '')}</span></span>
           <span class="l-state">${r ? `${r.best}/${r.total}` : ''}</span></a></li>`;
       }).join('')}
     </ol>
@@ -278,21 +290,42 @@ function examplesHtml(list) {
   return `<div class="examples">${list.map((x) => (typeof x === 'string' ? `<span class="ex">${esc(x)}</span>` : `<span class="ex" title="${esc(x.note || '')}">${esc(x.w)}${x.note ? `<small>${esc(x.note)}</small>` : ''}</span>`)).join('')}</div>`;
 }
 
+/** Пара «англійською — українською»; озвучення — лише в англійських курсах. */
+function pairHtml(en, uk, say, lang) {
+  return `<div class="pair">${lang === 'en' ? `<button type="button" class="say" data-say="${esc(say)}" aria-label="Озвучити">${SPEAKER}</button>` : ''}<span class="en">${en}</span><span class="uk muted">${uk}</span></div>`;
+}
+
 function renderCourseUnit(cid, uid) {
   const pack = Courses.get(cid);
   const i = pack ? pack.units.findIndex((u) => u.id === uid) : -1;
   if (i < 0) return go(pack ? `kurs/${cid}` : 'kursy');
   const t = pack.units[i];
   const next = pack.units[i + 1];
+  const lang = pack.lang || 'uk';
+  SRS.enroll(cid, t);
+  const pairs = t.examples?.length && t.examples.every((x) => x && typeof x === 'object' && x.en);
+  // Зміст — для довгих тем, де, крім правила й тесту, є фрази чи відео
+  const toc = [['u-theory', 'Правило'], t.examples?.length && ['u-examples', 'Приклади'], t.words?.length && ['u-words', 'Фрази'],
+    t.media?.length && ['u-media', 'Відео й аудіо'], t.exercises.length && ['u-test', 'Тест'], t.typing?.length && ['u-typing', 'Друк']].filter(Boolean);
   view().innerHTML = `
-    ${head(t.title, `#kurs/${esc(cid)}`, esc(t.goal || ''))}
-    <article class="prose card">${blocksHtml(t.theory)}</article>
-    ${t.examples?.length ? `<h2 class="section-title">Приклади</h2>${examplesHtml(t.examples)}` : ''}
-    ${t.media?.length ? `<h2 class="section-title">Відео й матеріали</h2><div class="media">${t.media.map((m) => `<a class="tile" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
-    ${t.exercises.length ? '<h2 class="section-title">Тест</h2><div id="quiz" class="card"></div>' : ''}
-    <h2 class="section-title">Надрукуйте правильно</h2>
+    ${head(t.title, `#kurs/${esc(cid)}`, esc(t.topic ? `${t.topic} · ${pack.title}` : t.goal || ''))}
+    ${t.topic && t.goal ? `<p class="goal">${inline(t.goal)}</p>` : ''}
+    ${t.words?.length || t.media?.length ? `<nav class="toc">${toc.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav>` : ''}
+    <article class="prose card" id="u-theory">${blocksHtml(t.theory)}</article>
+    ${t.examples?.length ? `<h2 class="section-title" id="u-examples">Приклади</h2>${pairs
+    ? `<div class="card pairs">${t.examples.map((x) => pairHtml(inline(x.en), inline(x.uk), x.en, lang)).join('')}</div>`
+    : examplesHtml(t.examples)}` : ''}
+    ${t.words?.length ? `<h2 class="section-title" id="u-words">Фрази теми <span class="muted">уже в колоді повторення</span></h2>
+    <div class="card pairs">${t.words.map((w) => pairHtml(`<b>${esc(w.en)}</b>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}`, esc(w.uk), w.ex || w.en, lang)).join('')}</div>` : ''}
+    ${t.media?.length ? `<h2 class="section-title" id="u-media">Відео й матеріали</h2><div class="media">${t.media.map((m) => `<a class="tile" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
+    ${t.exercises.length ? '<h2 class="section-title" id="u-test">Тест</h2><div id="quiz" class="card"></div>' : ''}
+    <h2 class="section-title" id="u-typing">${lang === 'en' ? 'Надрукуйте фрази' : 'Надрукуйте правильно'}</h2>
     <div id="typer" class="card"></div><div id="after"></div>
     ${next ? `<a class="btn next-topic" href="#k/${esc(cid)}/${esc(next.id)}">Наступна тема: ${esc(next.title)} ›</a>` : ''}`;
+  view().querySelectorAll('[data-say]').forEach((b) => { b.onclick = () => speak(b.dataset.say); });
+  view().querySelectorAll('.toc a').forEach((a) => {
+    a.onclick = (e) => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' }); };
+  });
   if (t.exercises.length) {
     mountQuiz($('quiz'), t.exercises, {
       onTime: (ms) => S.recordStudyTime(ms),
@@ -302,7 +335,7 @@ function renderCourseUnit(cid, uid) {
       },
     });
   }
-  typingBlock(t.typing, pack.lang || 'uk');
+  typingBlock(t.typing, lang);
 }
 
 /** Друк речень теми: закріплює і правопис, і руку. */
@@ -321,81 +354,7 @@ function typingBlock(sentences, lang) {
   $('start-typing').onclick = start;
 }
 
-// ---------- English ----------
-
-function renderEnglish() {
-  const level = LEVELS.find((l) => l.id === set().level) || LEVELS[0];
-  const c = SRS.counts(LEVELS);
-  view().innerHTML = `
-    ${head('English', '', 'Два рівні: від основи до робочої англійської')}
-    <a class="hero srs-card" href="#srs">
-      <div class="hero-main"><div class="eyebrow">Повторення фраз</div>
-      <div class="hero-num">${c.due}<small> на сьогодні</small></div>
-      <div class="muted">${c.total ? `у колоді ${c.total}, вивчено ${c.learned}` : 'Відкрийте юніт — його фрази додадуться в колоду'}</div></div>
-      <span class="btn primary big">${c.due ? 'Повторити' : 'Колода'}</span>
-    </a>
-    <div class="seg" role="tablist" aria-label="Рівень">
-      ${LEVELS.map((l) => `<button type="button" role="tab" class="${l === level ? 'on' : ''}" data-level="${l.id}">${esc(l.title)}<small>${esc(l.subtitle || '')}</small></button>`).join('')}
-    </div>
-    <ol class="lessons units">
-      ${level.units.map((u, i) => {
-        const r = st().english[u.id];
-        return `<li><a href="#unit/${u.id}" class="${r && r.best / r.total >= 0.8 ? 'done' : ''}">
-          <span class="num">${i + 1}</span>
-          <span class="l-title">${esc(u.title)}<span class="muted small">${esc(u.topic || '')}</span></span>
-          <span class="l-state">${r ? `${r.best}/${r.total}` : ''}</span></a></li>`;
-      }).join('')}
-    </ol>`;
-  view().querySelectorAll('[data-level]').forEach((b) => {
-    b.onclick = () => { S.update((s) => { s.settings.level = b.dataset.level; }); renderEnglish(); };
-  });
-}
-
-function findUnit(id) {
-  for (const level of LEVELS) {
-    const i = level.units.findIndex((u) => u.id === id);
-    if (i >= 0) return { level, unit: level.units[i], next: level.units[i + 1] };
-  }
-  return {};
-}
-
-function renderUnit(id) {
-  const { level, unit, next } = findUnit(id);
-  if (!unit) return go('english');
-  SRS.enroll(unit);
-  view().innerHTML = `
-    ${head(unit.title, '#english', `${esc(unit.topic || '')}, рівень ${esc(level.title)}`)}
-    ${unit.goal ? `<p class="goal">${inline(unit.goal)}</p>` : ''}
-    <nav class="toc">
-      <a href="#u-theory">Правило</a><a href="#u-examples">Приклади</a><a href="#u-words">Фрази</a>${unit.media?.length ? '<a href="#u-media">Відео й аудіо</a>' : ''}<a href="#u-test">Тест</a><a href="#u-typing">Друк</a>
-    </nav>
-    <article class="prose card" id="u-theory">${blocksHtml(unit.theory)}</article>
-    <h2 class="section-title" id="u-examples">Приклади</h2>
-    <div class="card pairs">${unit.examples.map((x) => `<div class="pair"><button type="button" class="say" data-say="${esc(x.en)}" aria-label="Озвучити">${SPEAKER}</button><span class="en">${inline(x.en)}</span><span class="uk muted">${inline(x.uk)}</span></div>`).join('')}</div>
-    <h2 class="section-title" id="u-words">Фрази юніту <span class="muted">уже в колоді повторення</span></h2>
-    <div class="card pairs">${unit.words.map((w) => `<div class="pair"><button type="button" class="say" data-say="${esc(w.ex || w.en)}" aria-label="Озвучити">${SPEAKER}</button><span class="en"><b>${esc(w.en)}</b>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}</span><span class="uk muted">${esc(w.uk)}</span></div>`).join('')}</div>
-    ${unit.media?.length ? `<h2 class="section-title" id="u-media">Відео й аудіо</h2><div class="media">${unit.media.map((m) => `<a class="tile" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
-    <h2 class="section-title" id="u-test">Тест</h2>
-    <div id="quiz" class="card"></div>
-    <h2 class="section-title" id="u-typing">Надрукуйте фрази</h2>
-    <div id="typer" class="card"></div><div id="after"></div>
-    ${next ? `<a class="btn next-topic" href="#unit/${next.id}">Наступний юніт: ${esc(next.title)} ›</a>` : ''}`;
-  view().querySelectorAll('[data-say]').forEach((b) => { b.onclick = () => speak(b.dataset.say); });
-  view().querySelectorAll('.toc a').forEach((a) => {
-    a.onclick = (e) => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' }); };
-  });
-  mountQuiz($('quiz'), unit.exercises, {
-    onTime: (ms) => S.recordStudyTime(ms),
-    onDone: (score, total) => {
-      S.update((s) => {
-        const prev = s.english[unit.id];
-        s.english[unit.id] = { best: Math.max(prev?.best ?? 0, score), total, at: S.today() };
-      });
-      S.recordTest(`en:${unit.id}`, score, total);
-    },
-  });
-  typingBlock(unit.typing, 'en');
-}
+// ---------- Повторення фраз ----------
 
 // Відео — лише YouTube; сторінки British Council чи BBC — це уроки з текстом і тестом
 const mediaLabel = (m) => (m.kind === 'audio' ? 'Аудіо' : /youtube\.com|youtu\.be/.test(m.url) ? 'Відео' : 'Урок онлайн');
@@ -409,21 +368,22 @@ function maskPhrase(ex, en) {
 }
 
 function renderSrs() {
-  const queue = SRS.dueCards(LEVELS).sort(() => Math.random() - 0.5);
+  const packs = Courses.enabled();
+  const queue = SRS.dueCards(packs).sort(() => Math.random() - 0.5);
   const graded = new Set();
   let done = 0;
   let ok = 0;
   const show = () => {
     const card = queue[0];
     if (!card) {
-      const c = SRS.counts(LEVELS);
-      view().innerHTML = `${head('Повторення фраз', '#english')}<div class="card quiz summary">
+      const c = SRS.counts(packs);
+      view().innerHTML = `${head('Повторення фраз', '#kursy')}<div class="card quiz summary">
         <div class="big-score">${done ? `${ok}<small> / ${done}</small>` : '0'}</div>
-        <p>${done ? 'На сьогодні все. Наступні фрази повернуться в потрібний день — так вони переходять у довгу пам\'ять.' : c.total ? 'Сьогодні повторювати нічого. Завтра колода покаже нові.' : 'Колода порожня: відкрийте будь-який юніт англійської — його фрази додадуться сюди.'}</p>
-        <a class="btn primary" href="#english">До юнітів</a></div>`;
+        <p>${done ? 'На сьогодні все. Наступні фрази повернуться в потрібний день — так вони переходять у довгу пам\'ять.' : c.total ? 'Сьогодні повторювати нічого. Завтра колода покаже нові.' : 'Колода порожня: відкрийте будь-яку тему англійської — її фрази додадуться сюди.'}</p>
+        <a class="btn primary" href="#kursy">До курсів</a></div>`;
       return;
     }
-    view().innerHTML = `${head('Повторення фраз', '#english', `лишилось ${queue.length} · коробка ${card.box + 1} з 7`)}
+    view().innerHTML = `${head('Повторення фраз', '#kursy', `лишилось ${queue.length} · коробка ${card.box + 1} з 7`)}
       <div class="card quiz">
         <div class="q-meta muted">${esc(card.unit.title)}</div>
         <div class="q-text">${esc(card.word.uk)}</div>
@@ -479,8 +439,7 @@ function renderProgress() {
   const max = Math.max(1, ...days.map((d) => d.chars));
   const langs = ['uk', 'en', 'ru'];
   const typingDone = (lang) => lessons(lang).filter((l) => lessonState(l.id).done).length;
-  const enDone = LEVELS.map((l) => `${l.title}: ${l.units.filter((u) => s.english[u.id]).length}/${l.units.length}`).join(' · ');
-  const c = SRS.counts(LEVELS);
+  const c = SRS.counts(Courses.enabled());
   view().innerHTML = `
     ${head('Прогрес', '')}
     <div class="stat-grid">
@@ -496,8 +455,7 @@ function renderProgress() {
     <h2 class="section-title">Курси</h2>
     <div class="card list">
       ${langs.map((l) => `<div class="li"><span>Друк · ${LANG_NAMES[l]}</span><b>${typingDone(l)}/${lessons(l).length}</b></div>`).join('')}
-      ${Courses.enabled().map(({ id, pack }) => `<div class="li"><span>${esc(pack.title)}</span><b>${pack.units.filter((u) => s.courses[id]?.[u.id]).length}/${pack.units.length}</b></div>`).join('')}
-      <div class="li"><span>English</span><b>${enDone}</b></div>
+      ${Courses.enabled().map(({ id, pack }) => `<div class="li"><span>${esc(pack.title)}</span><b>${pack.units.filter((u) => unitDone(s.courses[id]?.[u.id], pack)).length}/${pack.units.length}</b></div>`).join('')}
       <div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>
     </div>
     <h2 class="section-title">Слабкі клавіші</h2>
@@ -805,7 +763,8 @@ function testTitle(id) {
     const [cid, uid] = key.split('/');
     return Courses.unit(cid, uid)?.title ?? uid;
   }
-  return `English: ${findUnit(key).unit?.title ?? key}`;
+  // en:a2-01 — тест англійської до курсів
+  return `English: ${Courses.unit(`en-${key.slice(0, 2)}`, key)?.title ?? key}`;
 }
 
 /** День для бота: хвилини друку й тестів, швидкість і точність, назви пройденого. */
@@ -828,11 +787,12 @@ function studyPayload() {
   for (const dev of Object.values(st().dev)) for (const d of Object.keys(dev.days)) if (d >= from) dates.add(d);
   const lang = set().lang;
   const all = ['uk', 'en'].flatMap((l) => lessons(l));
-  const c = SRS.counts(LEVELS);
+  const packs = Courses.enabled();
+  const c = SRS.counts(packs);
   return {
     from,
     days: [...dates].sort().map(studyDay),
-    srs: { due: SRS.dueForecast(LEVELS), total: c.total, learned: c.learned },
+    srs: { due: SRS.dueForecast(packs), total: c.total, learned: c.learned },
     weak: weakKeys(S.keyStats(lang), 6).map((w) => w.ch),
     lessons: { done: all.filter((l) => st().typing[l.id]?.done).length, total: all.length },
   };
@@ -843,7 +803,7 @@ const STUDY_SHARE = 'vitaliylobko:study-today';
 
 function shareToday() {
   const d = studyDay(S.today());
-  const due = SRS.dueForecast(LEVELS, 1)[S.today()] ?? 0;
+  const due = SRS.dueForecast(Courses.enabled(), 1)[S.today()] ?? 0;
   try {
     localStorage.setItem(STUDY_SHARE, JSON.stringify({ date: d.date, min: Math.round((d.ms + d.qms) / 60000), cpm: d.cpm, acc: d.acc, passed: d.passed.length, due, at: Date.now() }));
   } catch { /* приватний режим */ }
@@ -875,7 +835,8 @@ function route() {
     druk: renderDruk, lesson: renderLesson, free: renderFree,
     kursy: renderCourses, kurs: renderCourse, k: renderCourseUnit,
     pravopys: () => renderCourse(S.SPELLING_COURSE), topic: (id) => renderCourseUnit(S.SPELLING_COURSE, id),
-    english: renderEnglish, unit: renderUnit, srs: renderSrs, progress: renderProgress, settings: renderSettings,
+    english: renderCourses, unit: (id = '') => renderCourseUnit(`en-${id.slice(0, 2)}`, id),
+    srs: renderSrs, progress: renderProgress, settings: renderSettings,
   };
   const fn = views[name] || renderDruk;
   document.querySelectorAll('.tabs a').forEach((a) => {
@@ -926,11 +887,12 @@ registerWorker();
 await Courses.ready();
 route();
 // Нові версії курсів каталогу й курси, по яких прийшов прогрес з іншого пристрою
-Courses.refresh(Object.keys(st().courses));
-window.addEventListener('sync-applied', () => Courses.refresh(Object.keys(st().courses)));
+const progressIds = () => [...Object.keys(st().courses), ...SRS.courseIdsWithCards()];
+Courses.refresh(progressIds());
+window.addEventListener('sync-applied', () => Courses.refresh(progressIds()));
 window.addEventListener('courses-change', () => {
   const name = location.hash.slice(1).split('/')[0];
-  if (['kursy', 'kurs', 'pravopys', 'progress'].includes(name)) route();
+  if (['kursy', 'kurs', 'pravopys', 'english', 'progress'].includes(name)) route();
 });
 Sync.start();
 Bot.start(studyPayload);

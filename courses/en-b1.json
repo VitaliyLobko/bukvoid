@@ -1,0 +1,3885 @@
+{
+ "format": "bukvoid-course",
+ "v": 1,
+ "id": "en-b1",
+ "version": 1,
+ "title": "English B1 · Intermediate",
+ "subtitle": "Робоча англійська: правило, приклади з озвученням, фрази в колоді повторення",
+ "lang": "en",
+ "pass": 0.8,
+ "author": "Буквоїд",
+ "source": {
+  "title": "British Council LearnEnglish — граматика",
+  "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/"
+ },
+ "units": [
+  {
+   "id": "b1-01",
+   "title": "Present Simple vs Present Continuous",
+   "topic": "Щоденний стендап",
+   "goal": "Розповідати на стендапі, що ви робите зазвичай і що саме зараз, без «I am understand».",
+   "theory": [
+    {
+     "h": "Два теперішні часи — два питання"
+    },
+    {
+     "p": "**Present Simple** відповідає на «як буває завжди / регулярно?». **Present Continuous** — на «що відбувається зараз або в цей період?»."
+    },
+    {
+     "table": [
+      [
+       "",
+       "Present Simple",
+       "Present Continuous"
+      ],
+      [
+       "Форма",
+       "I work / he **works**",
+       "I **am working** / he **is working**"
+      ],
+      [
+       "Про що",
+       "звички, факти, розклад",
+       "процес зараз, тимчасове"
+      ],
+      [
+       "Маркери",
+       "`usually`, `every day`, `often`, `never`",
+       "`now`, `right now`, `this week`, `currently`"
+      ],
+      [
+       "Приклад",
+       "The build **takes** ten minutes.",
+       "I**'m fixing** the build right now."
+      ]
+     ]
+    },
+    {
+     "h": "Третя особа: не загубіть -s"
+    },
+    {
+     "p": "`he / she / it` і все, що можна ними замінити (`the team`, `the build`, `this module`), отримують **-s**: `The team uses Odoo`, `It depends on the config`. У запереченні й питанні -s переходить у **does**: `Does it work?`, `It doesn't work.`"
+    },
+    {
+     "h": "Дієслова стану (state verbs)"
+    },
+    {
+     "p": "Деякі дієслова описують не дію, а стан — їх майже ніколи не ставлять у Continuous, навіть якщо по-українськи «зараз»."
+    },
+    {
+     "ul": [
+      "думка: `know`, `understand`, `believe`, `mean`, `think` (= вважати)",
+      "бажання: `want`, `need`, `prefer`, `like`",
+      "належність і стан: `have` (= мати), `belong`, `depend`, `contain`, `seem`"
+     ]
+    },
+    {
+     "warn": "❌ I am not understanding this error. → ✅ I don't understand this error."
+    },
+    {
+     "warn": "❌ It is depending on the settings. → ✅ It depends on the settings."
+    },
+    {
+     "tip": "Формула стендапу: **Yesterday** I + Past Simple → **Today** I'm + -ing → **Blockers**: I'm blocked by… / I need…"
+    }
+   ],
+   "examples": [
+    {
+     "en": "I usually review pull requests in the morning.",
+     "uk": "Я зазвичай переглядаю пул-реквести зранку."
+    },
+    {
+     "en": "Right now I'm debugging a strange ORM issue.",
+     "uk": "Зараз я налагоджую дивну проблему з ORM."
+    },
+    {
+     "en": "The nightly build takes about twenty minutes.",
+     "uk": "Нічна збірка триває близько двадцяти хвилин."
+    },
+    {
+     "en": "This week I'm working on the reporting module.",
+     "uk": "Цього тижня я працюю над модулем звітів."
+    },
+    {
+     "en": "She doesn't review code on Fridays.",
+     "uk": "Вона не переглядає код по пʼятницях."
+    },
+    {
+     "en": "Does the import script support CSV files?",
+     "uk": "Скрипт імпорту підтримує CSV-файли?"
+    },
+    {
+     "en": "I don't know why the test fails.",
+     "uk": "Я не знаю, чому тест падає."
+    },
+    {
+     "en": "It depends on the access rules.",
+     "uk": "Це залежить від правил доступу."
+    },
+    {
+     "en": "We're currently migrating the database.",
+     "uk": "Наразі ми мігруємо базу даних."
+    },
+    {
+     "en": "I need a second pair of eyes on this.",
+     "uk": "Мені потрібен ще хтось, щоб на це глянути."
+    }
+   ],
+   "words": [
+    {
+     "en": "pick up a task",
+     "uk": "взяти задачу в роботу",
+     "ex": "I'll pick up the next task after lunch."
+    },
+    {
+     "en": "be blocked by",
+     "uk": "бути заблокованим чимось",
+     "ex": "I'm blocked by the missing API key."
+    },
+    {
+     "en": "work on a feature",
+     "uk": "працювати над функцією",
+     "ex": "I'm working on the export feature."
+    },
+    {
+     "en": "look into an issue",
+     "uk": "розібратися з проблемою",
+     "ex": "I'm looking into the login issue."
+    },
+    {
+     "en": "on track",
+     "uk": "за планом, вчасно",
+     "ex": "The release is on track for Friday."
+    },
+    {
+     "en": "a quick update",
+     "uk": "короткий апдейт",
+     "ex": "Just a quick update on the migration."
+    },
+    {
+     "en": "wrap up",
+     "uk": "завершити, доробити",
+     "ex": "I'm wrapping up the tests today."
+    },
+    {
+     "en": "need a hand with",
+     "uk": "потребувати допомоги з",
+     "ex": "I need a hand with the deployment script."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "The build ___ about ten minutes.",
+     "options": [
+      "take",
+      "takes",
+      "is taking"
+     ],
+     "a": 1,
+     "why": "`the build` = it, факт → Present Simple з -s."
+    },
+    {
+     "type": "choice",
+     "q": "Right now I ___ the failing test.",
+     "options": [
+      "fix",
+      "am fixing",
+      "fixes"
+     ],
+     "a": 1,
+     "why": "`right now` — процес у цю мить → Continuous."
+    },
+    {
+     "type": "choice",
+     "q": "I ___ what this error means.",
+     "options": [
+      "don't understand",
+      "am not understanding",
+      "not understand"
+     ],
+     "a": 0,
+     "why": "`understand` — дієслово стану, Continuous не буває."
+    },
+    {
+     "type": "choice",
+     "q": "___ he know about the new deadline?",
+     "options": [
+      "Do",
+      "Does",
+      "Is"
+     ],
+     "a": 1,
+     "why": "3-тя особа в питанні → `does`, а дієслово без -s."
+    },
+    {
+     "type": "gap",
+     "q": "This week we ___ (test) the new checkout flow.",
+     "a": [
+      "'re testing",
+      "are testing"
+     ],
+     "why": "`this week` — тимчасовий період → Continuous."
+    },
+    {
+     "type": "gap",
+     "q": "Our team ___ (use) Odoo 18 for all new projects.",
+     "a": [
+      "uses"
+     ],
+     "why": "`our team` = it → -s."
+    },
+    {
+     "type": "gap",
+     "q": "It ___ (depend) on the config file.",
+     "a": [
+      "depends"
+     ],
+     "why": "`depend` — дієслово стану, тільки Simple."
+    },
+    {
+     "type": "fix",
+     "q": "She don't review PRs on Fridays.",
+     "a": [
+      "She doesn't review PRs on Fridays.",
+      "She does not review PRs on Fridays."
+     ],
+     "why": "3-тя особа → `doesn't`."
+    },
+    {
+     "type": "fix",
+     "q": "I am wanting a second opinion on this.",
+     "a": [
+      "I want a second opinion on this."
+     ],
+     "why": "`want` — дієслово стану."
+    },
+    {
+     "type": "fix",
+     "q": "Does he knows about the migration?",
+     "a": [
+      "Does he know about the migration?"
+     ],
+     "why": "Після `does` — перша форма без -s."
+    },
+    {
+     "type": "translate",
+     "q": "Зараз я працюю над модулем звітів.",
+     "a": [
+      "I'm working on the reporting module now.",
+      "I am working on the reporting module now.",
+      "Right now I'm working on the reporting module.",
+      "Now I'm working on the reporting module.",
+      "I'm working on the report module now.",
+      "I'm currently working on the reporting module."
+     ],
+     "why": "Процес зараз → `am working`."
+    },
+    {
+     "type": "translate",
+     "q": "Я не знаю, чому тест падає.",
+     "a": [
+      "I don't know why the test fails.",
+      "I do not know why the test fails.",
+      "I don't know why the test is failing.",
+      "I do not know why the test is failing."
+     ],
+     "why": "`know` — Simple; `fails` / `is failing` обидва природні."
+    },
+    {
+     "type": "translate",
+     "q": "Мене блокує відсутній ключ API.",
+     "a": [
+      "I'm blocked by the missing API key.",
+      "I am blocked by the missing API key.",
+      "The missing API key is blocking me."
+     ],
+     "why": "Стала фраза стендапу: `be blocked by`."
+    },
+    {
+     "type": "translate",
+     "q": "Реліз іде за планом.",
+     "a": [
+      "The release is on track.",
+      "The release's on track."
+     ],
+     "why": "`on track` — «за планом»."
+    }
+   ],
+   "typing": [
+    "Yesterday I fixed the export bug and reviewed two pull requests.",
+    "Today I'm working on the reporting module.",
+    "I'm blocked by the missing API key.",
+    "The nightly build usually takes about twenty minutes.",
+    "I don't understand why this test fails on the server.",
+    "It depends on the access rules, not on the view.",
+    "This week we're migrating the warehouse data."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Stative verbs",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/stative-verbs",
+     "note": "Пояснення й онлайн-тест про дієслова стану."
+    },
+    {
+     "kind": "video",
+     "title": "Present Simple vs Present Continuous (відео)",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20present%20simple%20present%20continuous",
+     "note": "Дивіться, які маркери часу називають ведучі."
+    },
+    {
+     "kind": "video",
+     "title": "Daily standup in English",
+     "url": "https://www.youtube.com/results?search_query=daily%20standup%20meeting%20english%20phrases%20software%20developer",
+     "note": "Слухайте трійку «yesterday / today / blockers»."
+    }
+   ]
+  },
+  {
+   "id": "b1-02",
+   "title": "Present Perfect vs Past Simple",
+   "topic": "Статус задачі",
+   "goal": "За дві секунди вибирати між «I've fixed it» і «I fixed it yesterday».",
+   "theory": [
+    {
+     "h": "Головна розвилка"
+    },
+    {
+     "p": "Українське «я виправив» — одна форма. Англійська розрізняє: **результат зараз** (Present Perfect) і **подію в названий момент минулого** (Past Simple)."
+    },
+    {
+     "tip": "Правило 90%: **є «коли» — Past Simple, немає «коли» — Present Perfect.**"
+    },
+    {
+     "table": [
+      [
+       "Названо момент → Past Simple",
+       "Момент не важливий → Present Perfect"
+      ],
+      [
+       "I fixed it **yesterday**.",
+       "I**'ve** just **fixed** it."
+      ],
+      [
+       "We deployed it **on Monday**.",
+       "We**'ve** already **deployed** it."
+      ],
+      [
+       "**When did** you merge it?",
+       "**Have** you merged it **yet**?"
+      ],
+      [
+       "I closed three tickets **last week**.",
+       "I**'ve closed** three tickets **this week**."
+      ]
+     ]
+    },
+    {
+     "h": "Форма Present Perfect"
+    },
+    {
+     "p": "`have / has` + третя форма (V3): `I have done`, `she has written`, `it has broken`. Заперечення: `haven't / hasn't`. Питання: `Have you…?`, `Has it…?`"
+    },
+    {
+     "h": "Слова-маркери"
+    },
+    {
+     "ul": [
+      "Perfect: `just`, `already`, `yet` (у питанні й запереченні), `ever`, `never`, `so far`, `this week / today` (період ще триває)",
+      "Past Simple: `yesterday`, `ago`, `last …`, `in 2023`, `on Monday`, `when`"
+     ]
+    },
+    {
+     "h": "Ритм діалогу"
+    },
+    {
+     "p": "Перша фраза — новина в Perfect, далі деталі — у Past Simple: `I've deployed the hotfix. I deployed it an hour ago and ran the smoke tests.`"
+    },
+    {
+     "warn": "❌ I have deployed it yesterday. → ✅ I deployed it yesterday."
+    },
+    {
+     "warn": "❌ When have you merged it? → ✅ When did you merge it?"
+    },
+    {
+     "warn": "❌ I didn't finish it yet. → ✅ I haven't finished it yet."
+    }
+   ],
+   "examples": [
+    {
+     "en": "I've fixed the bug, the report loads fine now.",
+     "uk": "Я виправив баг, звіт тепер завантажується нормально."
+    },
+    {
+     "en": "I fixed the bug yesterday evening.",
+     "uk": "Я виправив баг учора ввечері."
+    },
+    {
+     "en": "Have you pushed your changes yet?",
+     "uk": "Ти вже запушив зміни?"
+    },
+    {
+     "en": "We haven't deployed it yet.",
+     "uk": "Ми ще не задеплоїли це."
+    },
+    {
+     "en": "When did you join the company?",
+     "uk": "Коли ти прийшов у компанію?"
+    },
+    {
+     "en": "Have you ever worked with Odoo?",
+     "uk": "Ти колись працював з Odoo?"
+    },
+    {
+     "en": "We migrated to Odoo 18 last year.",
+     "uk": "Ми перейшли на Odoo 18 торік."
+    },
+    {
+     "en": "The build has failed three times today.",
+     "uk": "Збірка сьогодні падала вже тричі."
+    },
+    {
+     "en": "I've just merged the branch.",
+     "uk": "Я щойно злив гілку."
+    },
+    {
+     "en": "She left a comment on my PR on Friday.",
+     "uk": "Вона залишила коментар до мого PR у пʼятницю."
+    }
+   ],
+   "words": [
+    {
+     "en": "push the changes",
+     "uk": "запушити зміни",
+     "ex": "I've pushed the changes to my branch."
+    },
+    {
+     "en": "merge a branch",
+     "uk": "злити гілку",
+     "ex": "We merged the branch after the review."
+    },
+    {
+     "en": "ship a feature",
+     "uk": "випустити функцію",
+     "ex": "We've shipped the new import feature."
+    },
+    {
+     "en": "so far",
+     "uk": "поки що, на цей момент",
+     "ex": "So far we've closed twelve tickets."
+    },
+    {
+     "en": "close a ticket",
+     "uk": "закрити тікет",
+     "ex": "I closed the ticket this morning."
+    },
+    {
+     "en": "leave a comment",
+     "uk": "залишити коментар",
+     "ex": "He left a comment on line 40."
+    },
+    {
+     "en": "the fix is live",
+     "uk": "виправлення вже на проді",
+     "ex": "The fix has been live since noon."
+    },
+    {
+     "en": "in progress",
+     "uk": "у роботі",
+     "ex": "The task is still in progress."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "I ___ the bug, the report works now.",
+     "options": [
+      "fixed",
+      "'ve fixed"
+     ],
+     "a": 1,
+     "why": "Результат зараз, момент не названо → Perfect."
+    },
+    {
+     "type": "choice",
+     "q": "We ___ from Odoo 16 last summer.",
+     "options": [
+      "migrated",
+      "have migrated"
+     ],
+     "a": 0,
+     "why": "`last summer` — названий момент → Past Simple."
+    },
+    {
+     "type": "choice",
+     "q": "— ___ it yet? — Not yet.",
+     "options": [
+      "Did you push",
+      "Have you pushed"
+     ],
+     "a": 1,
+     "why": "`yet` у питанні → Perfect."
+    },
+    {
+     "type": "choice",
+     "q": "When ___ the company?",
+     "options": [
+      "did you join",
+      "have you joined"
+     ],
+     "a": 0,
+     "why": "`when` — завжди Past Simple."
+    },
+    {
+     "type": "choice",
+     "q": "I ___ this traceback before.",
+     "options": [
+      "didn't see",
+      "haven't seen"
+     ],
+     "a": 1,
+     "why": "Досвід без моменту → Perfect."
+    },
+    {
+     "type": "gap",
+     "q": "He ___ (leave) a comment on my PR on Friday.",
+     "a": [
+      "left"
+     ],
+     "why": "`on Friday` → Past Simple; `leave — left — left`."
+    },
+    {
+     "type": "gap",
+     "q": "The build ___ (fail) three times this morning (зараз ще ранок).",
+     "a": [
+      "has failed",
+      "'s failed"
+     ],
+     "why": "Період ще триває → Perfect."
+    },
+    {
+     "type": "gap",
+     "q": "Have you ever ___ (write) a custom ORM method?",
+     "a": [
+      "written"
+     ],
+     "why": "`ever` без моменту → Perfect; `write — wrote — written`."
+    },
+    {
+     "type": "fix",
+     "q": "I have finished it two days ago.",
+     "a": [
+      "I finished it two days ago."
+     ],
+     "why": "`ago` — названий момент → Past Simple."
+    },
+    {
+     "type": "fix",
+     "q": "I didn't merge it yet.",
+     "a": [
+      "I haven't merged it yet.",
+      "I have not merged it yet."
+     ],
+     "why": "`yet` → Present Perfect."
+    },
+    {
+     "type": "fix",
+     "q": "Our team has migrated to Odoo 18 last year.",
+     "a": [
+      "Our team migrated to Odoo 18 last year."
+     ],
+     "why": "`last year` → Past Simple."
+    },
+    {
+     "type": "translate",
+     "q": "Я ще не злив цю гілку.",
+     "a": [
+      "I haven't merged this branch yet.",
+      "I have not merged this branch yet.",
+      "I haven't merged the branch yet.",
+      "I still haven't merged this branch."
+     ],
+     "why": "`yet` у запереченні → Perfect."
+    },
+    {
+     "type": "translate",
+     "q": "Ми задеплоїли фікс годину тому.",
+     "a": [
+      "We deployed the fix an hour ago.",
+      "We deployed the fix one hour ago."
+     ],
+     "why": "`ago` → Past Simple."
+    },
+    {
+     "type": "translate",
+     "q": "Ти колись працював з Odoo?",
+     "a": [
+      "Have you ever worked with Odoo?"
+     ],
+     "why": "`ever` → Perfect."
+    },
+    {
+     "type": "translate",
+     "q": "Поки що ми закрили дванадцять тікетів.",
+     "a": [
+      "So far we've closed twelve tickets.",
+      "So far we have closed twelve tickets.",
+      "We've closed twelve tickets so far.",
+      "We have closed twelve tickets so far.",
+      "So far we've closed 12 tickets.",
+      "We've closed 12 tickets so far."
+     ],
+     "why": "`so far` → Perfect."
+    }
+   ],
+   "typing": [
+    "I've fixed the bug and the report loads fine now.",
+    "I fixed it yesterday and deployed it this morning.",
+    "Have you pushed your changes yet?",
+    "We haven't deployed the hotfix yet.",
+    "When did you merge the branch?",
+    "So far we've closed twelve tickets this sprint.",
+    "Have you ever written a custom ORM method?"
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Present perfect",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect",
+     "note": "Пояснення і тест; потім — сторінка про just / yet / still / already."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: just, yet, still, already",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect-just-yet-still-already",
+     "note": "Позиція цих слів у реченні."
+    },
+    {
+     "kind": "video",
+     "title": "Present Perfect or Past Simple?",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20present%20perfect%20or%20past%20simple",
+     "note": "Помічайте, чи звучить момент часу."
+    }
+   ]
+  },
+  {
+   "id": "b1-03",
+   "title": "for / since · Present Perfect Continuous",
+   "topic": "Скільки це вже триває",
+   "goal": "Казати, як довго щось триває, і не говорити «I work here since 2019».",
+   "theory": [
+    {
+     "h": "Дія почалась у минулому і триває досі"
+    },
+    {
+     "p": "Українською ми кажемо теперішнім часом: «я тут працюю з 2019». Англійська вимагає **Perfect**, бо період тягнеться з минулого до зараз."
+    },
+    {
+     "warn": "❌ I work here since 2019. → ✅ I've worked here since 2019."
+    },
+    {
+     "h": "for чи since"
+    },
+    {
+     "table": [
+      [
+       "for — тривалість",
+       "since — початкова точка"
+      ],
+      [
+       "for two hours",
+       "since 9 am"
+      ],
+      [
+       "for three years",
+       "since 2021"
+      ],
+      [
+       "for a long time",
+       "since Monday"
+      ],
+      [
+       "for ages",
+       "since the last release"
+      ]
+     ]
+    },
+    {
+     "p": "Питання — **How long…?**: `How long have you worked here?`"
+    },
+    {
+     "h": "Present Perfect Continuous"
+    },
+    {
+     "p": "`have / has been` + -ing. Наголошує на **процесі й тривалості**, часто — з видимими наслідками: `I've been debugging this for two hours` (і досі не знайшов, втомився)."
+    },
+    {
+     "table": [
+      [
+       "Perfect Simple — результат, кількість",
+       "Perfect Continuous — процес, тривалість"
+      ],
+      [
+       "I've fixed three bugs today.",
+       "I've been fixing bugs all day."
+      ],
+      [
+       "I've written the migration.",
+       "I've been writing the migration since lunch."
+      ]
+     ]
+    },
+    {
+     "tip": "Дієслова стану (`know`, `have`, `be`) в Continuous не ставимо: `I've known him for years`, не `I've been knowing`."
+    }
+   ],
+   "examples": [
+    {
+     "en": "I've worked here since 2019.",
+     "uk": "Я працюю тут з 2019 року."
+    },
+    {
+     "en": "We've used this library for three years.",
+     "uk": "Ми користуємося цією бібліотекою три роки."
+    },
+    {
+     "en": "I've been debugging this issue for two hours.",
+     "uk": "Я налагоджую цю проблему вже дві години."
+    },
+    {
+     "en": "How long have you been working on this task?",
+     "uk": "Скільки ти вже працюєш над цією задачею?"
+    },
+    {
+     "en": "The server has been down since midnight.",
+     "uk": "Сервер лежить з опівночі."
+    },
+    {
+     "en": "I've known our tech lead for ten years.",
+     "uk": "Я знаю нашого техліда десять років."
+    },
+    {
+     "en": "She's been testing the release all morning.",
+     "uk": "Вона весь ранок тестує реліз."
+    },
+    {
+     "en": "We haven't had an incident since the last update.",
+     "uk": "З останнього оновлення в нас не було інцидентів."
+    },
+    {
+     "en": "It's been raining since we started the call.",
+     "uk": "Дощ іде відтоді, як ми почали дзвінок."
+    }
+   ],
+   "words": [
+    {
+     "en": "for ages",
+     "uk": "цілу вічність",
+     "ex": "I've been waiting for the build for ages."
+    },
+    {
+     "en": "since the last release",
+     "uk": "з останнього релізу",
+     "ex": "Nothing has changed since the last release."
+    },
+    {
+     "en": "be down",
+     "uk": "лежати (про сервіс)",
+     "ex": "The API has been down for an hour."
+    },
+    {
+     "en": "all day long",
+     "uk": "увесь день",
+     "ex": "I've been in meetings all day long."
+    },
+    {
+     "en": "track down a bug",
+     "uk": "вистежити баг",
+     "ex": "I've been tracking down this bug since Monday."
+    },
+    {
+     "en": "up and running",
+     "uk": "запущено і працює",
+     "ex": "The new server has been up and running for a week."
+    },
+    {
+     "en": "keep an eye on",
+     "uk": "стежити за",
+     "ex": "I've been keeping an eye on the logs."
+    },
+    {
+     "en": "go through the logs",
+     "uk": "переглянути логи",
+     "ex": "I've been going through the logs all morning."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "I've worked here ___ 2019.",
+     "options": [
+      "for",
+      "since"
+     ],
+     "a": 1,
+     "why": "2019 — початкова точка → `since`."
+    },
+    {
+     "type": "choice",
+     "q": "We've used this library ___ three years.",
+     "options": [
+      "for",
+      "since"
+     ],
+     "a": 0,
+     "why": "Тривалість → `for`."
+    },
+    {
+     "type": "choice",
+     "q": "How long ___ on this task?",
+     "options": [
+      "are you working",
+      "have you been working",
+      "do you work"
+     ],
+     "a": 1,
+     "why": "`How long` про процес до зараз → Perfect Continuous."
+    },
+    {
+     "type": "choice",
+     "q": "I ___ our tech lead for ten years.",
+     "options": [
+      "'ve known",
+      "'ve been knowing"
+     ],
+     "a": 0,
+     "why": "`know` — дієслово стану, без Continuous."
+    },
+    {
+     "type": "choice",
+     "q": "I ___ three bugs today.",
+     "options": [
+      "'ve fixed",
+      "'ve been fixing"
+     ],
+     "a": 0,
+     "why": "Кількість, результат → Perfect Simple."
+    },
+    {
+     "type": "gap",
+     "q": "The server ___ (be) down since midnight.",
+     "a": [
+      "has been",
+      "'s been"
+     ],
+     "why": "Стан триває з точки в минулому → `has been`."
+    },
+    {
+     "type": "gap",
+     "q": "I ___ (debug) this issue for two hours.",
+     "a": [
+      "'ve been debugging",
+      "have been debugging"
+     ],
+     "why": "Процес і тривалість → Perfect Continuous."
+    },
+    {
+     "type": "gap",
+     "q": "We haven't had an incident ___ the last update.",
+     "a": [
+      "since"
+     ],
+     "why": "Точка відліку → `since`."
+    },
+    {
+     "type": "fix",
+     "q": "I work here since 2019.",
+     "a": [
+      "I've worked here since 2019.",
+      "I have worked here since 2019.",
+      "I've been working here since 2019.",
+      "I have been working here since 2019."
+     ],
+     "why": "Період до зараз → Perfect, не Present Simple."
+    },
+    {
+     "type": "fix",
+     "q": "He's working on this module for a month.",
+     "a": [
+      "He's been working on this module for a month.",
+      "He has been working on this module for a month."
+     ],
+     "why": "Тривалість до зараз → Perfect Continuous."
+    },
+    {
+     "type": "fix",
+     "q": "We've been using it since three years.",
+     "a": [
+      "We've been using it for three years.",
+      "We have been using it for three years."
+     ],
+     "why": "Тривалість → `for`."
+    },
+    {
+     "type": "translate",
+     "q": "Я налагоджую цю проблему вже дві години.",
+     "a": [
+      "I've been debugging this issue for two hours.",
+      "I have been debugging this issue for two hours.",
+      "I've been debugging this problem for two hours.",
+      "I have been debugging this problem for two hours."
+     ],
+     "why": "Процес + `for` → Perfect Continuous."
+    },
+    {
+     "type": "translate",
+     "q": "Скільки ти тут працюєш?",
+     "a": [
+      "How long have you worked here?",
+      "How long have you been working here?"
+     ],
+     "why": "`How long` + Perfect."
+    },
+    {
+     "type": "translate",
+     "q": "Сервер лежить з опівночі.",
+     "a": [
+      "The server has been down since midnight.",
+      "The server's been down since midnight."
+     ],
+     "why": "`be down` + `since`."
+    }
+   ],
+   "typing": [
+    "I've worked here since 2019.",
+    "I've been debugging this issue for two hours.",
+    "How long have you been working on this task?",
+    "The server has been down since midnight.",
+    "We haven't had a single incident since the last update.",
+    "She's been testing the release all morning."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Present perfect simple and continuous",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/present-perfect-simple-continuous",
+     "note": "Різниця «результат vs процес» і тест."
+    },
+    {
+     "kind": "video",
+     "title": "for and since",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20for%20and%20since%20present%20perfect",
+     "note": "Запишіть 3 приклади з `since` і 3 з `for`."
+    },
+    {
+     "kind": "video",
+     "title": "Present perfect continuous",
+     "url": "https://www.youtube.com/results?search_query=present%20perfect%20continuous%20English%20lesson%20how%20long%20have%20you%20been",
+     "note": "Слухайте питання `How long have you been…?`."
+    }
+   ]
+  },
+  {
+   "id": "b1-04",
+   "title": "Майбутнє: will, going to, Present Continuous",
+   "topic": "Планування спринту",
+   "goal": "Говорити про плани, рішення й прогнози і правильно будувати «коли / якщо» про майбутнє.",
+   "theory": [
+    {
+     "h": "Три способи про майбутнє"
+    },
+    {
+     "table": [
+      [
+       "Форма",
+       "Коли",
+       "Приклад"
+      ],
+      [
+       "**will**",
+       "рішення в цю мить, обіцянка, прогноз-думка",
+       "I'll check the logs. / It will probably work."
+      ],
+      [
+       "**be going to**",
+       "намір, план, прогноз за ознаками",
+       "We're going to refactor the API. / The build is going to fail."
+      ],
+      [
+       "**Present Continuous**",
+       "домовленість з часом і місцем",
+       "I'm meeting the client on Tuesday."
+      ]
+     ]
+    },
+    {
+     "p": "Рішення «зараз вирішив»: — The test is red. — **I'll** take a look. Заздалегідь заплановане: **I'm going to** take a look after the standup."
+    },
+    {
+     "h": "Після when / if / as soon as / until / before / after — теперішній час"
+    },
+    {
+     "p": "У підрядних реченнях часу й умови **will не ставимо**, навіть якщо мова про майбутнє."
+    },
+    {
+     "warn": "❌ I'll deploy it when the review will be done. → ✅ I'll deploy it when the review is done."
+    },
+    {
+     "warn": "❌ If the tests will pass, we'll merge. → ✅ If the tests pass, we'll merge."
+    },
+    {
+     "h": "Обережні прогнози"
+    },
+    {
+     "ul": [
+      "`It will probably take two days.` — `probably` після will",
+      "`It probably won't be ready by Friday.` — перед won't",
+      "`I don't think we'll make it.` — заперечення переносимо в `think`"
+     ]
+    }
+   ],
+   "examples": [
+    {
+     "en": "I'll check the logs and get back to you.",
+     "uk": "Я перевірю логи й повернуся до тебе."
+    },
+    {
+     "en": "We're going to refactor the payment module next sprint.",
+     "uk": "Наступного спринту ми збираємося переписати модуль оплат."
+    },
+    {
+     "en": "I'm meeting the client on Tuesday at ten.",
+     "uk": "У вівторок о десятій у мене зустріч з клієнтом."
+    },
+    {
+     "en": "Look at the coverage, this build is going to fail.",
+     "uk": "Глянь на покриття — ця збірка впаде."
+    },
+    {
+     "en": "I'll deploy it as soon as the review is done.",
+     "uk": "Я задеплою, щойно завершиться ревʼю."
+    },
+    {
+     "en": "If the tests pass, we'll merge today.",
+     "uk": "Якщо тести пройдуть, ми сьогодні зіллємо."
+    },
+    {
+     "en": "It will probably take two days.",
+     "uk": "Це, мабуть, займе два дні."
+    },
+    {
+     "en": "I don't think we'll make it by Friday.",
+     "uk": "Не думаю, що ми встигнемо до пʼятниці."
+    },
+    {
+     "en": "Don't worry, I'll fix it.",
+     "uk": "Не хвилюйся, я це виправлю."
+    },
+    {
+     "en": "We won't start until the specs are ready.",
+     "uk": "Ми не почнемо, доки не буде готова специфікація."
+    }
+   ],
+   "words": [
+    {
+     "en": "get back to you",
+     "uk": "повернутися з відповіддю",
+     "ex": "I'll get back to you by the end of the day."
+    },
+    {
+     "en": "make it by Friday",
+     "uk": "встигнути до пʼятниці",
+     "ex": "Can we make it by Friday?"
+    },
+    {
+     "en": "take a look",
+     "uk": "поглянути",
+     "ex": "I'll take a look after lunch."
+    },
+    {
+     "en": "the next sprint",
+     "uk": "наступний спринт",
+     "ex": "We're going to do it in the next sprint."
+    },
+    {
+     "en": "set a deadline",
+     "uk": "встановити дедлайн",
+     "ex": "Let's set a deadline for the migration."
+    },
+    {
+     "en": "as soon as",
+     "uk": "щойно, як тільки",
+     "ex": "I'll ping you as soon as it's deployed."
+    },
+    {
+     "en": "ping someone",
+     "uk": "написати комусь, нагадати",
+     "ex": "I'll ping the QA team."
+    },
+    {
+     "en": "estimate a task",
+     "uk": "оцінити задачу",
+     "ex": "How long will it take? Let me estimate it first."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "— The test is red again. — OK, I ___ a look.",
+     "options": [
+      "'ll take",
+      "'m going to take",
+      "take"
+     ],
+     "a": 0,
+     "why": "Рішення в цю мить → `will`."
+    },
+    {
+     "type": "choice",
+     "q": "We ___ the API next sprint, it is already in the plan.",
+     "options": [
+      "will refactor",
+      "are going to refactor"
+     ],
+     "a": 1,
+     "why": "Заздалегідь запланований намір → `going to`."
+    },
+    {
+     "type": "choice",
+     "q": "I ___ the client on Tuesday at ten.",
+     "options": [
+      "meet",
+      "'m meeting",
+      "'ll meet"
+     ],
+     "a": 1,
+     "why": "Домовленість з часом → Present Continuous."
+    },
+    {
+     "type": "choice",
+     "q": "I'll deploy it when the review ___ done.",
+     "options": [
+      "will be",
+      "is"
+     ],
+     "a": 1,
+     "why": "Після `when` про майбутнє — теперішній час."
+    },
+    {
+     "type": "choice",
+     "q": "It ___ two days.",
+     "options": [
+      "will probably take",
+      "probably will take",
+      "will take probably"
+     ],
+     "a": 0,
+     "why": "`probably` стоїть після `will`."
+    },
+    {
+     "type": "gap",
+     "q": "If the tests ___ (pass), we will merge today.",
+     "a": [
+      "pass"
+     ],
+     "why": "Після `if` — Present Simple."
+    },
+    {
+     "type": "gap",
+     "q": "Don't worry, I ___ (fix) it right now.",
+     "a": [
+      "'ll fix",
+      "will fix"
+     ],
+     "why": "Обіцянка, рішення зараз → `will`."
+    },
+    {
+     "type": "gap",
+     "q": "We won't start until the specs ___ (be) ready.",
+     "a": [
+      "are"
+     ],
+     "why": "Після `until` — теперішній час."
+    },
+    {
+     "type": "fix",
+     "q": "If the build will fail, I'll let you know.",
+     "a": [
+      "If the build fails, I'll let you know.",
+      "If the build fails, I will let you know."
+     ],
+     "why": "Після `if` майбутній час не ставимо."
+    },
+    {
+     "type": "fix",
+     "q": "I think we won't make it by Friday.",
+     "a": [
+      "I don't think we'll make it by Friday.",
+      "I do not think we will make it by Friday.",
+      "I don't think we will make it by Friday."
+     ],
+     "why": "Природніше переносити заперечення в `think`."
+    },
+    {
+     "type": "fix",
+     "q": "I'll call you as soon as I will get the results.",
+     "a": [
+      "I'll call you as soon as I get the results.",
+      "I will call you as soon as I get the results."
+     ],
+     "why": "Після `as soon as` — Present Simple."
+    },
+    {
+     "type": "translate",
+     "q": "Я перевірю логи й повернуся до тебе.",
+     "a": [
+      "I'll check the logs and get back to you.",
+      "I will check the logs and get back to you."
+     ],
+     "why": "Рішення/обіцянка → `will`."
+    },
+    {
+     "type": "translate",
+     "q": "Якщо тести пройдуть, ми зіллємо сьогодні.",
+     "a": [
+      "If the tests pass, we'll merge today.",
+      "If the tests pass, we will merge today.",
+      "If the tests pass, we'll merge it today.",
+      "We'll merge today if the tests pass."
+     ],
+     "why": "`if` + Present, головне — `will`."
+    },
+    {
+     "type": "translate",
+     "q": "Наступного спринту ми збираємося переписати модуль оплат.",
+     "a": [
+      "We're going to refactor the payment module next sprint.",
+      "We are going to refactor the payment module next sprint.",
+      "Next sprint we're going to refactor the payment module.",
+      "We're going to rewrite the payment module next sprint.",
+      "We are going to rewrite the payment module next sprint.",
+      "Next sprint we're going to rewrite the payment module."
+     ],
+     "why": "Намір → `going to`."
+    }
+   ],
+   "typing": [
+    "I'll check the logs and get back to you.",
+    "We're going to refactor the payment module next sprint.",
+    "I'm meeting the client on Tuesday at ten.",
+    "I'll deploy it as soon as the review is done.",
+    "If the tests pass, we'll merge it today.",
+    "It will probably take two days.",
+    "I don't think we'll make it by Friday."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: will, be going to, present continuous",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/future-forms-will-be-going-present-continuous",
+     "note": "Порівняння трьох форм і тест."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: The future — degrees of certainty",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/future-degrees-certainty",
+     "note": "`likely`, `probably`, `bound to` — наскільки впевнено."
+    },
+    {
+     "kind": "video",
+     "title": "will or going to?",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20will%20or%20going%20to",
+     "note": "Ловіть момент «рішення зараз» vs «план»."
+    }
+   ]
+  },
+  {
+   "id": "b1-05",
+   "title": "Артиклі a / the / — і злічуваність",
+   "topic": "Опис системи",
+   "goal": "Ставити артикль за змістом («один з» чи «той самий») і не казати «an information».",
+   "theory": [
+    {
+     "h": "Навіщо артикль"
+    },
+    {
+     "p": "Артикль показує, **чи знає слухач, про що мова**."
+    },
+    {
+     "table": [
+      [
+       "a / an",
+       "the",
+       "без артикля"
+      ],
+      [
+       "один з багатьох, вперше",
+       "той самий, відомий обом",
+       "взагалі, неконкретно"
+      ],
+      [
+       "We have **a** problem.",
+       "**The** problem is in the cache.",
+       "**Problems** happen."
+      ],
+      [
+       "I wrote **a** script.",
+       "**The** script runs every night.",
+       "I like **coffee**."
+      ]
+     ]
+    },
+    {
+     "p": "**an** — перед голосним **звуком**: `an issue`, `an hour`, `an SQL query`; але `a user` (звук «ю»), `a URL`."
+    },
+    {
+     "h": "Коли the обовʼязковий"
+    },
+    {
+     "ul": [
+      "єдине в контексті: `the database`, `the server`, `the main menu`",
+      "уточнення після: `the bug in the import script`, `the version we use`",
+      "найвищий ступінь і порядкові: `the best option`, `the first step`"
+     ]
+    },
+    {
+     "h": "Незлічувані в IT"
+    },
+    {
+     "p": "Ці слова **не мають множини і не беруть a/an**: `information`, `advice`, `feedback`, `software`, `hardware`, `equipment`, `research`, `progress`, `knowledge`, `data` (у робочій мові — як незлічуване: `the data is…`)."
+    },
+    {
+     "warn": "❌ an information / informations → ✅ some information, a piece of information"
+    },
+    {
+     "warn": "❌ Thanks for the feedbacks. → ✅ Thanks for the feedback."
+    },
+    {
+     "tip": "`much / little` — з незлічуваними (`much data`), `many / few` — зі злічуваними (`many users`). `a lot of` — з обома."
+    }
+   ],
+   "examples": [
+    {
+     "en": "We have a problem with the payment service.",
+     "uk": "У нас проблема з платіжним сервісом."
+    },
+    {
+     "en": "The problem is in the cache layer.",
+     "uk": "Проблема в шарі кешу."
+    },
+    {
+     "en": "It takes an hour to rebuild the index.",
+     "uk": "Перебудова індексу займає годину."
+    },
+    {
+     "en": "A user reported an error on the login page.",
+     "uk": "Користувач повідомив про помилку на сторінці входу."
+    },
+    {
+     "en": "Thanks for the feedback, it was really useful.",
+     "uk": "Дякую за фідбек, він був дуже корисним."
+    },
+    {
+     "en": "Can you give me some advice on this design?",
+     "uk": "Можеш дати пораду щодо цього дизайну?"
+    },
+    {
+     "en": "We don't have much data yet.",
+     "uk": "У нас поки небагато даних."
+    },
+    {
+     "en": "The data is stored in PostgreSQL.",
+     "uk": "Дані зберігаються в PostgreSQL."
+    },
+    {
+     "en": "Software changes faster than hardware.",
+     "uk": "Програмне забезпечення змінюється швидше за обладнання."
+    },
+    {
+     "en": "This is the best option we have.",
+     "uk": "Це найкращий варіант, який у нас є."
+    }
+   ],
+   "words": [
+    {
+     "en": "a piece of advice",
+     "uk": "порада (одна)",
+     "ex": "Let me give you a piece of advice."
+    },
+    {
+     "en": "give feedback on",
+     "uk": "дати відгук на",
+     "ex": "Can you give feedback on my PR?"
+    },
+    {
+     "en": "store the data",
+     "uk": "зберігати дані",
+     "ex": "We store the data in a separate table."
+    },
+    {
+     "en": "make progress",
+     "uk": "просуватися, мати прогрес",
+     "ex": "We've made good progress this week."
+    },
+    {
+     "en": "do research",
+     "uk": "досліджувати",
+     "ex": "I did some research on caching."
+    },
+    {
+     "en": "consist of",
+     "uk": "складатися з",
+     "ex": "The system consists of three services."
+    },
+    {
+     "en": "be built on top of",
+     "uk": "бути побудованим поверх",
+     "ex": "The app is built on top of Odoo."
+    },
+    {
+     "en": "handle requests",
+     "uk": "обробляти запити",
+     "ex": "This service handles all payment requests."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "We have ___ problem with the import.",
+     "options": [
+      "a",
+      "the",
+      "—"
+     ],
+     "a": 0,
+     "why": "Вперше, один з можливих → `a`."
+    },
+    {
+     "type": "choice",
+     "q": "___ problem is in the cache layer.",
+     "options": [
+      "A",
+      "The",
+      "—"
+     ],
+     "a": 1,
+     "why": "Та сама проблема, вже відома → `the`."
+    },
+    {
+     "type": "choice",
+     "q": "It takes ___ hour to rebuild the index.",
+     "options": [
+      "a",
+      "an"
+     ],
+     "a": 1,
+     "why": "`hour` починається з голосного звуку → `an`."
+    },
+    {
+     "type": "choice",
+     "q": "___ user reported a bug.",
+     "options": [
+      "A",
+      "An"
+     ],
+     "a": 0,
+     "why": "`user` звучить з «ю» (приголосний звук) → `a`."
+    },
+    {
+     "type": "choice",
+     "q": "Can you give me some ___?",
+     "options": [
+      "advice",
+      "advices",
+      "an advice"
+     ],
+     "a": 0,
+     "why": "`advice` незлічуване."
+    },
+    {
+     "type": "choice",
+     "q": "We don't have ___ data yet.",
+     "options": [
+      "many",
+      "much"
+     ],
+     "a": 1,
+     "why": "`data` як незлічуване → `much`."
+    },
+    {
+     "type": "gap",
+     "q": "Thanks for ___ feedback on my PR.",
+     "a": [
+      "the",
+      "your"
+     ],
+     "why": "Конкретний відгук → `the` (або `your`)."
+    },
+    {
+     "type": "gap",
+     "q": "This is ___ best option we have.",
+     "a": [
+      "the"
+     ],
+     "why": "Найвищий ступінь → `the`."
+    },
+    {
+     "type": "fix",
+     "q": "I need an information about the API.",
+     "a": [
+      "I need some information about the API.",
+      "I need information about the API."
+     ],
+     "why": "`information` не бере `an`."
+    },
+    {
+     "type": "fix",
+     "q": "Thanks for the feedbacks.",
+     "a": [
+      "Thanks for the feedback."
+     ],
+     "why": "`feedback` без множини."
+    },
+    {
+     "type": "fix",
+     "q": "Server is down again.",
+     "a": [
+      "The server is down again."
+     ],
+     "why": "Конкретний, відомий сервер → `the`."
+    },
+    {
+     "type": "translate",
+     "q": "Система складається з трьох сервісів.",
+     "a": [
+      "The system consists of three services.",
+      "Our system consists of three services."
+     ],
+     "why": "`consist of`; конкретна система → `the`."
+    },
+    {
+     "type": "translate",
+     "q": "Дані зберігаються в PostgreSQL.",
+     "a": [
+      "The data is stored in PostgreSQL.",
+      "Data is stored in PostgreSQL.",
+      "The data are stored in PostgreSQL."
+     ],
+     "why": "Passive + `data` як однина (у робочій мові)."
+    },
+    {
+     "type": "translate",
+     "q": "Можеш дати мені пораду?",
+     "a": [
+      "Can you give me some advice?",
+      "Can you give me a piece of advice?",
+      "Could you give me some advice?",
+      "Could you give me a piece of advice?",
+      "Can you give me advice?"
+     ],
+     "why": "`advice` незлічуване."
+    }
+   ],
+   "typing": [
+    "We have a problem with the payment service.",
+    "The problem is in the cache layer, not in the database.",
+    "It takes an hour to rebuild the search index.",
+    "Thanks for the feedback, it was really useful.",
+    "The system consists of three services and a shared database.",
+    "We don't have much data yet, so the report is empty.",
+    "Can you give me some advice on this design?"
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Articles a, an, the",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/a1-a2-grammar/articles-a-an-the",
+     "note": "Базове правило; навіть на B1 варто пройти тест."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Countable and uncountable nouns",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/a1-a2/nouns-countable-uncountable",
+     "note": "much / many, a lot of, some."
+    },
+    {
+     "kind": "video",
+     "title": "Articles a / the / no article",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20articles%20a%20the%20no%20article",
+     "note": "Слухайте, коли артикль зникає."
+    }
+   ]
+  },
+  {
+   "id": "b1-06",
+   "title": "Пасивний стан",
+   "topic": "Баг-репорт та інцидент",
+   "goal": "Описувати, що сталося з системою, коли виконавець неважливий: «the bug was introduced in v2.3».",
+   "theory": [
+    {
+     "h": "Формула"
+    },
+    {
+     "p": "**be** у потрібному часі + **третя форма (V3)**. Час показує дієслово `be`."
+    },
+    {
+     "table": [
+      [
+       "Час",
+       "Активний",
+       "Пасивний"
+      ],
+      [
+       "Present Simple",
+       "We run the job nightly.",
+       "The job **is run** nightly."
+      ],
+      [
+       "Past Simple",
+       "Someone deleted the file.",
+       "The file **was deleted**."
+      ],
+      [
+       "Present Perfect",
+       "We've fixed the bug.",
+       "The bug **has been fixed**."
+      ],
+      [
+       "Continuous",
+       "They are testing it.",
+       "It **is being tested**."
+      ],
+      [
+       "will / modal",
+       "We will release it.",
+       "It **will be released**. / It **can be** reproduced."
+      ]
+     ]
+    },
+    {
+     "h": "Коли пасив доречний"
+    },
+    {
+     "ul": [
+      "виконавець невідомий або неважливий: `The table was locked.`",
+      "фокус на системі, а не на людях — тон без звинувачень у постмортемі: `A wrong config was deployed.`",
+      "опис процесу в документації: `The token is generated on login.`"
+     ]
+    },
+    {
+     "p": "Виконавець — через **by**, інструмент — через **with**: `The report is generated by a cron job`, `The data was imported with a script`."
+    },
+    {
+     "h": "Мова баг-репорту"
+    },
+    {
+     "ul": [
+      "**Steps to reproduce:** 1. Open… 2. Click…",
+      "**Expected result:** the order is confirmed.",
+      "**Actual result:** an error is shown.",
+      "**Environment:** Odoo 18, Chrome 130."
+     ]
+    },
+    {
+     "warn": "❌ The bug was appeared after the update. → ✅ The bug appeared after the update. (`appear`, `happen`, `occur` пасиву не мають)"
+    }
+   ],
+   "examples": [
+    {
+     "en": "The bug was introduced in version 2.3.",
+     "uk": "Баг зʼявився (був внесений) у версії 2.3."
+    },
+    {
+     "en": "The issue has been fixed in the latest release.",
+     "uk": "Проблему виправлено в останньому релізі."
+    },
+    {
+     "en": "The report is generated every night by a cron job.",
+     "uk": "Звіт щоночі генерує cron-задача."
+    },
+    {
+     "en": "The data was imported with a Python script.",
+     "uk": "Дані імпортували Python-скриптом."
+    },
+    {
+     "en": "The error can be reproduced on staging.",
+     "uk": "Помилку можна відтворити на стейджингу."
+    },
+    {
+     "en": "Your request is being processed.",
+     "uk": "Ваш запит обробляється."
+    },
+    {
+     "en": "The fix will be deployed tomorrow morning.",
+     "uk": "Виправлення задеплоять завтра зранку."
+    },
+    {
+     "en": "An error message is shown instead of the invoice.",
+     "uk": "Замість рахунку показується повідомлення про помилку."
+    },
+    {
+     "en": "The problem occurred after the update.",
+     "uk": "Проблема виникла після оновлення."
+    }
+   ],
+   "words": [
+    {
+     "en": "steps to reproduce",
+     "uk": "кроки для відтворення",
+     "ex": "Please add steps to reproduce to the ticket."
+    },
+    {
+     "en": "expected result",
+     "uk": "очікуваний результат",
+     "ex": "Expected result: the order is confirmed."
+    },
+    {
+     "en": "actual result",
+     "uk": "фактичний результат",
+     "ex": "Actual result: an error is shown."
+    },
+    {
+     "en": "introduce a bug",
+     "uk": "внести баг",
+     "ex": "The bug was introduced by the last refactoring."
+    },
+    {
+     "en": "raise an error",
+     "uk": "кинути помилку",
+     "ex": "A validation error is raised on save."
+    },
+    {
+     "en": "root cause",
+     "uk": "першопричина",
+     "ex": "The root cause was a missing index."
+    },
+    {
+     "en": "roll back a release",
+     "uk": "відкотити реліз",
+     "ex": "The release was rolled back within ten minutes."
+    },
+    {
+     "en": "affect users",
+     "uk": "зачіпати користувачів",
+     "ex": "About two hundred users were affected."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "The bug ___ in version 2.3.",
+     "options": [
+      "introduced",
+      "was introduced",
+      "has introduced"
+     ],
+     "a": 1,
+     "why": "Баг не вносить сам себе → пасив `was introduced`."
+    },
+    {
+     "type": "choice",
+     "q": "The issue ___ already ___.",
+     "options": [
+      "has / been fixed",
+      "is / fixing",
+      "was / fix"
+     ],
+     "a": 0,
+     "why": "`already` → Perfect, пасив: `has been fixed`."
+    },
+    {
+     "type": "choice",
+     "q": "The data was imported ___ a Python script.",
+     "options": [
+      "by",
+      "with"
+     ],
+     "a": 1,
+     "why": "Інструмент → `with`."
+    },
+    {
+     "type": "choice",
+     "q": "The problem ___ after the update.",
+     "options": [
+      "was occurred",
+      "occurred"
+     ],
+     "a": 1,
+     "why": "`occur` не має пасиву."
+    },
+    {
+     "type": "choice",
+     "q": "Your request ___ right now.",
+     "options": [
+      "is processed",
+      "is being processed"
+     ],
+     "a": 1,
+     "why": "Процес зараз → `is being` + V3."
+    },
+    {
+     "type": "gap",
+     "q": "The report ___ (generate) every night by a cron job.",
+     "a": [
+      "is generated"
+     ],
+     "why": "Регулярно, пасив → `is generated`."
+    },
+    {
+     "type": "gap",
+     "q": "The fix ___ (deploy) tomorrow.",
+     "a": [
+      "will be deployed"
+     ],
+     "why": "Майбутнє, пасив → `will be deployed`."
+    },
+    {
+     "type": "gap",
+     "q": "The error can ___ (reproduce) on staging.",
+     "a": [
+      "be reproduced"
+     ],
+     "why": "Модальне + `be` + V3."
+    },
+    {
+     "type": "fix",
+     "q": "The bug was appeared after the update.",
+     "a": [
+      "The bug appeared after the update."
+     ],
+     "why": "`appear` пасиву не має."
+    },
+    {
+     "type": "fix",
+     "q": "About two hundred users were affect.",
+     "a": [
+      "About two hundred users were affected."
+     ],
+     "why": "Пасив потребує V3: `affected`."
+    },
+    {
+     "type": "fix",
+     "q": "The release was rollbacked in ten minutes.",
+     "a": [
+      "The release was rolled back in ten minutes.",
+      "The release was rolled back within ten minutes."
+     ],
+     "why": "Фразове дієслово: `roll back — rolled back`."
+    },
+    {
+     "type": "translate",
+     "q": "Проблему виправлено в останньому релізі.",
+     "a": [
+      "The issue has been fixed in the latest release.",
+      "The problem has been fixed in the latest release.",
+      "The issue was fixed in the latest release.",
+      "The problem was fixed in the latest release.",
+      "The issue has been fixed in the last release.",
+      "The bug has been fixed in the latest release."
+     ],
+     "why": "Пасив: `has been fixed` (або `was fixed`)."
+    },
+    {
+     "type": "translate",
+     "q": "Помилку можна відтворити на стейджингу.",
+     "a": [
+      "The error can be reproduced on staging.",
+      "The bug can be reproduced on staging.",
+      "The error can be reproduced on the staging server.",
+      "This error can be reproduced on staging."
+     ],
+     "why": "`can be` + V3."
+    },
+    {
+     "type": "translate",
+     "q": "Першопричиною був відсутній індекс.",
+     "a": [
+      "The root cause was a missing index."
+     ],
+     "why": "Стала фраза `root cause`."
+    }
+   ],
+   "typing": [
+    "The bug was introduced in version 2.3.",
+    "The issue has been fixed in the latest release.",
+    "The report is generated every night by a cron job.",
+    "Steps to reproduce: open the order and click Confirm.",
+    "Expected result: the order is confirmed. Actual result: an error is shown.",
+    "The release was rolled back within ten minutes.",
+    "The root cause was a missing index on the partner table."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Passives",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/passives",
+     "note": "Пасив у всіх часах і тест."
+    },
+    {
+     "kind": "video",
+     "title": "Passive voice",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20passive%20voice",
+     "note": "Зверніть увагу, коли ведучі прибирають виконавця."
+    },
+    {
+     "kind": "video",
+     "title": "How to write a good bug report",
+     "url": "https://www.youtube.com/results?search_query=how%20to%20write%20a%20good%20bug%20report%20steps%20to%20reproduce%20expected%20actual",
+     "note": "Порівняйте зі структурою з уроку."
+    }
+   ]
+  },
+  {
+   "id": "b1-07",
+   "title": "Past Perfect і розповідь про минуле",
+   "topic": "Постмортем",
+   "goal": "Розповідати таймлайн інциденту: що відбувалось, що сталося, що було до того.",
+   "theory": [
+    {
+     "h": "Три часи розповіді"
+    },
+    {
+     "table": [
+      [
+       "Час",
+       "Роль у розповіді",
+       "Приклад"
+      ],
+      [
+       "**Past Simple**",
+       "основні події, одна за одною",
+       "The alert fired. We checked the logs."
+      ],
+      [
+       "**Past Continuous**",
+       "фон, процес у той момент",
+       "We were deploying the release when…"
+      ],
+      [
+       "**Past Perfect**",
+       "що сталося **ще раніше**",
+       "…someone had changed the config."
+      ]
+     ]
+    },
+    {
+     "p": "**Past Perfect** = `had` + V3 — «минуле в минулому». Він потрібен, коли ви розповідаєте не по порядку і треба показати, що подія була раніше за іншу."
+    },
+    {
+     "p": "`When I opened the logs, the service **had** already **crashed**.` — спочатку впав сервіс, потім я відкрив логи."
+    },
+    {
+     "tip": "Якщо події йдуть по порядку, Past Perfect не потрібен: `The service crashed and I opened the logs.`"
+    },
+    {
+     "h": "Past Continuous + when"
+    },
+    {
+     "p": "`We were running the migration when the disk ran out of space.` — довгий процес перервала коротка подія."
+    },
+    {
+     "h": "Слова таймлайну"
+    },
+    {
+     "ul": [
+      "`at 14:05`, `shortly after`, `by the time`, `meanwhile`, `eventually`, `it turned out that…`"
+     ]
+    },
+    {
+     "warn": "❌ When we noticed it, the job already failed. → ✅ …the job had already failed."
+    }
+   ],
+   "examples": [
+    {
+     "en": "At 14:05 the alert fired and we checked the dashboards.",
+     "uk": "О 14:05 спрацював алерт, і ми перевірили дашборди."
+    },
+    {
+     "en": "We were deploying the release when the database went down.",
+     "uk": "Ми саме деплоїли реліз, коли впала база."
+    },
+    {
+     "en": "It turned out that someone had changed the config.",
+     "uk": "Зʼясувалося, що хтось змінив конфіг (раніше)."
+    },
+    {
+     "en": "By the time we noticed, the queue had grown to ten thousand jobs.",
+     "uk": "Поки ми помітили, черга виросла до десяти тисяч задач."
+    },
+    {
+     "en": "We had never seen this error before.",
+     "uk": "Ми ніколи раніше не бачили цієї помилки."
+    },
+    {
+     "en": "Meanwhile, the support team was answering customers.",
+     "uk": "Тим часом підтримка відповідала клієнтам."
+    },
+    {
+     "en": "Eventually we rolled back and the service recovered.",
+     "uk": "Зрештою ми відкотилися, і сервіс відновився."
+    },
+    {
+     "en": "The test passed because I hadn't updated the fixture.",
+     "uk": "Тест пройшов, бо я не оновив фікстуру."
+    }
+   ],
+   "words": [
+    {
+     "en": "the alert fired",
+     "uk": "спрацював алерт",
+     "ex": "The alert fired at two in the morning."
+    },
+    {
+     "en": "it turned out that",
+     "uk": "зʼясувалося, що",
+     "ex": "It turned out that the disk was full."
+    },
+    {
+     "en": "by the time",
+     "uk": "на той момент, коли",
+     "ex": "By the time we arrived, it had recovered."
+    },
+    {
+     "en": "run out of space",
+     "uk": "закінчилося місце",
+     "ex": "The server ran out of disk space."
+    },
+    {
+     "en": "go down",
+     "uk": "впасти (про сервіс)",
+     "ex": "The API went down for twenty minutes."
+    },
+    {
+     "en": "lessons learned",
+     "uk": "висновки, уроки",
+     "ex": "Let's write down the lessons learned."
+    },
+    {
+     "en": "action items",
+     "uk": "задачі за підсумками",
+     "ex": "We agreed on three action items."
+    },
+    {
+     "en": "blameless postmortem",
+     "uk": "постмортем без пошуку винних",
+     "ex": "We always do a blameless postmortem."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "We ___ the release when the database went down.",
+     "options": [
+      "deployed",
+      "were deploying",
+      "had deployed"
+     ],
+     "a": 1,
+     "why": "Фон, процес у той момент → Past Continuous."
+    },
+    {
+     "type": "choice",
+     "q": "When I opened the logs, the service ___ already ___.",
+     "options": [
+      "has / crashed",
+      "had / crashed",
+      "was / crashing"
+     ],
+     "a": 1,
+     "why": "Впав раніше, ніж я відкрив → Past Perfect."
+    },
+    {
+     "type": "choice",
+     "q": "The alert fired and we ___ the dashboards.",
+     "options": [
+      "checked",
+      "had checked"
+     ],
+     "a": 0,
+     "why": "Події по порядку → Past Simple."
+    },
+    {
+     "type": "choice",
+     "q": "We ___ this error before.",
+     "options": [
+      "never saw",
+      "had never seen"
+     ],
+     "a": 1,
+     "why": "Досвід до моменту в минулому → Past Perfect."
+    },
+    {
+     "type": "gap",
+     "q": "It turned out that someone ___ (change) the config.",
+     "a": [
+      "had changed"
+     ],
+     "why": "Зміна була раніше за зʼясування → `had changed`."
+    },
+    {
+     "type": "gap",
+     "q": "By the time we noticed, the queue ___ (grow) to ten thousand jobs.",
+     "a": [
+      "had grown"
+     ],
+     "why": "`by the time` → Past Perfect; `grow — grew — grown`."
+    },
+    {
+     "type": "gap",
+     "q": "Meanwhile, the support team ___ (answer) customers.",
+     "a": [
+      "was answering"
+     ],
+     "why": "Паралельний фон → Past Continuous."
+    },
+    {
+     "type": "fix",
+     "q": "When we noticed it, the job already failed.",
+     "a": [
+      "When we noticed it, the job had already failed."
+     ],
+     "why": "Подія раніше за «помітили» → Past Perfect."
+    },
+    {
+     "type": "fix",
+     "q": "We were deploy the release when it crashed.",
+     "a": [
+      "We were deploying the release when it crashed."
+     ],
+     "why": "Past Continuous: `were` + -ing."
+    },
+    {
+     "type": "fix",
+     "q": "The server run out of disk space at night.",
+     "a": [
+      "The server ran out of disk space at night."
+     ],
+     "why": "Past Simple: `run — ran`."
+    },
+    {
+     "type": "translate",
+     "q": "Зʼясувалося, що диск був заповнений.",
+     "a": [
+      "It turned out that the disk was full.",
+      "It turned out the disk was full.",
+      "It turned out that the disk had been full."
+     ],
+     "why": "`it turned out that` + Past."
+    },
+    {
+     "type": "translate",
+     "q": "Ми саме деплоїли реліз, коли впала база.",
+     "a": [
+      "We were deploying the release when the database went down.",
+      "We were deploying the release when the database crashed.",
+      "We were deploying the release when the DB went down."
+     ],
+     "why": "Фон Continuous + подія Simple."
+    },
+    {
+     "type": "translate",
+     "q": "Ми ніколи раніше не бачили цієї помилки.",
+     "a": [
+      "We had never seen this error before.",
+      "We'd never seen this error before.",
+      "We had never seen that error before.",
+      "We'd never seen that error before.",
+      "We have never seen this error before."
+     ],
+     "why": "У розповіді про інцидент → Past Perfect (у звіті «станом на зараз» — Present Perfect)."
+    }
+   ],
+   "typing": [
+    "At 14:05 the alert fired and we checked the dashboards.",
+    "We were deploying the release when the database went down.",
+    "It turned out that someone had changed the config.",
+    "By the time we noticed, the queue had grown to ten thousand jobs.",
+    "Eventually we rolled back and the service recovered.",
+    "We agreed on three action items and a blameless postmortem."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Past perfect",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/past-perfect",
+     "note": "Коли Past Perfect потрібен, а коли ні."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Past continuous and past simple",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/a1-a2/past-continuous-past-simple",
+     "note": "Фон і подія."
+    },
+    {
+     "kind": "video",
+     "title": "Narrative tenses",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20narrative%20tenses%20past%20perfect",
+     "note": "Слухайте, як оповідач «перемотує» назад."
+    }
+   ]
+  },
+  {
+   "id": "b1-08",
+   "title": "Модальні дієслова і hedging",
+   "topic": "Code review",
+   "goal": "Коментувати чужий код ввічливо: радити, вимагати і сумніватися, не звучачи грубо.",
+   "theory": [
+    {
+     "h": "Обовʼязок і порада"
+    },
+    {
+     "table": [
+      [
+       "Дієслово",
+       "Сила",
+       "Приклад"
+      ],
+      [
+       "**must**",
+       "суворе правило",
+       "Passwords must be hashed."
+      ],
+      [
+       "**have to**",
+       "зовнішня необхідність",
+       "We have to support Odoo 17 too."
+      ],
+      [
+       "**should**",
+       "порада, рекомендація",
+       "You should add a test for this."
+      ],
+      [
+       "**don't have to**",
+       "не обовʼязково",
+       "You don't have to rebase."
+      ],
+      [
+       "**mustn't**",
+       "заборонено",
+       "You mustn't commit secrets."
+      ]
+     ]
+    },
+    {
+     "warn": "❌ You mustn't rebase (якщо мається на увазі «не обовʼязково»). → ✅ You don't have to rebase."
+    },
+    {
+     "h": "Ймовірність"
+    },
+    {
+     "ul": [
+      "`must be` — майже впевнений: `It must be a cache issue.`",
+      "`might / may / could be` — можливо: `It might be a race condition.`",
+      "`can't be` — неможливо: `It can't be the network, ping is fine.`"
+     ]
+    },
+    {
+     "h": "Hedging — як помʼякшити"
+    },
+    {
+     "p": "Прямий наказ у ревʼю звучить різко. Носії мови загортають думку в обережні рамки:"
+    },
+    {
+     "table": [
+      [
+       "Різко",
+       "Ввічливо"
+      ],
+      [
+       "This is wrong.",
+       "I'm not sure this is right. Could you double-check?"
+      ],
+      [
+       "Rename this.",
+       "Maybe we could rename this to `partner_ids`?"
+      ],
+      [
+       "Add a test.",
+       "It might be worth adding a test here."
+      ],
+      [
+       "Don't do this.",
+       "I'd suggest avoiding this pattern, because…"
+      ]
+     ]
+    },
+    {
+     "tip": "Корисні рамки: `Have you considered…?`, `What do you think about…?`, `Nit:` (дрібниця), `Not a blocker, but…`"
+    }
+   ],
+   "examples": [
+    {
+     "en": "You should add a test for this edge case.",
+     "uk": "Варто додати тест для цього граничного випадку."
+    },
+    {
+     "en": "We have to support Odoo 17 as well.",
+     "uk": "Нам доводиться підтримувати і Odoo 17."
+    },
+    {
+     "en": "You don't have to squash the commits.",
+     "uk": "Не обовʼязково склеювати коміти."
+    },
+    {
+     "en": "You mustn't commit passwords to the repo.",
+     "uk": "Не можна комітити паролі в репозиторій."
+    },
+    {
+     "en": "It might be a race condition.",
+     "uk": "Можливо, це стан гонитви."
+    },
+    {
+     "en": "It can't be the network, the ping is fine.",
+     "uk": "Це не може бути мережа, пінг нормальний."
+    },
+    {
+     "en": "Have you considered using a computed field here?",
+     "uk": "Ти не думав використати тут обчислюване поле?"
+    },
+    {
+     "en": "Maybe we could move this logic to a separate method?",
+     "uk": "Може, винесемо цю логіку в окремий метод?"
+    },
+    {
+     "en": "Nit: there is a typo in the docstring.",
+     "uk": "Дрібниця: у докстрингу одруківка."
+    },
+    {
+     "en": "Not a blocker, but it might be worth adding a comment.",
+     "uk": "Не блокер, але, можливо, варто додати коментар."
+    }
+   ],
+   "words": [
+    {
+     "en": "double-check the rules",
+     "uk": "перевірити правила ще раз",
+     "ex": "Could you double-check the access rules?"
+    },
+    {
+     "en": "edge case",
+     "uk": "граничний випадок",
+     "ex": "This edge case is not covered."
+    },
+    {
+     "en": "not a blocker",
+     "uk": "не блокує мердж",
+     "ex": "Not a blocker, just a suggestion."
+    },
+    {
+     "en": "it might be worth",
+     "uk": "можливо, варто",
+     "ex": "It might be worth caching this."
+    },
+    {
+     "en": "address a comment",
+     "uk": "відпрацювати коментар",
+     "ex": "I've addressed all your comments."
+    },
+    {
+     "en": "make sense",
+     "uk": "мати сенс",
+     "ex": "Does that make sense?"
+    },
+    {
+     "en": "a fair point",
+     "uk": "слушне зауваження",
+     "ex": "That's a fair point, I'll change it."
+    },
+    {
+     "en": "approve a PR",
+     "uk": "схвалити PR",
+     "ex": "I've approved your PR."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Passwords ___ be stored in plain text.",
+     "options": [
+      "mustn't",
+      "don't have to",
+      "shouldn't maybe"
+     ],
+     "a": 0,
+     "why": "Сувора заборона → `mustn't`."
+    },
+    {
+     "type": "choice",
+     "q": "You ___ rebase, a merge commit is fine.",
+     "options": [
+      "mustn't",
+      "don't have to"
+     ],
+     "a": 1,
+     "why": "Не обовʼязково → `don't have to`."
+    },
+    {
+     "type": "choice",
+     "q": "The ping is fine, so it ___ be the network.",
+     "options": [
+      "can't",
+      "mustn't",
+      "might"
+     ],
+     "a": 0,
+     "why": "Логічно неможливо → `can't be`."
+    },
+    {
+     "type": "choice",
+     "q": "It works locally but not on the server. It ___ be a config difference.",
+     "options": [
+      "must",
+      "can't",
+      "should"
+     ],
+     "a": 0,
+     "why": "Майже впевнений висновок → `must be`."
+    },
+    {
+     "type": "choice",
+     "q": "Який коментар найввічливіший?",
+     "options": [
+      "Rename this variable.",
+      "This name is bad.",
+      "Maybe we could rename this variable?"
+     ],
+     "a": 2,
+     "why": "Hedging: `Maybe we could…?`"
+    },
+    {
+     "type": "gap",
+     "q": "It ___ be worth adding a test here.",
+     "a": [
+      "might",
+      "may",
+      "could"
+     ],
+     "why": "Обережна порада: `It might be worth…`"
+    },
+    {
+     "type": "gap",
+     "q": "Have you ___ using a computed field here?",
+     "a": [
+      "considered"
+     ],
+     "why": "`Have you considered + -ing`."
+    },
+    {
+     "type": "gap",
+     "q": "We ___ to support Odoo 17 as well, the client requires it.",
+     "a": [
+      "have"
+     ],
+     "why": "Зовнішня необхідність → `have to`."
+    },
+    {
+     "type": "fix",
+     "q": "You should to add a test for this.",
+     "a": [
+      "You should add a test for this."
+     ],
+     "why": "Після модальних — без `to`."
+    },
+    {
+     "type": "fix",
+     "q": "It might is a race condition.",
+     "a": [
+      "It might be a race condition."
+     ],
+     "why": "Після `might` — `be`."
+    },
+    {
+     "type": "fix",
+     "q": "Have you considered to use a mixin?",
+     "a": [
+      "Have you considered using a mixin?"
+     ],
+     "why": "`consider` + -ing."
+    },
+    {
+     "type": "translate",
+     "q": "Можеш ще раз перевірити правила доступу?",
+     "a": [
+      "Could you double-check the access rules?",
+      "Can you double-check the access rules?",
+      "Could you double check the access rules?",
+      "Can you double check the access rules?"
+     ],
+     "why": "Ввічливе прохання + `double-check`."
+    },
+    {
+     "type": "translate",
+     "q": "Не блокер, але, можливо, варто додати коментар.",
+     "a": [
+      "Not a blocker, but it might be worth adding a comment.",
+      "Not a blocker, but it may be worth adding a comment.",
+      "It's not a blocker, but it might be worth adding a comment."
+     ],
+     "why": "`it might be worth + -ing`."
+    },
+    {
+     "type": "translate",
+     "q": "Слушне зауваження, я це зміню.",
+     "a": [
+      "That's a fair point, I'll change it.",
+      "That is a fair point, I will change it.",
+      "Fair point, I'll change it.",
+      "That's a fair point, I will change it."
+     ],
+     "why": "`a fair point` + рішення `will`."
+    }
+   ],
+   "typing": [
+    "You should add a test for this edge case.",
+    "You don't have to squash the commits.",
+    "It might be a race condition, could you double-check?",
+    "Have you considered using a computed field here?",
+    "Not a blocker, but it might be worth adding a comment.",
+    "That's a fair point, I'll change it.",
+    "I've addressed all your comments, could you take another look?"
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Modals — permission and obligation",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/modals-permission-obligation",
+     "note": "must / have to / don't have to."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Modals — deductions about the present",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/modals-deductions-about-present",
+     "note": "must be / might be / can't be."
+    },
+    {
+     "kind": "video",
+     "title": "Code review etiquette",
+     "url": "https://www.youtube.com/results?search_query=how%20to%20give%20code%20review%20feedback%20politely%20english%20phrases",
+     "note": "Випишіть 5 помʼякшувальних фраз."
+    }
+   ]
+  },
+  {
+   "id": "b1-09",
+   "title": "Фразові дієслова · -ing чи to",
+   "topic": "Деплой та інфраструктура",
+   "goal": "Говорити про деплой природною мовою і правильно ставити -ing або to після дієслів.",
+   "theory": [
+    {
+     "h": "Фразові дієслова роботи"
+    },
+    {
+     "table": [
+      [
+       "Дієслово",
+       "Значення",
+       "Приклад"
+      ],
+      [
+       "**roll out**",
+       "поступово викотити",
+       "We rolled out the update to 10% of users."
+      ],
+      [
+       "**roll back**",
+       "відкотити",
+       "We had to roll back the release."
+      ],
+      [
+       "**set up**",
+       "налаштувати",
+       "I set up a new staging server."
+      ],
+      [
+       "**spin up**",
+       "швидко підняти (сервер)",
+       "Let's spin up a test instance."
+      ],
+      [
+       "**run into**",
+       "натрапити на проблему",
+       "We ran into a permission issue."
+      ],
+      [
+       "**figure out**",
+       "розібратися, зрозуміти",
+       "I can't figure out why it fails."
+      ],
+      [
+       "**look into**",
+       "дослідити",
+       "I'll look into it."
+      ],
+      [
+       "**come up**",
+       "виникнути",
+       "A new issue came up."
+      ]
+     ]
+    },
+    {
+     "p": "Якщо додаток — займенник, він стає **між** дієсловом і часткою: `roll it back`, `set it up` (не `roll back it`)."
+    },
+    {
+     "h": "Після яких дієслів -ing, а після яких to"
+    },
+    {
+     "table": [
+      [
+       "+ -ing",
+       "+ to"
+      ],
+      [
+       "avoid, finish, suggest, consider, mind, keep, enjoy",
+       "want, need, decide, plan, manage, agree, refuse, try (= намагатися)"
+      ],
+      [
+       "avoid **breaking** the API",
+       "manage **to fix** it"
+      ],
+      [
+       "suggest **adding** a test",
+       "decide **to postpone** the release"
+      ]
+     ]
+    },
+    {
+     "tip": "Після прийменників — завжди -ing: `before deploying`, `instead of writing`, `thanks for helping`."
+    },
+    {
+     "warn": "❌ I suggest to add a test. → ✅ I suggest adding a test."
+    }
+   ],
+   "examples": [
+    {
+     "en": "We rolled out the update to ten percent of users.",
+     "uk": "Ми викотили оновлення на десять відсотків користувачів."
+    },
+    {
+     "en": "The release broke the checkout, so we rolled it back.",
+     "uk": "Реліз зламав оформлення, тож ми його відкотили."
+    },
+    {
+     "en": "Let's spin up a test instance for the client.",
+     "uk": "Давай піднімемо тестовий інстанс для клієнта."
+    },
+    {
+     "en": "We ran into a permission issue during the upgrade.",
+     "uk": "Під час оновлення ми натрапили на проблему з правами."
+    },
+    {
+     "en": "I can't figure out why the cron job doesn't start.",
+     "uk": "Не можу зрозуміти, чому cron-задача не стартує."
+    },
+    {
+     "en": "Try to avoid changing the public API.",
+     "uk": "Намагайся не змінювати публічний API."
+    },
+    {
+     "en": "We managed to fix it before the release.",
+     "uk": "Нам вдалося виправити це до релізу."
+    },
+    {
+     "en": "I suggest adding a health check.",
+     "uk": "Пропоную додати перевірку стану."
+    },
+    {
+     "en": "Always back up the database before upgrading.",
+     "uk": "Завжди робіть резервну копію бази перед оновленням."
+    },
+    {
+     "en": "We decided to postpone the release.",
+     "uk": "Ми вирішили відкласти реліз."
+    }
+   ],
+   "words": [
+    {
+     "en": "roll out an update",
+     "uk": "викотити оновлення",
+     "ex": "We roll out updates every Tuesday."
+    },
+    {
+     "en": "roll it back",
+     "uk": "відкотити це",
+     "ex": "If it breaks, roll it back."
+    },
+    {
+     "en": "set up a server",
+     "uk": "налаштувати сервер",
+     "ex": "I set up the staging server yesterday."
+    },
+    {
+     "en": "run into an issue",
+     "uk": "натрапити на проблему",
+     "ex": "We ran into an issue with the migration."
+    },
+    {
+     "en": "figure out the cause",
+     "uk": "зʼясувати причину",
+     "ex": "We still haven't figured out the cause."
+    },
+    {
+     "en": "back up the database",
+     "uk": "зробити бекап бази",
+     "ex": "Back up the database before the upgrade."
+    },
+    {
+     "en": "manage to do",
+     "uk": "зуміти щось зробити",
+     "ex": "We managed to deploy on time."
+    },
+    {
+     "en": "avoid breaking",
+     "uk": "не зламати, уникнути поломки",
+     "ex": "We want to avoid breaking old reports."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "The release broke the checkout, so we ___.",
+     "options": [
+      "rolled back it",
+      "rolled it back"
+     ],
+     "a": 1,
+     "why": "Займенник — між дієсловом і часткою."
+    },
+    {
+     "type": "choice",
+     "q": "We ___ a permission issue during the upgrade.",
+     "options": [
+      "ran into",
+      "ran out",
+      "ran up"
+     ],
+     "a": 0,
+     "why": "`run into` — натрапити на проблему."
+    },
+    {
+     "type": "choice",
+     "q": "I suggest ___ a health check.",
+     "options": [
+      "to add",
+      "adding",
+      "add"
+     ],
+     "a": 1,
+     "why": "`suggest` + -ing."
+    },
+    {
+     "type": "choice",
+     "q": "We managed ___ it before the release.",
+     "options": [
+      "fixing",
+      "to fix"
+     ],
+     "a": 1,
+     "why": "`manage` + to."
+    },
+    {
+     "type": "choice",
+     "q": "Back up the database before ___.",
+     "options": [
+      "upgrade",
+      "to upgrade",
+      "upgrading"
+     ],
+     "a": 2,
+     "why": "Після прийменника `before` → -ing."
+    },
+    {
+     "type": "gap",
+     "q": "I can't ___ out why the job doesn't start.",
+     "a": [
+      "figure"
+     ],
+     "why": "`figure out` — розібратися."
+    },
+    {
+     "type": "gap",
+     "q": "Let's spin ___ a test instance.",
+     "a": [
+      "up"
+     ],
+     "why": "`spin up` — швидко підняти сервер."
+    },
+    {
+     "type": "gap",
+     "q": "Try to avoid ___ (change) the public API.",
+     "a": [
+      "changing"
+     ],
+     "why": "`avoid` + -ing."
+    },
+    {
+     "type": "fix",
+     "q": "We decided postponing the release.",
+     "a": [
+      "We decided to postpone the release."
+     ],
+     "why": "`decide` + to."
+    },
+    {
+     "type": "fix",
+     "q": "Thanks for help me with the deploy.",
+     "a": [
+      "Thanks for helping me with the deploy."
+     ],
+     "why": "Після `for` → -ing."
+    },
+    {
+     "type": "fix",
+     "q": "I set up it yesterday.",
+     "a": [
+      "I set it up yesterday."
+     ],
+     "why": "Займенник між `set` і `up`."
+    },
+    {
+     "type": "translate",
+     "q": "Ми вирішили відкласти реліз.",
+     "a": [
+      "We decided to postpone the release.",
+      "We decided to delay the release."
+     ],
+     "why": "`decide` + to."
+    },
+    {
+     "type": "translate",
+     "q": "Ми досі не зʼясували причину.",
+     "a": [
+      "We still haven't figured out the cause.",
+      "We still have not figured out the cause.",
+      "We haven't figured out the cause yet.",
+      "We have not figured out the cause yet.",
+      "We still haven't figured out the reason."
+     ],
+     "why": "`figure out` + Perfect з `still / yet`."
+    },
+    {
+     "type": "translate",
+     "q": "Завжди роби бекап бази перед оновленням.",
+     "a": [
+      "Always back up the database before upgrading.",
+      "Always back up the database before the upgrade.",
+      "Always back up the database before updating.",
+      "Always make a backup of the database before upgrading."
+     ],
+     "why": "`back up` + `before` + -ing."
+    }
+   ],
+   "typing": [
+    "We rolled out the update to ten percent of users.",
+    "The release broke the checkout, so we rolled it back.",
+    "We ran into a permission issue during the upgrade.",
+    "I can't figure out why the cron job doesn't start.",
+    "I suggest adding a health check before deploying.",
+    "We managed to fix it before the release.",
+    "Always back up the database before upgrading."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Phrasal verbs",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/phrasal-verbs",
+     "note": "Де стоїть займенник у фразових дієсловах."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Verbs followed by -ing or infinitive",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/a1-a2/verbs-followed-ing-or-infinitive",
+     "note": "Таблиця дієслів і тест."
+    },
+    {
+     "kind": "audio",
+     "title": "The Changelog (подкаст)",
+     "url": "https://changelog.com/podcast",
+     "note": "Будь-який випуск про інфраструктуру: ловіть roll out, spin up, run into."
+    }
+   ]
+  },
+  {
+   "id": "b1-10",
+   "title": "Умовні речення 0 / 1 / 2 / 3",
+   "topic": "Рішення і компроміси",
+   "goal": "Обговорювати варіанти й наслідки: «якщо зробимо», «якби ми зараз», «якби тоді».",
+   "theory": [
+    {
+     "h": "Чотири типи"
+    },
+    {
+     "table": [
+      [
+       "Тип",
+       "Форма",
+       "Значення",
+       "Приклад"
+      ],
+      [
+       "0",
+       "if + Present, Present",
+       "завжди так",
+       "If the cache is empty, the page loads slowly."
+      ],
+      [
+       "1",
+       "if + Present, will",
+       "реальне майбутнє",
+       "If we add an index, the query will be faster."
+      ],
+      [
+       "2",
+       "if + Past, would",
+       "уявне зараз",
+       "If we had more time, we would rewrite it."
+      ],
+      [
+       "3",
+       "if + had V3, would have V3",
+       "уявне минуле",
+       "If we had tested it, we would have caught the bug."
+      ]
+     ]
+    },
+    {
+     "h": "Головне правило"
+    },
+    {
+     "p": "У частині з **if** немає `will` і `would`. Вони — тільки в головній частині."
+    },
+    {
+     "warn": "❌ If we would have more time, we would… → ✅ If we had more time, we would…"
+    },
+    {
+     "warn": "❌ If we will add an index… → ✅ If we add an index…"
+    },
+    {
+     "h": "Мова компромісів"
+    },
+    {
+     "ul": [
+      "`We went with X because…` — ми обрали X, бо…",
+      "`The trade-off is that…` — компроміс у тому, що…",
+      "`On the one hand… on the other hand…`",
+      "`If I were you, I'd…` — порада (у 2-му типі `were` для всіх осіб)",
+      "`unless` = if not: `We won't ship unless the tests pass.`"
+     ]
+    }
+   ],
+   "examples": [
+    {
+     "en": "If the cache is empty, the first request is slow.",
+     "uk": "Якщо кеш порожній, перший запит повільний."
+    },
+    {
+     "en": "If we add an index, the query will be much faster.",
+     "uk": "Якщо додамо індекс, запит буде набагато швидшим."
+    },
+    {
+     "en": "If we had more time, we would rewrite this module.",
+     "uk": "Якби в нас було більше часу, ми б переписали цей модуль."
+    },
+    {
+     "en": "If we had tested it on staging, we would have caught the bug.",
+     "uk": "Якби ми протестували це на стейджингу, то впіймали б баг."
+    },
+    {
+     "en": "If I were you, I'd split this PR into two.",
+     "uk": "На твоєму місці я б розбив цей PR на два."
+    },
+    {
+     "en": "We won't ship unless the tests pass.",
+     "uk": "Ми не випустимо, якщо тести не пройдуть."
+    },
+    {
+     "en": "We went with PostgreSQL because the team knows it well.",
+     "uk": "Ми обрали PostgreSQL, бо команда добре його знає."
+    },
+    {
+     "en": "The trade-off is that the import becomes slower.",
+     "uk": "Компроміс у тому, що імпорт стає повільнішим."
+    },
+    {
+     "en": "What would happen if we removed this field?",
+     "uk": "Що буде, якщо ми приберемо це поле?"
+    }
+   ],
+   "words": [
+    {
+     "en": "go with an option",
+     "uk": "обрати варіант",
+     "ex": "Let's go with the simpler option."
+    },
+    {
+     "en": "the trade-off is",
+     "uk": "компроміс у тому",
+     "ex": "The trade-off is higher memory usage."
+    },
+    {
+     "en": "pros and cons",
+     "uk": "плюси й мінуси",
+     "ex": "Let's list the pros and cons."
+    },
+    {
+     "en": "in the long run",
+     "uk": "у довгостроковій перспективі",
+     "ex": "It will save time in the long run."
+    },
+    {
+     "en": "catch a bug",
+     "uk": "впіймати баг",
+     "ex": "The tests caught the bug early."
+    },
+    {
+     "en": "unless CI is green",
+     "uk": "якщо CI не зелений",
+     "ex": "Don't merge unless CI is green."
+    },
+    {
+     "en": "a quick win",
+     "uk": "швидка перемога, легкий виграш",
+     "ex": "Adding an index is a quick win."
+    },
+    {
+     "en": "it is not worth it",
+     "uk": "воно того не варте",
+     "ex": "Rewriting it now is not worth it."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "If we add an index, the query ___ faster.",
+     "options": [
+      "is",
+      "will be",
+      "would be"
+     ],
+     "a": 1,
+     "why": "Реальне майбутнє → тип 1: `will`."
+    },
+    {
+     "type": "choice",
+     "q": "If we ___ more time, we would rewrite it.",
+     "options": [
+      "have",
+      "had",
+      "would have"
+     ],
+     "a": 1,
+     "why": "Тип 2: `if` + Past."
+    },
+    {
+     "type": "choice",
+     "q": "If we had tested it, we ___ the bug.",
+     "options": [
+      "would catch",
+      "will catch",
+      "would have caught"
+     ],
+     "a": 2,
+     "why": "Уявне минуле → тип 3: `would have` + V3."
+    },
+    {
+     "type": "choice",
+     "q": "If I ___ you, I'd split this PR.",
+     "options": [
+      "am",
+      "was",
+      "were"
+     ],
+     "a": 2,
+     "why": "Стала порада: `If I were you`."
+    },
+    {
+     "type": "choice",
+     "q": "Don't merge ___ CI is green.",
+     "options": [
+      "if",
+      "unless",
+      "when"
+     ],
+     "a": 1,
+     "why": "`unless` = якщо не."
+    },
+    {
+     "type": "gap",
+     "q": "If the cache ___ (be) empty, the first request is slow.",
+     "a": [
+      "is"
+     ],
+     "why": "Загальна істина → тип 0: Present + Present."
+    },
+    {
+     "type": "gap",
+     "q": "What would happen if we ___ (remove) this field?",
+     "a": [
+      "removed"
+     ],
+     "why": "Тип 2: Past після `if`."
+    },
+    {
+     "type": "gap",
+     "q": "If we had used a queue, the site ___ (not / go) down.",
+     "a": [
+      "wouldn't have gone",
+      "would not have gone"
+     ],
+     "why": "Тип 3: `wouldn't have` + V3."
+    },
+    {
+     "type": "fix",
+     "q": "If we would have more time, we would refactor it.",
+     "a": [
+      "If we had more time, we would refactor it.",
+      "If we had more time, we'd refactor it."
+     ],
+     "why": "У частині з `if` немає `would`."
+    },
+    {
+     "type": "fix",
+     "q": "If we will add a test, we'll catch it.",
+     "a": [
+      "If we add a test, we'll catch it.",
+      "If we add a test, we will catch it."
+     ],
+     "why": "Після `if` — Present."
+    },
+    {
+     "type": "fix",
+     "q": "If we had checked the logs, we would found it.",
+     "a": [
+      "If we had checked the logs, we would have found it.",
+      "If we had checked the logs, we'd have found it."
+     ],
+     "why": "Тип 3: `would have found`."
+    },
+    {
+     "type": "translate",
+     "q": "Якби в нас було більше часу, ми б переписали цей модуль.",
+     "a": [
+      "If we had more time, we would rewrite this module.",
+      "If we had more time, we'd rewrite this module.",
+      "If we had more time, we would refactor this module.",
+      "If we had more time, we'd refactor this module."
+     ],
+     "why": "Тип 2."
+    },
+    {
+     "type": "translate",
+     "q": "На твоєму місці я б розбив цей PR на два.",
+     "a": [
+      "If I were you, I'd split this PR into two.",
+      "If I were you, I would split this PR into two.",
+      "If I were you, I'd split this PR in two.",
+      "If I were you, I would split this PR in two."
+     ],
+     "why": "`If I were you` + `would`."
+    },
+    {
+     "type": "translate",
+     "q": "Ми обрали PostgreSQL, бо команда добре його знає.",
+     "a": [
+      "We went with PostgreSQL because the team knows it well.",
+      "We chose PostgreSQL because the team knows it well.",
+      "We picked PostgreSQL because the team knows it well."
+     ],
+     "why": "`go with` — обрати варіант."
+    }
+   ],
+   "typing": [
+    "If we add an index, the query will be much faster.",
+    "If we had more time, we would rewrite this module.",
+    "If we had tested it on staging, we would have caught the bug.",
+    "If I were you, I'd split this PR into two.",
+    "We won't ship unless the tests pass.",
+    "We went with PostgreSQL because the team knows it well.",
+    "The trade-off is that the import becomes slower."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Conditionals — zero, first and second",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/conditionals-zero-first-second",
+     "note": "Три типи і тест."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Conditionals — third and mixed",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/conditionals-third-mixed",
+     "note": "Уявне минуле, змішані умовні."
+    },
+    {
+     "kind": "video",
+     "title": "Conditionals explained",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20conditionals%20first%20second%20third",
+     "note": "Порівняйте реальне і уявне."
+    }
+   ]
+  },
+  {
+   "id": "b1-11",
+   "title": "Підрядні означальні і звʼязки",
+   "topic": "README, документація, PR",
+   "goal": "Писати складні речення без каші: which / that / who / where і чіткі звʼязки між думками.",
+   "theory": [
+    {
+     "h": "Відносні займенники"
+    },
+    {
+     "table": [
+      [
+       "Слово",
+       "Для чого",
+       "Приклад"
+      ],
+      [
+       "**who**",
+       "люди",
+       "The developer who wrote it has left."
+      ],
+      [
+       "**which / that**",
+       "речі",
+       "The method that handles payments is slow."
+      ],
+      [
+       "**whose**",
+       "чий",
+       "The user whose order failed called us."
+      ],
+      [
+       "**where**",
+       "місце",
+       "This is the file where we define the views."
+      ]
+     ]
+    },
+    {
+     "h": "Уточнювальні і додаткові"
+    },
+    {
+     "p": "**Уточнювальне** (defining) — без ком, без нього незрозуміло, про що мова: `The script that imports partners is broken.` Тут можна `that`."
+    },
+    {
+     "p": "**Додаткове** (non-defining) — у комах, просто додає інформацію: `The import script, which runs every night, is broken.` Тут **тільки which**, не that."
+    },
+    {
+     "warn": "❌ Odoo, that is written in Python, … → ✅ Odoo, which is written in Python, …"
+    },
+    {
+     "h": "Звʼязки між реченнями"
+    },
+    {
+     "table": [
+      [
+       "Значення",
+       "Звʼязки"
+      ],
+      [
+       "протиставлення",
+       "**however**, **although**, **but**, despite + -ing"
+      ],
+      [
+       "наслідок",
+       "**therefore**, **so**, as a result"
+      ],
+      [
+       "додавання",
+       "**also**, **in addition**, moreover"
+      ],
+      [
+       "причина",
+       "**because**, **since**, due to + іменник"
+      ]
+     ]
+    },
+    {
+     "p": "`However` і `therefore` починають нове речення і стоять з комою: `The fix is ready. However, it needs a review.`"
+    },
+    {
+     "tip": "Мова документації: імператив (`Run the script.`), `Note that…`, `By default, …`, `Make sure that…`"
+    }
+   ],
+   "examples": [
+    {
+     "en": "The developer who wrote this module has left the company.",
+     "uk": "Розробник, який написав цей модуль, пішов з компанії."
+    },
+    {
+     "en": "The method that handles payments is too slow.",
+     "uk": "Метод, що обробляє платежі, надто повільний."
+    },
+    {
+     "en": "The import script, which runs every night, failed again.",
+     "uk": "Скрипт імпорту, який запускається щоночі, знову впав."
+    },
+    {
+     "en": "This is the file where we define the menu items.",
+     "uk": "Це файл, де ми визначаємо пункти меню."
+    },
+    {
+     "en": "The user whose order failed contacted support.",
+     "uk": "Користувач, чиє замовлення не пройшло, звернувся в підтримку."
+    },
+    {
+     "en": "The fix is ready. However, it still needs a review.",
+     "uk": "Виправлення готове. Однак йому ще потрібне ревʼю."
+    },
+    {
+     "en": "Although the tests pass, the page is still slow.",
+     "uk": "Хоча тести проходять, сторінка все ще повільна."
+    },
+    {
+     "en": "By default, the module is installed for all companies.",
+     "uk": "За замовчуванням модуль встановлюється для всіх компаній."
+    },
+    {
+     "en": "Note that you need admin rights to run this script.",
+     "uk": "Зверніть увагу: для запуску скрипта потрібні права адміністратора."
+    },
+    {
+     "en": "Make sure that the database is backed up.",
+     "uk": "Переконайтеся, що є резервна копія бази."
+    }
+   ],
+   "words": [
+    {
+     "en": "by default",
+     "uk": "за замовчуванням",
+     "ex": "By default, the field is hidden."
+    },
+    {
+     "en": "note that",
+     "uk": "зверніть увагу, що",
+     "ex": "Note that the API is read-only."
+    },
+    {
+     "en": "make sure that",
+     "uk": "переконайтеся, що",
+     "ex": "Make sure that the server is running."
+    },
+    {
+     "en": "out of the box",
+     "uk": "одразу, без налаштувань",
+     "ex": "It works out of the box."
+    },
+    {
+     "en": "as a result",
+     "uk": "у результаті",
+     "ex": "As a result, the report is faster."
+    },
+    {
+     "en": "due to",
+     "uk": "через, внаслідок",
+     "ex": "The delay was due to a network issue."
+    },
+    {
+     "en": "keep in mind",
+     "uk": "майте на увазі",
+     "ex": "Keep in mind that it is slow on big data."
+    },
+    {
+     "en": "add a TL;DR",
+     "uk": "додати коротке резюме на початку",
+     "ex": "TL;DR: the bug is fixed, please review."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "The developer ___ wrote this module has left.",
+     "options": [
+      "which",
+      "who",
+      "whose"
+     ],
+     "a": 1,
+     "why": "Людина → `who`."
+    },
+    {
+     "type": "choice",
+     "q": "The import script, ___ runs every night, failed.",
+     "options": [
+      "that",
+      "which"
+     ],
+     "a": 1,
+     "why": "Додаткове означальне в комах → тільки `which`."
+    },
+    {
+     "type": "choice",
+     "q": "This is the file ___ we define the views.",
+     "options": [
+      "which",
+      "where",
+      "what"
+     ],
+     "a": 1,
+     "why": "Місце → `where`."
+    },
+    {
+     "type": "choice",
+     "q": "The user ___ order failed called us.",
+     "options": [
+      "who",
+      "whose",
+      "who's"
+     ],
+     "a": 1,
+     "why": "«чий» → `whose`."
+    },
+    {
+     "type": "choice",
+     "q": "The fix is ready. ___, it still needs a review.",
+     "options": [
+      "Although",
+      "However",
+      "Because"
+     ],
+     "a": 1,
+     "why": "Протиставлення на початку нового речення → `However,`."
+    },
+    {
+     "type": "gap",
+     "q": "___ the tests pass, the page is still slow.",
+     "a": [
+      "Although",
+      "Though",
+      "Even though"
+     ],
+     "why": "Поступка всередині одного речення → `Although`."
+    },
+    {
+     "type": "gap",
+     "q": "___ default, the module is installed for all companies.",
+     "a": [
+      "By"
+     ],
+     "why": "Стала фраза `by default`."
+    },
+    {
+     "type": "gap",
+     "q": "The delay was ___ to a network issue.",
+     "a": [
+      "due"
+     ],
+     "why": "`due to` + іменник."
+    },
+    {
+     "type": "fix",
+     "q": "Odoo, that is written in Python, is easy to extend.",
+     "a": [
+      "Odoo, which is written in Python, is easy to extend."
+     ],
+     "why": "У комах — `which`, не `that`."
+    },
+    {
+     "type": "fix",
+     "q": "The method who handles payments is slow.",
+     "a": [
+      "The method that handles payments is slow.",
+      "The method which handles payments is slow."
+     ],
+     "why": "Для речей — `that / which`."
+    },
+    {
+     "type": "fix",
+     "q": "Despite the tests pass, the page is slow.",
+     "a": [
+      "Although the tests pass, the page is slow.",
+      "Even though the tests pass, the page is slow.",
+      "Despite the tests passing, the page is slow."
+     ],
+     "why": "`despite` + іменник/-ing; перед реченням — `although`."
+    },
+    {
+     "type": "translate",
+     "q": "Розробник, який написав цей модуль, пішов з компанії.",
+     "a": [
+      "The developer who wrote this module has left the company.",
+      "The developer who wrote this module left the company.",
+      "The developer that wrote this module has left the company."
+     ],
+     "why": "Людина → `who`."
+    },
+    {
+     "type": "translate",
+     "q": "Переконайтеся, що база має резервну копію.",
+     "a": [
+      "Make sure that the database is backed up.",
+      "Make sure the database is backed up.",
+      "Make sure that the database has a backup.",
+      "Make sure the database has a backup."
+     ],
+     "why": "Документація: `Make sure that…`"
+    },
+    {
+     "type": "translate",
+     "q": "Зверніть увагу, що API тільки для читання.",
+     "a": [
+      "Note that the API is read-only.",
+      "Note that the API is read only.",
+      "Please note that the API is read-only."
+     ],
+     "why": "`Note that…`"
+    }
+   ],
+   "typing": [
+    "The developer who wrote this module has left the company.",
+    "The import script, which runs every night, failed again.",
+    "This is the file where we define the menu items.",
+    "The fix is ready. However, it still needs a review.",
+    "By default, the module is installed for all companies.",
+    "Note that you need admin rights to run this script.",
+    "TL;DR: the bug is fixed, please take a look."
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Defining relative clauses",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/relative-clauses-defining-relative-clauses",
+     "note": "who / which / that без ком."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Non-defining relative clauses",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/relative-clauses-non-defining-relative-clauses",
+     "note": "Коми і тільки which."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: although, despite and others",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/contrasting-ideas-although-despite-others",
+     "note": "Звʼязки протиставлення."
+    }
+   ]
+  },
+  {
+   "id": "b1-12",
+   "title": "Непряма мова і непрямі питання",
+   "topic": "Мітинги та співбесіда",
+   "goal": "Переказувати, хто що сказав, і ставити ввічливі непрямі питання без помилок у порядку слів.",
+   "theory": [
+    {
+     "h": "Непряма мова: зсув часу"
+    },
+    {
+     "p": "Коли переказуємо слова в минулому (`said`, `told`), час зазвичай зсувається на крок назад."
+    },
+    {
+     "table": [
+      [
+       "Сказав",
+       "Переказ"
+      ],
+      [
+       "\"I **am** busy.\"",
+       "He said (that) he **was** busy."
+      ],
+      [
+       "\"We **will** deploy it.\"",
+       "She said they **would** deploy it."
+      ],
+      [
+       "\"I **have** fixed it.\"",
+       "He said he **had** fixed it."
+      ],
+      [
+       "\"I **can** help.\"",
+       "She said she **could** help."
+      ]
+     ]
+    },
+    {
+     "p": "Якщо факт досі правдивий, зсув не обовʼязковий: `He said the server is down` (і він досі лежить)."
+    },
+    {
+     "h": "say чи tell"
+    },
+    {
+     "p": "**tell** — завжди з тим, кому: `He told **me** that…`. **say** — без нього: `He said that…` (або `said **to** me`)."
+    },
+    {
+     "warn": "❌ He said me that… → ✅ He told me that… / He said that…"
+    },
+    {
+     "h": "Непрямі питання — прямий порядок слів"
+    },
+    {
+     "p": "Після `Could you tell me…`, `Do you know…`, `I wonder…` і в переказі питання — **порядок як у ствердженні**, без `do / does / did`."
+    },
+    {
+     "table": [
+      [
+       "Пряме питання",
+       "Непряме"
+      ],
+      [
+       "Where **is** the log file?",
+       "Do you know where the log file **is**?"
+      ],
+      [
+       "When **did** it **start**?",
+       "Could you tell me when it **started**?"
+      ],
+      [
+       "**Is** it ready?",
+       "She asked **if** it **was** ready."
+      ]
+     ]
+    },
+    {
+     "tip": "Корисне на мітингу: `Sorry to interrupt, but…`, `Just to clarify, …`, `Let me sum up.`, `Could you repeat that?`"
+    }
+   ],
+   "examples": [
+    {
+     "en": "He said that he was busy with the release.",
+     "uk": "Він сказав, що зайнятий релізом."
+    },
+    {
+     "en": "She told me they would deploy it on Monday.",
+     "uk": "Вона сказала мені, що вони задеплоять це в понеділок."
+    },
+    {
+     "en": "The client asked if the report was ready.",
+     "uk": "Клієнт запитав, чи готовий звіт."
+    },
+    {
+     "en": "Do you know where the log file is?",
+     "uk": "Не знаєш, де лог-файл?"
+    },
+    {
+     "en": "Could you tell me when the issue started?",
+     "uk": "Можете сказати, коли почалася проблема?"
+    },
+    {
+     "en": "I wonder why the job failed.",
+     "uk": "Цікаво, чому задача впала."
+    },
+    {
+     "en": "Just to clarify, are we talking about production?",
+     "uk": "Просто уточню: ми говоримо про прод?"
+    },
+    {
+     "en": "Sorry to interrupt, but I have a quick question.",
+     "uk": "Вибачте, що перебиваю, але в мене коротке питання."
+    },
+    {
+     "en": "Let me sum up what we've agreed.",
+     "uk": "Дозвольте підсумувати, про що ми домовилися."
+    },
+    {
+     "en": "Can you tell me about a project you are proud of?",
+     "uk": "Розкажіть про проєкт, яким ви пишаєтеся."
+    }
+   ],
+   "words": [
+    {
+     "en": "just to clarify",
+     "uk": "просто уточню",
+     "ex": "Just to clarify, is this for version 18?"
+    },
+    {
+     "en": "sorry to interrupt",
+     "uk": "вибачте, що перебиваю",
+     "ex": "Sorry to interrupt, but we are out of time."
+    },
+    {
+     "en": "sum up",
+     "uk": "підсумувати",
+     "ex": "Let me sum up the main points."
+    },
+    {
+     "en": "follow up on",
+     "uk": "повернутися до питання, проконтролювати",
+     "ex": "I'll follow up on this after the call."
+    },
+    {
+     "en": "be on the same page",
+     "uk": "однаково розуміти",
+     "ex": "I want to make sure we are on the same page."
+    },
+    {
+     "en": "take it offline",
+     "uk": "обговорити окремо",
+     "ex": "Let's take it offline."
+    },
+    {
+     "en": "walk me through",
+     "uk": "покроково поясни мені",
+     "ex": "Can you walk me through your solution?"
+    },
+    {
+     "en": "a good question",
+     "uk": "гарне питання",
+     "ex": "That's a good question, let me think."
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "He ___ me that he was busy.",
+     "options": [
+      "said",
+      "told"
+     ],
+     "a": 1,
+     "why": "Є «кому» (`me`) → `told`."
+    },
+    {
+     "type": "choice",
+     "q": "\"We will deploy it.\" → She said they ___ deploy it.",
+     "options": [
+      "will",
+      "would"
+     ],
+     "a": 1,
+     "why": "Зсув часу: `will` → `would`."
+    },
+    {
+     "type": "choice",
+     "q": "Do you know where ___?",
+     "options": [
+      "is the log file",
+      "the log file is"
+     ],
+     "a": 1,
+     "why": "Непряме питання — прямий порядок слів."
+    },
+    {
+     "type": "choice",
+     "q": "Could you tell me when ___?",
+     "options": [
+      "did the issue start",
+      "the issue started"
+     ],
+     "a": 1,
+     "why": "Без `did`, прямий порядок."
+    },
+    {
+     "type": "choice",
+     "q": "The client asked ___ the report was ready.",
+     "options": [
+      "that",
+      "if",
+      "what"
+     ],
+     "a": 1,
+     "why": "Питання «так/ні» в переказі → `if / whether`."
+    },
+    {
+     "type": "gap",
+     "q": "\"I have fixed it.\" → He said he ___ fixed it.",
+     "a": [
+      "had"
+     ],
+     "why": "`have fixed` → `had fixed`."
+    },
+    {
+     "type": "gap",
+     "q": "\"I can help.\" → She said she ___ help.",
+     "a": [
+      "could"
+     ],
+     "why": "`can` → `could`."
+    },
+    {
+     "type": "gap",
+     "q": "Just to ___, are we talking about production?",
+     "a": [
+      "clarify"
+     ],
+     "why": "Стала фраза `Just to clarify`."
+    },
+    {
+     "type": "fix",
+     "q": "He said me that the server was down.",
+     "a": [
+      "He told me that the server was down.",
+      "He told me the server was down.",
+      "He said that the server was down.",
+      "He said to me that the server was down."
+     ],
+     "why": "`say` без «кому» або `tell me`."
+    },
+    {
+     "type": "fix",
+     "q": "Can you tell me where is the config?",
+     "a": [
+      "Can you tell me where the config is?"
+     ],
+     "why": "Непряме питання — прямий порядок."
+    },
+    {
+     "type": "fix",
+     "q": "I wonder why did the job fail.",
+     "a": [
+      "I wonder why the job failed."
+     ],
+     "why": "Без `did`, дієслово в Past."
+    },
+    {
+     "type": "translate",
+     "q": "Він сказав, що зайнятий релізом.",
+     "a": [
+      "He said that he was busy with the release.",
+      "He said he was busy with the release."
+     ],
+     "why": "Зсув часу: `is` → `was`."
+    },
+    {
+     "type": "translate",
+     "q": "Не знаєш, де лог-файл?",
+     "a": [
+      "Do you know where the log file is?",
+      "Do you know where the log is?"
+     ],
+     "why": "Прямий порядок після `Do you know`."
+    },
+    {
+     "type": "translate",
+     "q": "Можеш покроково пояснити мені своє рішення?",
+     "a": [
+      "Can you walk me through your solution?",
+      "Could you walk me through your solution?"
+     ],
+     "why": "`walk someone through`."
+    }
+   ],
+   "typing": [
+    "He said that he was busy with the release.",
+    "She told me they would deploy it on Monday.",
+    "Do you know where the log file is?",
+    "Could you tell me when the issue started?",
+    "Just to clarify, are we talking about production?",
+    "Let me sum up what we've agreed.",
+    "Can you walk me through your solution?"
+   ],
+   "media": [
+    {
+     "kind": "page",
+     "title": "British Council: Reported speech — statements",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/reported-speech-statements",
+     "note": "Зсув часу і тест."
+    },
+    {
+     "kind": "page",
+     "title": "British Council: Reported speech — questions",
+     "url": "https://learnenglish.britishcouncil.org/free-resources/grammar/b1-b2/reported-speech-questions",
+     "note": "Порядок слів у переказаних питаннях."
+    },
+    {
+     "kind": "video",
+     "title": "English for meetings",
+     "url": "https://www.youtube.com/results?search_query=BBC%20Learning%20English%20useful%20phrases%20for%20meetings%20interrupting%20clarifying",
+     "note": "Випишіть фрази «перебити» і «уточнити»."
+    }
+   ]
+  }
+ ]
+}

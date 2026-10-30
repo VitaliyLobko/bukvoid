@@ -1,4 +1,4 @@
-import { get, update, today } from './store.js';
+import { get, update, today, ENGLISH_COURSES } from './store.js';
 
 // Коробки Лейтнера: правильна відповідь — у наступну, помилка — назад у першу.
 const INTERVALS = [0, 1, 2, 4, 8, 16, 32];
@@ -9,30 +9,37 @@ const addDays = (iso, n) => {
   return d.toISOString().slice(0, 10);
 };
 
-export const cardId = (unitId, word) => `${unitId}:${word.en}`;
+// Колода — фрази (words) юнітів увімкнених курсів. Англійська зберігає ключ часів до курсів («a2-01:фраза»):
+// інакше пристрій на старій версії й новий вели б дві різні картки однієї фрази.
+// В інших курсах — з id курсу, бо id юнітів у різних курсах можуть збігатися.
+const LEGACY = new Set(ENGLISH_COURSES);
+export const cardId = (cid, unitId, word) => (LEGACY.has(cid) ? `${unitId}:${word.en}` : `${cid}/${unitId}:${word.en}`);
 
-/** Слова юніту потрапляють у повторення, щойно юніт відкрито. */
-export function enroll(unit) {
-  const s = get();
-  if (unit.words.every((w) => s.srs[cardId(unit.id, w)])) return;
-  update((st) => {
-    for (const w of unit.words) st.srs[cardId(unit.id, w)] ||= { box: 0, due: today(), at: Date.now() };
-  });
-}
-
-export function dueCards(levels) {
-  const s = get();
-  const t = today();
+/** Усі фрази курсів: packs — [{id, pack}] (Courses.enabled()). */
+function cards(packs) {
   const out = [];
-  for (const level of levels) {
-    for (const unit of level.units) {
-      for (const w of unit.words) {
-        const c = s.srs[cardId(unit.id, w)];
-        if (c && c.due <= t) out.push({ id: cardId(unit.id, w), unit, word: w, box: c.box });
-      }
+  for (const { id: cid, pack } of packs) {
+    for (const unit of pack.units) {
+      for (const word of unit.words ?? []) out.push({ id: cardId(cid, unit.id, word), cid, unit, word });
     }
   }
   return out;
+}
+
+/** Фрази юніту потрапляють у повторення, щойно юніт відкрито. */
+export function enroll(cid, unit) {
+  if (!unit.words?.length) return;
+  const s = get();
+  if (unit.words.every((w) => s.srs[cardId(cid, unit.id, w)])) return;
+  update((st) => {
+    for (const w of unit.words) st.srs[cardId(cid, unit.id, w)] ||= { box: 0, due: today(), at: Date.now() };
+  });
+}
+
+export function dueCards(packs) {
+  const s = get();
+  const t = today();
+  return cards(packs).filter((c) => s.srs[c.id]?.due <= t).map((c) => ({ ...c, box: s.srs[c.id].box }));
 }
 
 export function grade(id, ok) {
@@ -46,32 +53,36 @@ export function grade(id, ok) {
 }
 
 /** Скільки фраз чекатиме на кожну дату тижня, якщо не повторювати: боту — для ранку й вечірнього нагадування. */
-export function dueForecast(levels, days = 7) {
+export function dueForecast(packs, days = 7) {
   const s = get();
   const dates = Array.from({ length: days }, (_, i) => addDays(today(), i));
   const out = Object.fromEntries(dates.map((d) => [d, 0]));
-  for (const level of levels) {
-    for (const unit of level.units) {
-      for (const w of unit.words) {
-        const c = s.srs[cardId(unit.id, w)];
-        if (c) for (const d of dates) if (c.due <= d) out[d] += 1;
-      }
-    }
+  for (const { id } of cards(packs)) {
+    const c = s.srs[id];
+    if (c) for (const d of dates) if (c.due <= d) out[d] += 1;
   }
   return out;
 }
 
-export function counts(levels) {
+export function counts(packs) {
   const s = get();
   let total = 0;
   let learned = 0;
-  for (const level of levels) {
-    for (const unit of level.units) {
-      for (const w of unit.words) {
-        const c = s.srs[cardId(unit.id, w)];
-        if (c) { total += 1; if (c.box >= 3) learned += 1; }
-      }
-    }
+  for (const { id } of cards(packs)) {
+    const c = s.srs[id];
+    if (c) { total += 1; if (c.box >= 3) learned += 1; }
   }
-  return { total, learned, due: dueCards(levels).length };
+  return { total, learned, due: dueCards(packs).length };
+}
+
+/** Курси, по яких уже є картки (з іншого пристрою чи старої версії): їх варто встановити. */
+export function courseIdsWithCards() {
+  const ids = new Set();
+  for (const key of Object.keys(get().srs)) {
+    const slash = key.indexOf('/');
+    const colon = key.indexOf(':');
+    if (slash > 0 && slash < colon) ids.add(key.slice(0, slash));
+    else if (LEGACY.has(`en-${key.slice(0, 2)}`)) ids.add(`en-${key.slice(0, 2)}`);
+  }
+  return [...ids];
 }

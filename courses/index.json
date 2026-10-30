@@ -10,6 +10,24 @@
    "units": 11,
    "file": "uk-pravopys.json",
    "builtIn": true
+  },
+  {
+   "id": "en-a2",
+   "version": 1,
+   "title": "English A2 · Elementary",
+   "subtitle": "Основа: правило, приклади з озвученням, фрази в колоді повторення",
+   "units": 12,
+   "file": "en-a2.json",
+   "builtIn": true
+  },
+  {
+   "id": "en-b1",
+   "version": 1,
+   "title": "English B1 · Intermediate",
+   "subtitle": "Робоча англійська: правило, приклади з озвученням, фрази в колоді повторення",
+   "units": 12,
+   "file": "en-b1.json",
+   "builtIn": true
   }
  ]
 }
