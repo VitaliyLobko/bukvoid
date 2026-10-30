@@ -1,8 +1,12 @@
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Код кольору в `код` отримує кружечок цього кольору; у style — лише те, що пройшло ці шаблони
+const COLOR_CODE = /^(#[0-9a-f]{6}|#[0-9a-f]{3}|hsl\(\d{1,3}(?:deg)?,\s?\d{1,3}%,\s?\d{1,3}%\)|rgb\(\d{1,3},\s?\d{1,3},\s?\d{1,3}\))$/i;
+const codeHtml = (c) => (COLOR_CODE.test(c) ? `<code class="color-code"><span class="color-dot" style="background:${c}"></span>${c}</code>` : `<code>${c}</code>`);
+
 /** **жирний** і `код` — єдина розмітка всередині текстів курсів. */
 export const inline = (s) => esc(s)
-  .replace(/`([^`]+)`/g, '<code>$1</code>')
+  .replace(/`([^`]+)`/g, (_, c) => codeHtml(c))
   .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
 
 /** Відносна яскравість кольору #rrggbb за WCAG 2.x. */

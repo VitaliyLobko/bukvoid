@@ -15,7 +15,7 @@ const view = () => $('view');
 const st = () => S.get();
 const set = () => st().settings;
 
-const TABS = { druk: 'druk', lesson: 'kursy', free: 'druk', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', progress: 'progress', settings: 'settings' };
+const TABS = { druk: 'kursy', lesson: 'kursy', free: 'kursy', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', progress: 'progress', settings: 'settings' };
 
 const PRAISE = ['Смачно! Буквоїд ситий.', 'Чисто, як у відмінника в зошиті.', 'Літери з\'їдено без кісточок.', 'Рівно й без поспіху — саме так.'];
 const SCOLD = ['Буквоїд вдавився: забагато помилок. Повільніше — і ще раз.', 'Поспіх — ворог точності. Спробуйте на третину повільніше.', 'Пальці випередили голову. Пригальмуйте й повторіть.'];
@@ -57,38 +57,8 @@ const nextLesson = (lang) => {
   return list.find((l) => !lessonState(l.id).done) || list[list.length - 1];
 };
 
-function renderDruk() {
-  const lang = set().lang;
-  const next = nextLesson(lang);
-  const day = S.day(S.today());
-  const weak = weakKeys(S.keyStats(lang));
-  view().innerHTML = `
-    <h1 class="sr-only">Друк наосліп</h1>
-    <section class="hero">
-      <div class="hero-main">
-        <div class="hero-num">${day.chars}<small>букв з'їдено сьогодні</small></div>
-        <div class="muted">${day.chars ? `${Math.round(day.ms / 60000)} хв · точність ${day.chars ? Math.round((day.chars / (day.chars + day.errors)) * 1000) / 10 : 100}%` : 'Почніть з уроку курсу — 15 хвилин на день досить.'}</div>
-      </div>
-      <a class="btn primary big" href="#lesson/${lang}/${next.n}">${lessonState(next.id).parts.a ? 'Продовжити' : 'Почати'}: урок ${next.n}</a>
-    </section>
-
-    <div class="seg" role="tablist" aria-label="Мова друку">
-      ${['uk', 'en', 'ru'].map((l) => `<button type="button" role="tab" class="${l === lang ? 'on' : ''}" data-lang="${l}">${LANG_NAMES[l]}</button>`).join('')}
-    </div>
-
-    <h2 class="section-title">Вільне тренування</h2>
-    <div class="tiles">
-      <a class="tile" href="#free/weak"><b>Слабкі клавіші</b><span class="muted">${weak.length ? weak.slice(0, 5).map((w) => esc(w.ch)).join(' ') : 'з\'являться після кількох вправ'}</span></a>
-      <a class="tile" href="#free/words"><b>Слова</b><span class="muted">усі літери</span></a>
-      <a class="tile" href="#free/texts"><b>Текст</b><span class="muted">речення й прислів'я</span></a>
-      <a class="tile" href="#free/own"><b>Свій текст</b><span class="muted">вставте будь-що</span></a>
-    </div>
-
-    <a class="btn" href="#kurs/druk-${lang}">Уроки — курс «${esc(typingTitle(lang))}»</a>`;
-  view().querySelectorAll('[data-lang]').forEach((b) => {
-    b.onclick = () => { S.update((s) => { s.settings.lang = b.dataset.lang; }); renderDruk(); };
-  });
-}
+/** Стара вкладка «Друк» (#druk — закладки й посилання): тепер це курс друку останньої мови. */
+const renderDruk = () => go(`kurs/druk-${set().lang}`);
 
 // ---------- Друк як курс ----------
 
@@ -99,11 +69,28 @@ const typingOn = () => TYPING_COURSES.filter((c) => Courses.builtinOn(c.id));
 const typingDone = (lang) => lessons(lang).filter((l) => lessonState(l.id).done).length;
 
 function renderTypingCourse(lang) {
+  // Мова останнього відкритого курсу друку — для вільного тренування й старого #druk
+  if (set().lang !== lang) S.update((s) => { s.settings.lang = lang; });
   const list = lessons(lang);
   const next = nextLesson(lang);
+  const day = S.day(S.today());
+  const weak = weakKeys(S.keyStats(lang));
   view().innerHTML = `
     ${head(typingTitle(lang), '#kursy', `${list.length} уроків: основний ряд → верхній → нижній → знаки й цифри → текст`)}
-    <a class="btn primary big" href="#lesson/${lang}/${next.n}">${lessonState(next.id).parts.a ? 'Продовжити' : 'Почати'}: урок ${next.n}</a>
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-num">${day.chars}<small>букв з'їдено сьогодні</small></div>
+        <div class="muted">${day.chars ? `${Math.round(day.ms / 60000)} хв · точність ${Math.round((day.chars / (day.chars + day.errors)) * 1000) / 10}%` : '15 хвилин на день досить.'}</div>
+      </div>
+      <a class="btn primary big" href="#lesson/${lang}/${next.n}">${lessonState(next.id).parts.a ? 'Продовжити' : 'Почати'}: урок ${next.n}</a>
+    </section>
+    <h2 class="section-title">Вільне тренування</h2>
+    <div class="tiles">
+      <a class="tile" href="#free/weak/${lang}"><b>Слабкі клавіші</b><span class="muted">${weak.length ? weak.slice(0, 5).map((w) => esc(w.ch)).join(' ') : 'з\'являться після кількох вправ'}</span></a>
+      <a class="tile" href="#free/words/${lang}"><b>Слова</b><span class="muted">усі літери</span></a>
+      <a class="tile" href="#free/texts/${lang}"><b>Текст</b><span class="muted">речення й прислів'я</span></a>
+      <a class="tile" href="#free/own/${lang}"><b>Свій текст</b><span class="muted">вставте будь-що</span></a>
+    </div>
     <h2 class="section-title">Перш ніж почати</h2>
     <div class="theory-list">
       ${THEORY.map((t) => `<details class="fold"${t.id === 'home' && !lessonState(list[0].id).done ? ' open' : ''}><summary>${esc(t.title)}</summary><div class="prose">${blocksHtml(t.blocks)}${t.id === 'home' ? handsHtml(lang) + keyboardHtml(lang, { zones: true }) : ''}</div></details>`).join('')}
@@ -205,10 +192,11 @@ function cleanOwn(text) {
     .replace(/\s+/g, ' ').trim().slice(0, 2000);
 }
 
-function renderFree(kind) {
-  const lang = set().lang;
+function renderFree(kind, lang = set().lang) {
+  if (!LANG_NAMES[lang]) lang = set().lang;
+  const back = `#kurs/druk-${lang}`;
   const titles = { weak: 'Слабкі клавіші', words: 'Слова', texts: 'Текст', own: 'Свій текст' };
-  if (!titles[kind]) return go('druk');
+  if (!titles[kind]) return go(back.slice(1));
   const make = () => {
     if (kind === 'weak') return weakText(lang, weakKeys(S.keyStats(lang))) || wordsText(lang);
     if (kind === 'words') return wordsText(lang);
@@ -219,7 +207,7 @@ function renderFree(kind) {
   try { ownText = localStorage.getItem('bukvoid:own') || ''; } catch { /* приватний режим */ }
 
   const run = (text) => {
-    view().innerHTML = `${head(titles[kind], '#druk', kind === 'weak' && !weakKeys(S.keyStats(lang)).length ? 'Статистики ще мало — поки що звичайні слова' : LANG_NAMES[lang])}<div id="typer"></div><div id="after"></div>`;
+    view().innerHTML = `${head(titles[kind], back, kind === 'weak' && !weakKeys(S.keyStats(lang)).length ? 'Статистики ще мало — поки що звичайні слова' : LANG_NAMES[lang])}<div id="typer"></div><div id="after"></div>`;
     mountTyping($('typer'), {
       text, lang, mode: set().mode, keyboard: set().keyboard,
       onDone: (r) => {
@@ -234,11 +222,11 @@ function renderFree(kind) {
     });
   };
   const ask = () => {
-    view().innerHTML = `${head(titles.own, '#druk', 'Вставте лист, код-рев\'ю чи статтю — тренуйтеся на тому, що реально друкуєте')}
+    view().innerHTML = `${head(titles.own, back, 'Вставте лист, код-рев\'ю чи статтю — тренуйтеся на тому, що реально друкуєте')}
       <form id="own-form" class="stack">
         <label class="field-label" for="own-text">Текст для тренування</label>
         <textarea id="own-text" rows="8">${esc(ownText)}</textarea>
-        <div class="row"><button type="submit" class="btn primary">Друкувати</button><span class="muted">Розкладка: ${LANG_NAMES[lang].toLowerCase()}. Змінити — на головній сторінці «Друку».</span></div>
+        <div class="row"><button type="submit" class="btn primary">Друкувати</button><span class="muted">Розкладка: ${LANG_NAMES[lang].toLowerCase()}. Інша мова — у її курсі друку на вкладці «Курси».</span></div>
       </form>`;
     $('own-form').onsubmit = (e) => {
       e.preventDefault();
@@ -299,7 +287,37 @@ function renderCourses() {
     ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
     ${srsHero()}
     ${tiles.length ? `<div class="tiles courses">${tiles.join('')}</div>` : '<div class="card"><p>Курсів не ввімкнено.</p></div>'}
-    <a class="btn" href="#settings/courses">Каталог курсів і курс із файлу</a>`;
+    <div id="kursy-catalog"></div>
+    <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
+  const box = $('kursy-catalog');
+  drawFreshCatalog(box, () => { if (box.isConnected) renderCourses(); }, true);
+}
+
+const catalogRowHtml = (c) => `
+  <div class="course-row">
+    <span class="opt"><span class="course-ico small">${iconSvg(c.icon)}</span><span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.subtitle || '')}${c.units ? ` · ${c.units} тем` : ''}</span></span></span>
+    <button type="button" class="btn primary" data-course-add="${esc(c.id)}">Додати</button>
+  </div>`;
+
+/**
+ * Курси каталогу, яких ще немає на пристрої, з кнопкою «Додати». onAdded — після встановлення;
+ * quiet — на вкладці «Курси»: без мережі чи без нових курсів блок просто не показується.
+ */
+async function drawFreshCatalog(box, onAdded, quiet = false, msg = () => {}) {
+  const cat = await Courses.catalog();
+  if (!box.isConnected) return;
+  const fresh = (cat ?? []).filter((c) => !Courses.get(c.id));
+  if (quiet && !fresh.length) { box.innerHTML = ''; return; }
+  if (!cat) { box.innerHTML = '<p class="muted">Каталог недоступний без мережі.</p>'; return; }
+  box.innerHTML = (quiet ? '<h2 class="section-title">Ще в каталозі</h2><div class="card">' : '')
+    + (fresh.length ? fresh.map(catalogRowHtml).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>')
+    + (quiet ? '</div>' : '');
+  box.querySelectorAll('[data-course-add]').forEach((b) => {
+    b.onclick = async () => {
+      b.disabled = true;
+      try { await Courses.install(b.dataset.courseAdd); msg('Курс додано — він на вкладці «Курси».'); onAdded?.(); } catch (err) { msg(`Не вдалося додати: ${esc(err.message)}`); if (quiet) b.insertAdjacentHTML('afterend', `<p class="errors">${esc(err.message)}</p>`); b.disabled = false; }
+    };
+  });
 }
 
 function renderCourse(cid) {
@@ -323,7 +341,7 @@ function renderCourse(cid) {
 }
 
 function examplesHtml(list) {
-  return `<div class="examples">${list.map((x) => (typeof x === 'string' ? `<span class="ex">${inline(x)}</span>` : `<span class="ex" title="${esc(x.note || '')}">${inline(x.w)}${x.note ? `<small>${inline(x.note)}</small>` : ''}</span>`)).join('')}</div>`;
+  return `<div class="examples">${list.map((x) => (typeof x === 'string' ? `<span class="ex"><span>${inline(x)}</span></span>` : `<span class="ex" title="${esc(x.note || '')}"><span>${inline(x.w)}</span>${x.note ? `<small>${inline(x.note)}</small>` : ''}</span>`)).join('')}</div>`;
 }
 
 /** Пара «англійською — українською»; озвучення — лише в англійських курсах. */
@@ -636,23 +654,7 @@ function mountCourses() {
       };
     });
   };
-  const drawCatalog = async () => {
-    const cat = await Courses.catalog();
-    if (!$('courses-catalog')) return;
-    if (!cat) { $('courses-catalog').innerHTML = '<p class="muted">Каталог недоступний без мережі.</p>'; return; }
-    const fresh = cat.filter((c) => !Courses.get(c.id));
-    $('courses-catalog').innerHTML = fresh.length ? fresh.map((c) => `
-      <div class="course-row">
-        <span class="opt"><span class="course-ico small">${iconSvg(c.icon)}</span><span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.subtitle || '')}${c.units ? ` · ${c.units} тем` : ''}</span></span></span>
-        <button type="button" class="btn primary" data-course-add="${esc(c.id)}">Додати</button>
-      </div>`).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>';
-    $('courses-catalog').querySelectorAll('[data-course-add]').forEach((b) => {
-      b.onclick = async () => {
-        b.disabled = true;
-        try { await Courses.install(b.dataset.courseAdd); msg('Курс додано — він на вкладці «Курси».'); } catch (err) { msg(`Не вдалося додати: ${esc(err.message)}`); b.disabled = false; }
-      };
-    });
-  };
+  const drawCatalog = () => $('courses-catalog') && drawFreshCatalog($('courses-catalog'), null, false, msg);
   $('course-file').onchange = async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
@@ -876,8 +878,39 @@ function go(hash) {
   location.hash = hash;
 }
 
+// Поточний курс — останній відкритий на цьому пристрої; кнопка посередині нижньої панелі веде в нього
+const CURRENT_KEY = 'bukvoid:current-course';
+function routeCourse(name, args) {
+  if (name === 'kurs' || name === 'k') return args[0];
+  if (name === 'lesson') return `druk-${args[0]}`;
+  if (name === 'free') return `druk-${args[1] || set().lang}`;
+  if (name === 'pravopys' || name === 'topic') return S.SPELLING_COURSE;
+  if (name === 'unit') return `en-${(args[0] || '').slice(0, 2)}`;
+  return null;
+}
+const courseExists = (id) => TYPING_COURSES.some((c) => c.id === id) || !!Courses.get(id);
+function currentCourse() {
+  let id = null;
+  try { id = localStorage.getItem(CURRENT_KEY); } catch { /* приватний режим */ }
+  return id && courseExists(id) ? id : `druk-${set().lang}`;
+}
+function drawCurrentTab() {
+  const id = currentCourse();
+  const typing = TYPING_COURSES.find((c) => c.id === id);
+  const pack = typing ? null : Courses.get(id);
+  const title = typing ? typingTitle(typing.lang) : pack.title;
+  const a = $('tab-current');
+  a.href = `#kurs/${id}`;
+  a.title = title;
+  a.setAttribute('aria-label', `Поточний курс: ${title}`);
+  a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(title)}</span>`;
+}
+
 function route() {
-  const [name, ...args] = (location.hash.slice(1) || 'druk').split('/');
+  const [name, ...args] = (location.hash.slice(1) || 'kursy').split('/');
+  const cid = routeCourse(name, args);
+  if (cid && courseExists(cid)) { try { localStorage.setItem(CURRENT_KEY, cid); } catch { /* приватний режим */ } }
+  drawCurrentTab();
   const views = {
     druk: renderDruk, lesson: renderLesson, free: renderFree,
     kursy: renderCourses, kurs: renderCourse, k: renderCourseUnit,
@@ -885,9 +918,10 @@ function route() {
     english: renderCourses, unit: (id = '') => renderCourseUnit(`en-${id.slice(0, 2)}`, id),
     srs: renderSrs, progress: renderProgress, settings: renderSettings,
   };
-  const fn = views[name] || renderDruk;
+  const fn = views[name] || renderCourses;
+  const tab = cid && cid === currentCourse() ? 'current' : TABS[name] || 'kursy';
   document.querySelectorAll('.tabs a').forEach((a) => {
-    const on = a.dataset.tab === (TABS[name] || 'druk');
+    const on = a.dataset.tab === tab;
     a.classList.toggle('on', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
@@ -939,7 +973,8 @@ Courses.refresh(progressIds());
 window.addEventListener('sync-applied', () => Courses.refresh(progressIds()));
 window.addEventListener('courses-change', () => {
   const name = location.hash.slice(1).split('/')[0];
-  if (['kursy', 'kurs', 'pravopys', 'english', 'progress'].includes(name)) route();
+  if (['', 'kursy', 'kurs', 'pravopys', 'english', 'progress'].includes(name)) route();
+  else drawCurrentTab();
 });
 Sync.start();
 Bot.start(studyPayload);
@@ -951,8 +986,8 @@ window.addEventListener('sync-applied', shareToday);
 document.addEventListener('click', (e) => { if (e.target.closest('.btn.primary') && !e.target.closest('#drive-connect')) Sync.renewOnGesture(); }, true);
 // Прийшов прогрес з іншого пристрою: перемалювати лише списки — урок чи тест посеред вправи не чіпаємо
 window.addEventListener('sync-applied', () => {
-  const name = location.hash.slice(1).split('/')[0] || 'druk';
-  if (!['druk', 'kursy', 'kurs', 'pravopys', 'english', 'progress'].includes(name)) return;
+  const name = location.hash.slice(1).split('/')[0] || 'kursy';
+  if (!['kursy', 'kurs', 'pravopys', 'english', 'progress'].includes(name)) return;
   const y = window.scrollY;
   route();
   window.scrollTo(0, y);

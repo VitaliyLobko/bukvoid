@@ -127,8 +127,15 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 }
 .tabs a svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .tabs a.on { color: var(--accent); }
+.tabs a > span { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Поточний курс — посередині й помітніше за сусідів */
+.tabs a.tab-current { min-width: 0; color: var(--text); }
+.tabs a.tab-current svg { box-sizing: content-box; padding: 7px; margin-top: -6px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+.tabs a.tab-current.on { color: var(--accent); }
 
 @media (min-width: 900px) {
+  .tabs a.tab-current { max-width: 260px; }
+  .tabs a.tab-current svg { padding: 0; margin: 0; background: none; color: inherit; }
   body { padding-bottom: 32px; }
   .tabs { position: static; display: flex; background: none; border: 0; padding: 0; gap: 2px; }
   .tabs a { height: 40px; flex-direction: row; padding: 0 12px; border-radius: 10px; font-size: calc(14px * var(--fs)); gap: 7px; }
@@ -264,6 +271,8 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .callout.tip { background: var(--accent-soft); border-color: var(--accent); }
 .callout.warn { background: var(--bad-soft); border-color: var(--bad); }
 .table-wrap { overflow-x: auto; margin: 10px 0; }
+.color-code { white-space: nowrap; }
+.color-dot { display: inline-block; width: .9em; height: .9em; margin-right: .3em; border-radius: 50%; vertical-align: -.1em; box-shadow: inset 0 0 0 1px rgb(127 127 127 / .45); }
 .fig { margin: 12px 0; max-width: 640px; }
 .fig img { display: block; max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 .fig figcaption { margin-top: 6px; color: var(--muted); font-size: calc(14px * var(--fs)); }
