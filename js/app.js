@@ -7,7 +7,7 @@ import { detectLayout, LANG_NAMES } from './layouts.js';
 import * as SRS from './srs.js';
 import * as Sync from './sync.js';
 import * as Bot from './bot.js';
-import SPELLING from './data/uk-spelling.js';
+import * as Courses from './courses.js';
 import A2 from './data/en-a2.js';
 import B1 from './data/en-b1.js';
 
@@ -17,7 +17,7 @@ const view = () => $('view');
 const st = () => S.get();
 const set = () => st().settings;
 
-const TABS = { druk: 'druk', lesson: 'druk', free: 'druk', pravopys: 'pravopys', topic: 'pravopys', english: 'english', unit: 'english', srs: 'english', progress: 'progress', settings: 'settings' };
+const TABS = { druk: 'druk', lesson: 'druk', free: 'druk', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'english', unit: 'english', srs: 'english', progress: 'progress', settings: 'settings' };
 
 const PRAISE = ['Смачно! Буквоїд ситий.', 'Чисто, як у відмінника в зошиті.', 'Літери з\'їдено без кісточок.', 'Рівно й без поспіху — саме так.'];
 const SCOLD = ['Буквоїд вдавився: забагато помилок. Повільніше — і ще раз.', 'Поспіх — ворог точності. Спробуйте на третину повільніше.', 'Пальці випередили голову. Пригальмуйте й повторіть.'];
@@ -234,50 +234,75 @@ function renderFree(kind) {
   if (kind === 'own') ask(); else run(make());
 }
 
-// ---------- Правопис ----------
+// ---------- Курси ----------
 
-function renderPravopys() {
+const unitDone = (r) => r && r.best === r.total;
+const courseProgress = (cid) => st().courses[cid] ?? {};
+
+function renderCourses() {
+  const list = Courses.enabled();
   view().innerHTML = `
-    ${head('Правопис', '', 'Мінімальний курс за Українським правописом 2019 року')}
+    ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
+    ${list.length ? `<div class="tiles courses">${list.map(({ id, pack }) => {
+      const p = courseProgress(id);
+      const done = pack.units.filter((u) => unitDone(p[u.id])).length;
+      const started = pack.units.filter((u) => p[u.id]).length;
+      return `<a class="tile course-tile" href="#kurs/${esc(id)}">
+        <b>${esc(pack.title)}</b>
+        <span class="muted">${esc(pack.subtitle || '')}</span>
+        <span class="course-meter" aria-label="Пройдено ${done} з ${pack.units.length}"><span style="width:${(done / pack.units.length) * 100}%"></span></span>
+        <small class="muted">${done ? `пройдено ${done} з ${pack.units.length}` : started ? `почато ${started} з ${pack.units.length}` : `${pack.units.length} тем`}</small></a>`;
+    }).join('')}</div>` : '<div class="card"><p>Курсів не ввімкнено.</p></div>'}
+    <a class="btn" href="#settings/courses">Каталог курсів і курс із файлу</a>`;
+}
+
+function renderCourse(cid) {
+  const pack = Courses.get(cid);
+  if (!pack) return go('kursy');
+  const p = courseProgress(cid);
+  view().innerHTML = `
+    ${head(pack.title, '#kursy', esc(pack.subtitle || ''))}
     <ol class="lessons topics">
-      ${SPELLING.map((t, i) => {
-        const r = st().spelling[t.id];
-        return `<li><a href="#topic/${t.id}" class="${r && r.best === r.total ? 'done' : ''}">
+      ${pack.units.map((u, i) => {
+        const r = p[u.id];
+        return `<li><a href="#k/${esc(cid)}/${esc(u.id)}" class="${unitDone(r) ? 'done' : ''}">
           <span class="num">${i + 1}</span>
-          <span class="l-title">${esc(t.title)}<span class="muted small">${esc(t.source || '')}</span></span>
+          <span class="l-title">${esc(u.title)}<span class="muted small">${esc(u.source || '')}</span></span>
           <span class="l-state">${r ? `${r.best}/${r.total}` : ''}</span></a></li>`;
       }).join('')}
-    </ol>`;
+    </ol>
+    ${pack.source?.url ? `<p class="muted small">Джерело: <a href="${esc(pack.source.url)}" target="_blank" rel="noopener">${esc(pack.source.title || pack.source.url)}</a></p>` : ''}`;
 }
 
 function examplesHtml(list) {
   return `<div class="examples">${list.map((x) => (typeof x === 'string' ? `<span class="ex">${esc(x)}</span>` : `<span class="ex" title="${esc(x.note || '')}">${esc(x.w)}${x.note ? `<small>${esc(x.note)}</small>` : ''}</span>`)).join('')}</div>`;
 }
 
-function renderTopic(id) {
-  const i = SPELLING.findIndex((t) => t.id === id);
-  const t = SPELLING[i];
-  if (!t) return go('pravopys');
+function renderCourseUnit(cid, uid) {
+  const pack = Courses.get(cid);
+  const i = pack ? pack.units.findIndex((u) => u.id === uid) : -1;
+  if (i < 0) return go(pack ? `kurs/${cid}` : 'kursy');
+  const t = pack.units[i];
+  const next = pack.units[i + 1];
   view().innerHTML = `
-    ${head(t.title, '#pravopys', esc(t.goal || ''))}
+    ${head(t.title, `#kurs/${esc(cid)}`, esc(t.goal || ''))}
     <article class="prose card">${blocksHtml(t.theory)}</article>
     ${t.examples?.length ? `<h2 class="section-title">Приклади</h2>${examplesHtml(t.examples)}` : ''}
-    <h2 class="section-title">Тест</h2>
-    <div id="quiz" class="card"></div>
+    ${t.media?.length ? `<h2 class="section-title">Відео й матеріали</h2><div class="media">${t.media.map((m) => `<a class="tile" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
+    ${t.exercises.length ? '<h2 class="section-title">Тест</h2><div id="quiz" class="card"></div>' : ''}
     <h2 class="section-title">Надрукуйте правильно</h2>
     <div id="typer" class="card"></div><div id="after"></div>
-    ${SPELLING[i + 1] ? `<a class="btn next-topic" href="#topic/${SPELLING[i + 1].id}">Наступна тема: ${esc(SPELLING[i + 1].title)} ›</a>` : ''}`;
-  mountQuiz($('quiz'), t.exercises, {
-    onTime: (ms) => S.recordStudyTime(ms),
-    onDone: (score, total) => {
-      S.update((s) => {
-        const prev = s.spelling[t.id];
-        s.spelling[t.id] = { best: Math.max(prev?.best ?? 0, score), total, at: S.today() };
-      });
-      S.recordTest(`sp:${t.id}`, score, total);
-    },
-  });
-  typingBlock(t.typing, 'uk');
+    ${next ? `<a class="btn next-topic" href="#k/${esc(cid)}/${esc(next.id)}">Наступна тема: ${esc(next.title)} ›</a>` : ''}`;
+  if (t.exercises.length) {
+    mountQuiz($('quiz'), t.exercises, {
+      onTime: (ms) => S.recordStudyTime(ms),
+      onDone: (score, total) => {
+        S.recordUnit(cid, t.id, score, total);
+        S.recordTest(`c:${cid}/${t.id}`, score, total);
+      },
+    });
+  }
+  typingBlock(t.typing, pack.lang || 'uk');
 }
 
 /** Друк речень теми: закріплює і правопис, і руку. */
@@ -454,7 +479,6 @@ function renderProgress() {
   const max = Math.max(1, ...days.map((d) => d.chars));
   const langs = ['uk', 'en', 'ru'];
   const typingDone = (lang) => lessons(lang).filter((l) => lessonState(l.id).done).length;
-  const spellDone = SPELLING.filter((t) => s.spelling[t.id]).length;
   const enDone = LEVELS.map((l) => `${l.title}: ${l.units.filter((u) => s.english[u.id]).length}/${l.units.length}`).join(' · ');
   const c = SRS.counts(LEVELS);
   view().innerHTML = `
@@ -472,7 +496,7 @@ function renderProgress() {
     <h2 class="section-title">Курси</h2>
     <div class="card list">
       ${langs.map((l) => `<div class="li"><span>Друк · ${LANG_NAMES[l]}</span><b>${typingDone(l)}/${lessons(l).length}</b></div>`).join('')}
-      <div class="li"><span>Правопис</span><b>${spellDone}/${SPELLING.length}</b></div>
+      ${Courses.enabled().map(({ id, pack }) => `<div class="li"><span>${esc(pack.title)}</span><b>${pack.units.filter((u) => s.courses[id]?.[u.id]).length}/${pack.units.length}</b></div>`).join('')}
       <div class="li"><span>English</span><b>${enDone}</b></div>
       <div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>
     </div>
@@ -488,7 +512,7 @@ function renderProgress() {
 
 // ---------- Налаштування ----------
 
-function renderSettings() {
+function renderSettings(section) {
   const s = set();
   const radio = (name, value, label, cur) => `<label class="opt"><input type="radio" name="${name}" value="${value}"${cur === value ? ' checked' : ''}> ${label}</label>`;
   view().innerHTML = `
@@ -510,6 +534,15 @@ function renderSettings() {
         ${radio('theme', 'auto', 'Як у системі', s.theme)}${radio('theme', 'dark', 'Темна', s.theme)}${radio('theme', 'light', 'Світла', s.theme)}
       </fieldset>
     </form>
+    <div class="card stack" id="courses-card">
+      <h2>Курси</h2>
+      <div id="courses-installed" class="stack"></div>
+      <h3 class="sub-title">Каталог</h3>
+      <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
+      <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json" hidden></label></div>
+      <div id="courses-msg" class="muted" role="status"></div>
+      <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>
+    </div>
     <div class="card stack" id="server-card">
       <h2>Синхронізація</h2>
       <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
@@ -535,6 +568,8 @@ function renderSettings() {
     ${aboutHtml()}`;
   mountServer();
   mountDrive();
+  mountCourses();
+  if (section === 'courses') $('courses-card').scrollIntoView();
   $('settings-form').onchange = () => {
     const f = new FormData($('settings-form'));
     S.update((x) => {
@@ -570,6 +605,65 @@ function renderSettings() {
   $('reset').onclick = () => { $('reset-confirm').hidden = false; };
   $('reset-no').onclick = () => { $('reset-confirm').hidden = true; };
   $('reset-yes').onclick = () => { S.reset(); applyTheme(); renderSettings(); $('settings-msg').textContent = Sync.enabled() ? 'Прогрес стерто. На Google Диску й інших пристроях він зітреться під час синхронізації.' : 'Прогрес стерто.'; };
+}
+
+/** «Курси»: встановлені (показувати / видалити), каталог з репо, курс із файлу. */
+function mountCourses() {
+  const msg = (html) => { if ($('courses-msg')) $('courses-msg').innerHTML = html; };
+  const drawInstalled = () => {
+    if (!$('courses-installed')) return;
+    const list = Courses.list();
+    $('courses-installed').innerHTML = list.length ? list.map(({ id, pack, enabled, from }) => `
+      <div class="course-row">
+        <label class="opt"><input type="checkbox" data-course-on="${esc(id)}"${enabled ? ' checked' : ''}>
+          <span><b>${esc(pack.title)}</b><br><span class="muted small">${pack.units.length} тем · ${from === 'file' ? 'з файлу' : 'з каталогу'}</span></span></label>
+        <button type="button" class="btn danger" data-course-del="${esc(id)}">Видалити</button>
+      </div>`).join('') : '<p class="muted">Жодного курсу. Додайте з каталогу нижче.</p>';
+    $('courses-installed').querySelectorAll('[data-course-on]').forEach((c) => {
+      c.onchange = () => Courses.setEnabled(c.dataset.courseOn, c.checked);
+    });
+    $('courses-installed').querySelectorAll('[data-course-del]').forEach((b) => {
+      b.onclick = async () => {
+        // Перше натискання питає: прогрес лишається, але курс зникне з вкладки
+        if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Так, видалити'; return; }
+        await Courses.remove(b.dataset.courseDel);
+        msg('Курс видалено. Прогрес за ним лишився — повернеться, якщо додати курс знову.');
+      };
+    });
+  };
+  const drawCatalog = async () => {
+    const cat = await Courses.catalog();
+    if (!$('courses-catalog')) return;
+    if (!cat) { $('courses-catalog').innerHTML = '<p class="muted">Каталог недоступний без мережі.</p>'; return; }
+    const fresh = cat.filter((c) => !Courses.get(c.id));
+    $('courses-catalog').innerHTML = fresh.length ? fresh.map((c) => `
+      <div class="course-row">
+        <span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.subtitle || '')}${c.units ? ` · ${c.units} тем` : ''}</span></span>
+        <button type="button" class="btn primary" data-course-add="${esc(c.id)}">Додати</button>
+      </div>`).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>';
+    $('courses-catalog').querySelectorAll('[data-course-add]').forEach((b) => {
+      b.onclick = async () => {
+        b.disabled = true;
+        try { await Courses.install(b.dataset.courseAdd); msg('Курс додано — він на вкладці «Курси».'); } catch (err) { msg(`Не вдалося додати: ${esc(err.message)}`); b.disabled = false; }
+      };
+    });
+  };
+  $('course-file').onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const pack = await Courses.importFile(await file.text());
+      msg(`Курс «${esc(pack.title)}» додано — він на вкладці «Курси».`);
+    } catch (err) {
+      const list = err.errors?.length ? `<ul class="errors">${err.errors.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join('')}${err.errors.length > 8 ? `<li>…і ще ${err.errors.length - 8}</li>` : ''}</ul>` : '';
+      msg(`<b>${esc(err.message)}</b>${list}`);
+    }
+  };
+  const redraw = () => { drawInstalled(); drawCatalog(); };
+  redraw();
+  window.addEventListener('courses-change', redraw);
+  window.addEventListener('hashchange', () => window.removeEventListener('courses-change', redraw), { once: true });
 }
 
 let unmountServer = null;
@@ -706,7 +800,11 @@ function lessonTitle(id) {
 
 function testTitle(id) {
   const [kind, key] = [id.slice(0, 2), id.slice(3)];
-  if (kind === 'sp') return SPELLING.find((t) => t.id === key)?.title ?? key;
+  if (kind === 'sp') return Courses.unit(S.SPELLING_COURSE, key)?.title ?? key;
+  if (kind === 'c:') {
+    const [cid, uid] = key.split('/');
+    return Courses.unit(cid, uid)?.title ?? uid;
+  }
   return `English: ${findUnit(key).unit?.title ?? key}`;
 }
 
@@ -774,7 +872,9 @@ function go(hash) {
 function route() {
   const [name, ...args] = (location.hash.slice(1) || 'druk').split('/');
   const views = {
-    druk: renderDruk, lesson: renderLesson, free: renderFree, pravopys: renderPravopys, topic: renderTopic,
+    druk: renderDruk, lesson: renderLesson, free: renderFree,
+    kursy: renderCourses, kurs: renderCourse, k: renderCourseUnit,
+    pravopys: () => renderCourse(S.SPELLING_COURSE), topic: (id) => renderCourseUnit(S.SPELLING_COURSE, id),
     english: renderEnglish, unit: renderUnit, srs: renderSrs, progress: renderProgress, settings: renderSettings,
   };
   const fn = views[name] || renderDruk;
@@ -822,8 +922,16 @@ document.querySelector('.skip').addEventListener('click', (e) => { e.preventDefa
 applyTheme();
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
 window.addEventListener('hashchange', route);
-route();
 registerWorker();
+await Courses.ready();
+route();
+// Нові версії курсів каталогу й курси, по яких прийшов прогрес з іншого пристрою
+Courses.refresh(Object.keys(st().courses));
+window.addEventListener('sync-applied', () => Courses.refresh(Object.keys(st().courses)));
+window.addEventListener('courses-change', () => {
+  const name = location.hash.slice(1).split('/')[0];
+  if (['kursy', 'kurs', 'pravopys', 'progress'].includes(name)) route();
+});
 Sync.start();
 Bot.start(studyPayload);
 shareToday();
@@ -835,7 +943,7 @@ document.addEventListener('click', (e) => { if (e.target.closest('.btn.primary')
 // Прийшов прогрес з іншого пристрою: перемалювати лише списки — урок чи тест посеред вправи не чіпаємо
 window.addEventListener('sync-applied', () => {
   const name = location.hash.slice(1).split('/')[0] || 'druk';
-  if (!['druk', 'pravopys', 'english', 'progress'].includes(name)) return;
+  if (!['druk', 'kursy', 'kurs', 'pravopys', 'english', 'progress'].includes(name)) return;
   const y = window.scrollY;
   route();
   window.scrollTo(0, y);

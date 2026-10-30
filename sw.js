@@ -24,7 +24,9 @@ const ASSETS = [
   './js/bot-key.js',
   './js/cloud.js',
   './js/data/words.js',
-  './js/data/uk-spelling.js',
+  './js/courses.js',
+  './courses/index.json',
+  './courses/uk-pravopys.json',
   './js/data/en-a2.js',
   './js/data/en-b1.js',
   './fonts/unbounded-cyr.woff2',
@@ -70,6 +72,21 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   if (request.mode === 'navigate') event.waitUntil(repairCache().catch(() => {}));
+  // Каталог і курси — спершу мережа: новий курс у репо видно без нової версії застосунку
+  if (new URL(request.url).pathname.includes('/courses/')) {
+    event.respondWith((async () => {
+      try {
+        const res = await fetch(request, { cache: 'no-cache' });
+        if (res.ok) (await caches.open(CACHE)).put(request, res.clone()).catch(() => {});
+        return res;
+      } catch (err) {
+        const cached = await caches.match(request, { ignoreSearch: true, cacheName: CACHE });
+        if (cached) return cached;
+        throw err;
+      }
+    })());
+    return;
+  }
   event.respondWith((async () => {
     const cached = await caches.match(request, { ignoreSearch: true, cacheName: CACHE });
     if (cached) return cached;

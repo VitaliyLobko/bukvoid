@@ -4,6 +4,8 @@
 // вони складаються, а не перезаписують одне одного. Прогрес курсів — найкращий результат з усіх.
 const KEY = 'bukvoid:state';
 const DEVICE_KEY = 'bukvoid:device';
+// Правопис до курсів (0.1.x) — поле spelling; тепер це курс uk-pravopys
+export const SPELLING_COURSE = 'uk-pravopys';
 
 export const device = (() => {
   try {
@@ -22,7 +24,7 @@ const empty = () => ({
   epoch: 0,       // мітка «Стерти» чи відновлення з копії: новіша епоха замінює все старе
   settings: { theme: 'auto', lang: 'uk', mode: 'stop', keyboard: true, level: 'a2', fontSize: 'm' },
   typing: {},     // 'uk:3' → {parts: {a: {acc, cpm}}, done}
-  spelling: {},   // topicId → {best, total, at}
+  courses: {},    // курс → юніт → {best, total, at} (правопис до 0.2 — у spelling, див. foldSpelling)
   english: {},    // unitId → {best, total, at}
   srs: {},        // cardId → {box, due, at}
   dev: {},        // пристрій → {keys: {uk: {'п': {n, e, t}}}, days: {дата: {chars, ms, errors}}, chars, ms, sessions, bestCpm}
@@ -35,13 +37,25 @@ function load() {
     const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (raw?.v === 2) return normalize(raw);
     if (raw?.v === 1) return migrate(raw);
-  } catch { /* приватний режим або зіпсований JSON */ }
+  } catch {
+    // Приватний режим, зіпсований JSON чи помилка в коді — сирі дані лишаємо поруч, бо save() їх перезапише
+    try { const raw = localStorage.getItem(KEY); if (raw) localStorage.setItem(`${KEY}-bad`, raw); } catch { /* немає доступу */ }
+  }
   return empty();
+}
+
+/** spelling старої версії → courses[uk-pravopys]: найкращий бал з обох. */
+function foldSpelling(x) {
+  const old = x.spelling;
+  const courses = { ...x.courses };
+  if (old && Object.keys(old).length) courses[SPELLING_COURSE] = mergeMap(courses[SPELLING_COURSE], old, bestOf);
+  const { spelling, ...rest } = x;
+  return { ...rest, courses };
 }
 
 function normalize(raw) {
   const def = empty();
-  return { ...def, ...raw, settings: { ...def.settings, ...raw.settings } };
+  return foldSpelling({ ...def, ...raw, settings: { ...def.settings, ...raw.settings } });
 }
 
 /** 0.1.0 тримав лічильники спільно — переносимо їх на цей пристрій. */
@@ -166,7 +180,10 @@ export function recordPassed(lessonId) {
 // ---------- злиття двох копій (цей пристрій і Google Диск) ----------
 
 const better = (a, b) => (!a ? b : !b ? a : (b.acc > a.acc || (b.acc === a.acc && b.cpm > a.cpm)) ? b : a);
-const bestOf = (a, b) => (!a ? b : !b ? a : (b.best > a.best || (b.best === a.best && (b.at || '') > (a.at || ''))) ? b : a);
+// Функція, не const: потрібна вже під час load() (foldSpelling), до цього рядка
+function bestOf(a, b) {
+  return !a ? b : !b ? a : (b.best > a.best || (b.best === a.best && (b.at || '') > (a.at || ''))) ? b : a;
+}
 const newer = (a, b) => (!a ? b : !b ? a : (b.at || 0) > (a.at || 0) ? b : a);
 // Лічильники пристрою лише ростуть: новіша копія — та, де записів більше (ops; до нього — вправ друку)
 const opsOf = (d) => d.ops ?? d.sessions;
@@ -193,7 +210,7 @@ export function merge(local, remote) {
   return {
     ...local,
     typing,
-    spelling: mergeMap(local.spelling, remote.spelling, bestOf),
+    courses: mergeMap(local.courses, foldSpelling(remote).courses, (a, b) => mergeMap(a, b, bestOf)),
     english: mergeMap(local.english, remote.english, bestOf),
     srs: mergeMap(local.srs, remote.srs, newer),
     dev: mergeMap(local.dev, remote.dev, fuller),
@@ -203,8 +220,18 @@ export function merge(local, remote) {
 /** Частина стану, що їде на Диск. */
 export const synced = () => {
   const { settings, ...rest } = state;
-  return rest;
+  // Копія правопису в старому полі — для пристроїв, що ще на 0.1.x (вони знають лише spelling)
+  return { ...rest, spelling: state.courses[SPELLING_COURSE] ?? {} };
 };
+
+/** Найкращий результат тесту юніту курсу. */
+export function recordUnit(courseId, unitId, score, total) {
+  update((st) => {
+    const c = (st.courses[courseId] ||= {});
+    const prev = c[unitId];
+    c[unitId] = { best: Math.max(prev?.best ?? 0, score), total, at: today() };
+  });
+}
 
 /** Прийняти злиту копію; true — щось змінилося й екран треба перемалювати. */
 export function adopt(merged) {

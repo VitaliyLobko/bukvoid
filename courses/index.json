@@ -1,0 +1,15 @@
+{
+ "format": "bukvoid-catalog",
+ "v": 1,
+ "courses": [
+  {
+   "id": "uk-pravopys",
+   "version": 1,
+   "title": "Український правопис",
+   "subtitle": "Мінімальний курс за Українським правописом 2019 року",
+   "units": 11,
+   "file": "uk-pravopys.json",
+   "builtIn": true
+  }
+ ]
+}

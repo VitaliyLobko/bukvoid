@@ -94,7 +94,8 @@ const SRS_UNIT = (id) => id.slice(0, id.indexOf(':'));
 function pieces() {
   const s = S.get();
   const { epoch = 0 } = s;
-  const out = { core: { epoch, typing: s.typing, spelling: s.spelling, english: s.english } };
+  // spelling — копія правопису для пристроїв на 0.1.x
+  const out = { core: { epoch, typing: s.typing, courses: s.courses, spelling: s.courses[S.SPELLING_COURSE] ?? {}, english: s.english } };
   const units = {};
   for (const [id, c] of Object.entries(s.srs)) (units[SRS_UNIT(id)] ||= {})[id] = c;
   for (const [u, srs] of Object.entries(units)) out[`srs:${u}`] = { epoch, srs };
@@ -151,13 +152,13 @@ function foreign(rows) {
   }
   const local = S.get();
   return [...by.values()].map(({ dev, epoch, parts }) => {
-    const out = { v: 2, epoch, typing: {}, spelling: {}, english: {}, srs: {}, dev: {} };
+    const out = { v: 2, epoch, typing: {}, courses: {}, english: {}, srs: {}, dev: {} };
     const known = epoch === (local.epoch || 0) ? local.dev[dev] : null;
     let counters = null;
     const days = { ...known?.days };
     for (const [part, d] of parts) {
       if ((d.epoch || 0) !== epoch) continue;
-      if (part === 'core') Object.assign(out, { typing: d.typing ?? {}, spelling: d.spelling ?? {}, english: d.english ?? {} });
+      if (part === 'core') Object.assign(out, { typing: d.typing ?? {}, courses: d.courses ?? {}, spelling: d.spelling ?? {}, english: d.english ?? {} });
       else if (part.startsWith('srs:')) Object.assign(out.srs, d.srs);
       else if (part === 'dev') counters = d.dev;
       else if (part.startsWith('days:')) Object.assign(days, d.days);

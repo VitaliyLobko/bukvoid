@@ -202,6 +202,16 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 }
 .tile:hover { border-color: var(--accent); }
 .tile .muted { font-size: calc(13px * var(--fs)); overflow-wrap: anywhere; }
+.tiles.courses { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin-bottom: 14px; }
+.course-tile { gap: 6px; padding: 16px; }
+.course-tile b { font: 650 calc(17px * var(--fs))/1.3 var(--display); letter-spacing: -.01em; }
+.course-meter { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.course-meter span { display: block; height: 100%; background: var(--good); border-radius: 3px; }
+.course-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.course-row:first-child { border-top: 0; }
+.course-row .opt { flex: 1; min-width: 0; }
+.sub-title { margin: 6px 0 0; font: 600 calc(15px * var(--fs)) var(--display); }
+.errors { margin: 6px 0 0; padding-left: 20px; color: var(--bad); }
 
 .fold { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .fold summary { padding: 13px 16px; cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
