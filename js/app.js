@@ -147,7 +147,7 @@ function renderLesson(lang, n) {
     mountTyping($('typer'), {
       text: ex.text, lang, mode: set().mode, keyboard: set().keyboard,
       onDone: (r) => {
-        S.recordSession({ lang, ...r });
+        S.recordSession({ lang, cid: `druk-${lang}`, ...r });
         const passed = r.acc >= PASS_ACC;
         const wasDone = lessonState(lesson.id).done;
         S.update((x) => {
@@ -211,7 +211,7 @@ function renderFree(kind, lang = set().lang) {
     mountTyping($('typer'), {
       text, lang, mode: set().mode, keyboard: set().keyboard,
       onDone: (r) => {
-        S.recordSession({ lang, ...r });
+        S.recordSession({ lang, cid: `druk-${lang}`, ...r });
         $('after').innerHTML = resultHtml(r, r.acc >= PASS_ACC) + `<div class="row"><button type="button" class="btn primary" data-act="again">${kind === 'own' ? 'Ще раз' : 'Новий текст'} <kbd>Enter</kbd></button>${kind === 'own' ? '<button type="button" class="btn" data-act="edit">Інший текст</button>' : ''}</div>`;
         const again = () => run(kind === 'own' ? text : make());
         $('after').querySelector('[data-act="again"]').onclick = again;
@@ -280,7 +280,7 @@ function renderMistakes() {
   view().innerHTML = `${head('Повторення помилок', '#kursy', `${due.length} на сьогодні — помилки з тестів тем`)}<div id="quiz" class="card"></div>`;
   mountQuiz($('quiz'), due, {
     src: (path, ex) => Courses.src(ex.cid)(path),
-    onTime: (ms) => S.recordStudyTime(ms),
+    onTime: (ms, ex) => S.recordStudyTime(ms, { cid: ex.cid }),
     onAnswer: (ex, ok) => SRS.grade(ex.srsId, ok),
   });
 }
@@ -430,23 +430,23 @@ function renderCourseUnit(cid, uid) {
     mountQuiz($('quiz'), t.exercises, {
       src: Courses.src(cid),
       onAnswer: (ex, ok) => SRS.recordAnswer(cid, t.id, ex, ok),
-      onTime: (ms) => S.recordStudyTime(ms),
+      onTime: (ms) => S.recordStudyTime(ms, { cid }),
       onDone: (score, total) => {
         S.recordUnit(cid, t.id, score, total);
         S.recordTest(`c:${cid}/${t.id}`, score, total);
       },
     });
   }
-  typingBlock(t.typing, lang);
+  typingBlock(t.typing, lang, cid);
 }
 
 /** Друк речень теми: закріплює і правопис, і руку. */
-function typingBlock(sentences, lang) {
+function typingBlock(sentences, lang, cid) {
   if (!sentences?.length) { $('typer').closest('.card').remove(); return; }
   const start = () => mountTyping($('typer'), {
     text: sentences.join(' '), lang, mode: set().mode, keyboard: false,
     onDone: (r) => {
-      S.recordSession({ lang, ...r });
+      S.recordSession({ lang, cid, ...r });
       $('after').innerHTML = resultHtml(r, r.acc >= PASS_ACC) + '<div class="row"><button type="button" class="btn" data-act="again">Ще раз</button></div>';
       $('after').querySelector('[data-act="again"]').onclick = () => { $('after').innerHTML = ''; start(); };
     },
@@ -505,7 +505,7 @@ function renderSrs() {
       input.classList.add(right ? 'good' : 'bad');
       SRS.grade(card.id, right);
       // «Повторено N фраз» — фрази, а не спроби: помилкова повертається в чергу, але рахується раз
-      S.recordStudyTime(Date.now() - shownAt, { srs: !graded.has(card.id) });
+      S.recordStudyTime(Date.now() - shownAt, { srs: !graded.has(card.id), cid: card.cid });
       graded.add(card.id);
       done += 1;
       if (right) ok += 1;
@@ -863,16 +863,45 @@ function testTitle(id) {
   return `English: ${Courses.unit(`en-${key.slice(0, 2)}`, key)?.title ?? key}`;
 }
 
-/** День для бота: хвилини друку й тестів, швидкість і точність, назви пройденого. */
+/** Курс пройденого уроку друку («uk:3») чи тесту («c:курс/тема», «sp:…», «en:a2-01») — для зарахування за курсом. */
+function passCourse(id) {
+  if (/^(uk|en|ru):\d+$/.test(id)) return `druk-${id.slice(0, 2)}`;
+  if (id.startsWith('c:')) return id.slice(2).split('/')[0];
+  if (id.startsWith('sp:')) return S.SPELLING_COURSE;
+  if (id.startsWith('en:')) return `en-${id.slice(3, 5)}`;
+  return '';
+}
+
+/** День для бота: хвилини друку й тестів, швидкість і точність, назви пройденого; cms і cpass — те саме по курсах. */
 function studyDay(date) {
   const d = S.day(date);
+  const cpass = {};
+  for (const id of [...d.passed, ...Object.keys(d.tests)]) {
+    const cid = passCourse(id);
+    if (cid) cpass[cid] = (cpass[cid] || 0) + 1;
+  }
   return {
-    date, ms: d.ms, qms: d.qms, chars: d.chars, errors: d.errors, srs: d.srs,
+    date, ms: d.ms, qms: d.qms, chars: d.chars, errors: d.errors, srs: d.srs, cms: d.cms, cpass,
     cpm: d.ms ? Math.round(d.chars / (d.ms / 60000)) : 0,
     acc: d.chars ? Math.round(1000 * (1 - d.errors / d.chars)) / 10 : 0,
     passed: d.passed.map(lessonTitle),
     tests: Object.entries(d.tests).map(([id, [sc, n]]) => [testTitle(id), sc, n]),
   };
+}
+
+/** Увімкнені курси з наступною темою — Хобі-плану (вибір курсу заняття, «далі: …») і боту (посилання). */
+function courseList() {
+  const out = typingOn().map(({ id, lang }) => {
+    const l = nextLesson(lang);
+    return { id, title: typingTitle(lang), next: l ? { href: `lesson/${lang}/${l.n}`, n: l.n, title: l.title, done: typingDone(lang) === lessons(lang).length } : null };
+  });
+  for (const { id, pack } of Courses.enabled()) {
+    const p = courseProgress(id);
+    const i = pack.units.findIndex((u) => !unitDone(p[u.id], pack));
+    const u = pack.units[i < 0 ? pack.units.length - 1 : i];
+    out.push({ id, title: pack.title, next: u ? { href: `k/${id}/${u.id}`, n: (i < 0 ? pack.units.length - 1 : i) + 1, title: u.title, done: i < 0 } : null });
+  }
+  return out;
 }
 
 function studyPayload() {
@@ -888,9 +917,11 @@ function studyPayload() {
   return {
     from,
     days: [...dates].sort().map(studyDay),
-    srs: { due: SRS.dueForecast(packs), total: c.total, learned: c.learned },
+    srs: { due: SRS.dueForecast(packs), mdue: SRS.mistakeForecast(packs), total: c.total, learned: c.learned },
     weak: weakKeys(S.keyStats(lang), 6).map((w) => w.ch),
     lessons: { done: all.filter((l) => st().typing[l.id]?.done).length, total: all.length },
+    current: currentCourse(),
+    courses: courseList().map(({ id, title, next }) => ({ id, title, next })),
   };
 }
 
@@ -899,9 +930,12 @@ const STUDY_SHARE = 'vitaliylobko:study-today';
 
 function shareToday() {
   const d = studyDay(S.today());
-  const due = SRS.dueForecast(Courses.enabled(), 1)[S.today()] ?? 0;
+  const packs = Courses.enabled();
+  const due = SRS.dueForecast(packs, 1)[S.today()] ?? 0;
+  const mdue = SRS.mistakeForecast(packs, 1)[S.today()] ?? 0;
+  const cmin = Object.fromEntries(Object.entries(d.cms).map(([cid, ms]) => [cid, Math.round(ms / 60000)]));
   try {
-    localStorage.setItem(STUDY_SHARE, JSON.stringify({ date: d.date, min: Math.round((d.ms + d.qms) / 60000), cpm: d.cpm, acc: d.acc, passed: d.passed.length, due, at: Date.now() }));
+    localStorage.setItem(STUDY_SHARE, JSON.stringify({ date: d.date, min: Math.round((d.ms + d.qms) / 60000), cpm: d.cpm, acc: d.acc, passed: d.passed.length, due, mdue, cmin, current: currentCourse(), courses: courseList(), at: Date.now() }));
   } catch { /* приватний режим */ }
 }
 

@@ -48,7 +48,7 @@ function answerText(ex) {
 /**
  * Тест: по одному завданню, перевірка Enter-ом, наприкінці — підсумок і
  * «Повторити помилки». onDone(score, total) — лише для повного проходу.
- * onAnswer(ex, ok) — після кожної відповіді (ex — вправа з полями, які передали).
+ * onAnswer(ex, ok) і onTime(ms, ex) — після кожної відповіді (ex — вправа з полями, які передали).
  * src(path, ex) — адреса картинки курсу для вправ з img; ex.from — підпис, звідки вправа.
  */
 export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = {}, src } = {}) {
@@ -94,7 +94,7 @@ export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = 
     const fb = root.querySelector('.q-feedback');
     shownAt = Date.now();
     const done = (ok, given) => {
-      onTime?.(Date.now() - shownAt);
+      onTime?.(Date.now() - shownAt, ex);
       onAnswer?.(ex, ok);
       if (ok) right += 1; else wrong.push(ex);
       const answer = answerText(ex);

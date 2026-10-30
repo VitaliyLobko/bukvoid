@@ -105,15 +105,16 @@ export function keyStats(lang) {
   return out;
 }
 
-/** День по всіх пристроях: друк (ms, chars, errors), тести й повторення (qms), пройдені уроки, найкращі бали тестів. */
+/** День по всіх пристроях: друк (ms, chars, errors), тести й повторення (qms), час по курсах (cms), пройдені уроки, найкращі бали тестів. */
 export function day(key) {
-  const out = { chars: 0, ms: 0, errors: 0, qms: 0, srs: 0, passed: [], tests: {} };
+  const out = { chars: 0, ms: 0, errors: 0, qms: 0, srs: 0, cms: {}, passed: [], tests: {} };
   for (const d of Object.values(state.dev)) {
     const x = d.days[key];
     if (!x) continue;
     out.chars += x.chars; out.ms += x.ms; out.errors += x.errors;
     out.qms += x.qms || 0;
     out.srs += x.srs || 0;
+    for (const [cid, ms] of Object.entries(x.cms || {})) out.cms[cid] = (out.cms[cid] || 0) + ms;
     for (const id of x.passed || []) if (!out.passed.includes(id)) out.passed.push(id);
     for (const [id, [s, n]] of Object.entries(x.tests || {})) if (!out.tests[id] || s > out.tests[id][0]) out.tests[id] = [s, n];
   }
@@ -130,7 +131,7 @@ export function totals() {
 }
 
 /** Підсумок вправи з друку: статистика клавіш, день, лічильники цього пристрою. */
-export function recordSession({ lang, chars, ms, errors, cpm, keyStats: ks }) {
+export function recordSession({ lang, cid, chars, ms, errors, cpm, keyStats: ks }) {
   update(() => {
     const d = mine();
     const keys = (d.keys[lang] ||= {});
@@ -140,6 +141,7 @@ export function recordSession({ lang, chars, ms, errors, cpm, keyStats: ks }) {
     }
     const x = myDay(d);
     x.chars += chars; x.ms += ms; x.errors += errors;
+    addCourseTime(x, cid, ms);
     d.chars += chars;
     d.ms += ms;
     d.sessions += 1;
@@ -155,12 +157,16 @@ const myDay = (d) => {
 // Пауза довша — людина відійшла: у час навчання не йде (як простій понад 2 с у друці)
 const STUDY_GAP_MAX = 120_000;
 
-/** Час над тестом чи повторенням — від показу питання до відповіді. */
-export function recordStudyTime(ms, { srs = false } = {}) {
+// Час дня по курсах: боту — щоб справа заняття, прив'язаного до курсу, закривалась лише його хвилинами
+const addCourseTime = (x, cid, ms) => { if (cid) (x.cms ||= {})[cid] = (x.cms[cid] || 0) + ms; };
+
+/** Час над тестом чи повторенням — від показу питання до відповіді; cid — курс вправи. */
+export function recordStudyTime(ms, { srs = false, cid = '' } = {}) {
   if (!(ms > 0)) return;
   update(() => {
     const x = myDay(mine());
     x.qms = (x.qms || 0) + Math.min(ms, STUDY_GAP_MAX);
+    addCourseTime(x, cid, Math.min(ms, STUDY_GAP_MAX));
     if (srs) x.srs = (x.srs || 0) + 1;
   });
 }

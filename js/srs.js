@@ -144,3 +144,19 @@ export function mistakeCounts(packs) {
   }
   return { total, due };
 }
+
+/** Скільки помилок чекатиме на кожну дату тижня — окремо від фраз (dueForecast їх не рахує). */
+export function mistakeForecast(packs, days = 7) {
+  const s = get();
+  const dates = Array.from({ length: days }, (_, i) => addDays(today(), i));
+  const out = Object.fromEntries(dates.map((d) => [d, 0]));
+  for (const { id: cid, pack } of packs) {
+    for (const unit of pack.units) {
+      for (const ex of unit.exercises ?? []) {
+        const c = s.srs[mistakeId(cid, unit.id, ex)];
+        if (c) for (const d of dates) if (c.due <= d) out[d] += 1;
+      }
+    }
+  }
+  return out;
+}
