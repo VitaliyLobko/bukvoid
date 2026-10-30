@@ -16,6 +16,13 @@ const ASSETS = [
   './js/quiz.js',
   './js/course.js',
   './js/srs.js',
+  './js/sync.js',
+  './js/config.js',
+  './js/google-token.js',
+  './js/drive-files.js',
+  './js/bot.js',
+  './js/bot-key.js',
+  './js/cloud.js',
   './js/data/words.js',
   './js/data/uk-spelling.js',
   './js/data/en-a2.js',
@@ -28,6 +35,7 @@ const ASSETS = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
+  './icons/author.jpg',
 ];
 
 // Файли — повз HTTP-кеш браузера: GitHub Pages віддає max-age=600.

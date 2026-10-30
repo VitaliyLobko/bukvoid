@@ -30,8 +30,9 @@ function shuffle(arr) {
  * Тест: по одному завданню, перевірка Enter-ом, наприкінці — підсумок і
  * «Повторити помилки». onDone(score, total) — лише для повного проходу.
  */
-export function mountQuiz(root, exercises, { onDone, labels = {} } = {}) {
+export function mountQuiz(root, exercises, { onDone, onTime, labels = {} } = {}) {
   let list = exercises.map((ex, i) => ({ ...ex, i }));
+  let shownAt = 0;
   let idx = 0;
   let right = 0;
   let wrong = [];
@@ -57,7 +58,9 @@ export function mountQuiz(root, exercises, { onDone, labels = {} } = {}) {
         <div class="q-feedback" role="status" hidden></div>
       </div>`;
     const fb = root.querySelector('.q-feedback');
+    shownAt = Date.now();
     const done = (ok, given) => {
+      onTime?.(Date.now() - shownAt);
       if (ok) right += 1; else wrong.push(ex);
       const answer = ex.type === 'choice' ? ex.options[ex.a] : ex.a[0];
       fb.hidden = false;

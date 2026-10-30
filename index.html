@@ -15,6 +15,8 @@
       try { pref = localStorage.getItem('bukvoid:theme') || 'auto'; } catch (e) { /* приватний режим */ }
       var light = pref === 'light' || (pref === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
       document.documentElement.dataset.theme = light ? 'light' : 'dark';
+      // Розмір тексту — до першого кадру, щоб сторінка не стрибала
+      try { var fs = localStorage.getItem('bukvoid:fs'); if (fs) document.documentElement.style.setProperty('--fs', fs); } catch (e) { /* приватний режим */ }
     })();
   </script>
   <link rel="stylesheet" href="css/app.css">
@@ -26,7 +28,7 @@
   <header class="topbar">
     <div class="topbar-row">
       <a class="brand" href="#druk">
-        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><path d="M20 14h26v8H29v7h7c8 0 13 4.5 13 11.5S44 52 36 52H20z M29 36.5v8h6.5c2.6 0 4.3-1.6 4.3-4s-1.7-4-4.3-4z" fill="var(--accent-ink)"/><circle cx="52" cy="12" r="9" fill="var(--bg)"/><circle cx="44" cy="6" r="5" fill="var(--bg)"/><circle cx="58" cy="21" r="5" fill="var(--bg)"/></svg>
+        <svg viewBox="0 0 64 64" aria-hidden="true"><defs><mask id="brand-bite"><rect width="64" height="64" fill="#fff"/><circle cx="55" cy="11" r="9.5" fill="#000"/><circle cx="44.5" cy="6.5" r="5.2" fill="#000"/><circle cx="59.5" cy="22.5" r="5.2" fill="#000"/></mask></defs><rect x="6" y="6" width="52" height="52" rx="12" fill="var(--accent)" mask="url(#brand-bite)"/><path transform="translate(31 33) scale(.8) translate(-34.5 -33.5)" d="M20 15h25v8H29v6.5h7c8 0 13 4.5 13 11.3S44 52 36 52H20z M29 36.5v8h6.5c2.6 0 4.3-1.6 4.3-4s-1.7-4-4.3-4z" fill="var(--accent-ink)"/></svg>
         <span><b>Буквоїд</b><small>з'їдає помилки</small></span>
       </a>
       <nav class="tabs" aria-label="Розділи">
