@@ -1,4 +1,4 @@
-import { esc, inline } from './blocks.js';
+import { esc, inline, exerciseFig } from './blocks.js';
 
 // Скорочення розгортаємо з обох боків: «I'm» і «I am» — одна відповідь.
 const CONTRACTIONS = [
@@ -29,8 +29,9 @@ function shuffle(arr) {
 /**
  * Тест: по одному завданню, перевірка Enter-ом, наприкінці — підсумок і
  * «Повторити помилки». onDone(score, total) — лише для повного проходу.
+ * src(path) — адреса картинки курсу для вправ з img.
  */
-export function mountQuiz(root, exercises, { onDone, onTime, labels = {} } = {}) {
+export function mountQuiz(root, exercises, { onDone, onTime, labels = {}, src } = {}) {
   let list = exercises.map((ex, i) => ({ ...ex, i }));
   let shownAt = 0;
   let idx = 0;
@@ -53,6 +54,7 @@ export function mountQuiz(root, exercises, { onDone, onTime, labels = {} } = {})
       <div class="quiz">
         <div class="q-progress"><span style="width:${(idx / list.length) * 100}%"></span></div>
         <div class="q-meta muted">${idx + 1} з ${list.length} · ${esc(label)}</div>
+        ${exerciseFig(ex, src)}
         <div class="q-text">${inline(ex.q).replace(/◻|___/g, '<span class="gap">◻</span>')}</div>
         ${body}
         <div class="q-feedback" role="status" hidden></div>

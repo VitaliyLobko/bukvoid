@@ -26,6 +26,7 @@ const ASSETS = [
   './js/data/words.js',
   './js/courses.js',
   './js/icons.js',
+  './js/zip.js',
   './courses/index.json',
   './courses/uk-pravopys.json',
   './courses/en-a2.json',

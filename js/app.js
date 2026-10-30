@@ -323,7 +323,7 @@ function renderCourse(cid) {
 }
 
 function examplesHtml(list) {
-  return `<div class="examples">${list.map((x) => (typeof x === 'string' ? `<span class="ex">${esc(x)}</span>` : `<span class="ex" title="${esc(x.note || '')}">${esc(x.w)}${x.note ? `<small>${esc(x.note)}</small>` : ''}</span>`)).join('')}</div>`;
+  return `<div class="examples">${list.map((x) => (typeof x === 'string' ? `<span class="ex">${inline(x)}</span>` : `<span class="ex" title="${esc(x.note || '')}">${inline(x.w)}${x.note ? `<small>${inline(x.note)}</small>` : ''}</span>`)).join('')}</div>`;
 }
 
 /** Пара «англійською — українською»; озвучення — лише в англійських курсах. */
@@ -347,7 +347,7 @@ function renderCourseUnit(cid, uid) {
     ${head(t.title, `#kurs/${esc(cid)}`, esc(t.topic ? `${t.topic} · ${pack.title}` : t.goal || ''))}
     ${t.topic && t.goal ? `<p class="goal">${inline(t.goal)}</p>` : ''}
     ${t.words?.length || t.media?.length ? `<nav class="toc">${toc.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav>` : ''}
-    <article class="prose card" id="u-theory">${blocksHtml(t.theory)}</article>
+    <article class="prose card" id="u-theory">${blocksHtml(t.theory, { src: Courses.src(cid) })}</article>
     ${t.examples?.length ? `<h2 class="section-title" id="u-examples">Приклади</h2>${pairs
     ? `<div class="card pairs">${t.examples.map((x) => pairHtml(inline(x.en), inline(x.uk), x.en, lang)).join('')}</div>`
     : examplesHtml(t.examples)}` : ''}
@@ -364,6 +364,7 @@ function renderCourseUnit(cid, uid) {
   });
   if (t.exercises.length) {
     mountQuiz($('quiz'), t.exercises, {
+      src: Courses.src(cid),
       onTime: (ms) => S.recordStudyTime(ms),
       onDone: (score, total) => {
         S.recordUnit(cid, t.id, score, total);
@@ -532,7 +533,7 @@ function renderSettings(section) {
       <div id="courses-installed" class="stack"></div>
       <h3 class="sub-title">Каталог</h3>
       <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
-      <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json" hidden></label></div>
+      <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
       <div id="courses-msg" class="muted" role="status"></div>
       <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>
     </details>
@@ -657,7 +658,7 @@ function mountCourses() {
     e.target.value = '';
     if (!file) return;
     try {
-      const pack = await Courses.importFile(await file.text());
+      const pack = await Courses.importFile(file);
       msg(`Курс «${esc(pack.title)}» додано — він на вкладці «Курси».`);
     } catch (err) {
       const list = err.errors?.length ? `<ul class="errors">${err.errors.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join('')}${err.errors.length > 8 ? `<li>…і ще ${err.errors.length - 8}</li>` : ''}</ul>` : '';

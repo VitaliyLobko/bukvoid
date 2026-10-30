@@ -2,6 +2,6 @@
 *.json
 !manifest.webmanifest
 # Курси — частина застосунку (каталог на Pages)
-!courses/*.json
+!courses/**/*.json
 .DS_Store
 Thumbs.db

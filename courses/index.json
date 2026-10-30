@@ -31,6 +31,15 @@
    "file": "en-b1.json",
    "builtIn": true,
    "icon": "languages"
+  },
+  {
+   "id": "ui-design",
+   "version": 1,
+   "title": "Дизайн інтерфейсів і колір",
+   "subtitle": "Як підбирати кольори, перевіряти контраст і робити екран зрозумілим",
+   "units": 10,
+   "icon": "palette",
+   "dir": "ui-design"
   }
  ]
 }

@@ -1,8 +1,11 @@
 // Курси — дані, не код: теорія блоками, приклади, тести, друк, посилання. Формат «bukvoid-course» v1 (див. README).
 // Встановлені курси лежать в IndexedDB (localStorage на github.io спільний з іншими застосунками й малий).
 // Каталог — courses/index.json у репо; курс із файлу живе лише на цьому пристрої.
+// Курс із картинками — пакет: у каталозі папка (course.json + img/…), файлом — .zip з тим самим.
+// Картинки зберігаються разом із курсом в IndexedDB — курс працює без мережі.
 
 import { ICONS } from './icons.js';
+import { unzip } from './zip.js';
 
 const DB_NAME = 'bukvoid-courses';
 const STORE = 'packs';
@@ -12,14 +15,38 @@ const DEFAULTS = ['uk-pravopys', 'en-a2', 'en-b1'];
 const REMOVED_KEY = 'bukvoid:courses-removed';
 const MAX_UNITS = 200;
 const MAX_BYTES = 3_000_000;
+const MAX_IMAGE = 1_000_000;
+const MAX_PACKAGE = 15_000_000;
+// Шлях картинки в пакеті: без «..», без адрес і абсолютних шляхів — лише файли самого курсу
+const ASSET_RE = /^(?!.*\.\.)(?!.*\/\/)[a-z0-9][a-z0-9._/-]*\.(png|jpe?g|webp|gif|svg)$/i;
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' };
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+const mimeOf = (path) => MIME[path.split('.').pop().toLowerCase()];
+export const isAsset = (path) => ASSET_RE.test(path);
 
 export const FORMAT = 'bukvoid-course';
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
-const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'table'];
+const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'table', 'img', 'swatches', 'contrast'];
 const TYPES = ['choice', 'gap', 'fix', 'translate'];
 
-/** Помилки формату: [] — курс годиться. Повідомлення — людською мовою, з місцем помилки. */
-export function validate(pack) {
+/** Усі картинки, на які посилається курс: блоки img теорії й вправи з img. */
+export function assetsOf(pack) {
+  const out = new Set();
+  for (const u of Array.isArray(pack?.units) ? pack.units : []) {
+    for (const b of Array.isArray(u?.theory) ? u.theory : []) if (typeof b?.img === 'string') out.add(b.img);
+    for (const e of Array.isArray(u?.exercises) ? u.exercises : []) if (typeof e?.img === 'string') out.add(e.img);
+  }
+  return out;
+}
+
+/** SVG зі скриптом чи обробником подій: у <img> він не виконається, але відкритий окремо — так. Не приймаємо. */
+export const unsafeSvg = (text) => /<script|<foreignObject|\bon[a-z]+\s*=|javascript:|<iframe|<object|<embed/i.test(text);
+
+/**
+ * Помилки формату: [] — курс годиться. Повідомлення — людською мовою, з місцем помилки.
+ * files — шляхи картинок, що є в пакеті: кожна картинка курсу має там бути.
+ */
+export function validate(pack, files = new Set()) {
   const err = [];
   const str = (v) => typeof v === 'string' && v.trim().length > 0;
   if (!pack || typeof pack !== 'object') return ['Це не курс: файл не містить об\'єкта JSON.'];
@@ -46,7 +73,14 @@ export function validate(pack) {
       if (!key) err.push(`${at}, теорія ${k + 1}: блок має бути одним із ${BLOCKS.join(', ')}.`);
       else if (key === 'ul' && !(Array.isArray(b.ul) && b.ul.every(str))) err.push(`${at}, теорія ${k + 1}: ul — список рядків.`);
       else if (key === 'table' && !(Array.isArray(b.table) && b.table.length > 1 && b.table.every((r) => Array.isArray(r) && r.every((c) => typeof c === 'string')))) err.push(`${at}, теорія ${k + 1}: table — рядки з комірок-рядків, перший — заголовок.`);
-      else if (!['ul', 'table'].includes(key) && !str(b[key])) err.push(`${at}, теорія ${k + 1}: порожній текст.`);
+      else if (key === 'img') {
+        if (!ASSET_RE.test(b.img)) err.push(`${at}, теорія ${k + 1}: img — шлях до картинки в курсі (img/назва.png, .jpg, .webp, .svg).`);
+        if (!str(b.alt)) err.push(`${at}, теорія ${k + 1}: у картинки має бути alt — що на ній, для тих, хто її не бачить.`);
+      } else if (key === 'swatches' && !(Array.isArray(b.swatches) && b.swatches.length && b.swatches.length <= 12 && b.swatches.every((c) => c && HEX_RE.test(c.hex ?? '')))) {
+        err.push(`${at}, теорія ${k + 1}: swatches — до 12 кольорів {hex: "#1e88e5", name, note}.`);
+      } else if (key === 'contrast' && !(Array.isArray(b.contrast) && b.contrast.length && b.contrast.length <= 8 && b.contrast.every((c) => c && HEX_RE.test(c.fg ?? '') && HEX_RE.test(c.bg ?? '')))) {
+        err.push(`${at}, теорія ${k + 1}: contrast — до 8 пар {fg: "#000000", bg: "#ffffff", text}.`);
+      } else if (!['ul', 'table', 'img', 'swatches', 'contrast'].includes(key) && !str(b[key])) err.push(`${at}, теорія ${k + 1}: порожній текст.`);
     });
     if (u.examples && !(Array.isArray(u.examples) && u.examples.every((x) => str(x) || (x && (str(x.w) || (str(x.en) && str(x.uk))))))) err.push(`${at}: examples — рядки, {w, note} або {en, uk}.`);
     if (u.words && !(Array.isArray(u.words) && u.words.every((w) => w && str(w.en) && str(w.uk) && (w.ex === undefined || str(w.ex))))) err.push(`${at}: words — фрази {en, uk, ex?} для повторення.`);
@@ -57,12 +91,16 @@ export function validate(pack) {
       const ex = `${at}, вправа ${k + 1}`;
       if (!e || !TYPES.includes(e.type)) { err.push(`${ex}: type — ${TYPES.join(', ')}.`); return; }
       if (!str(e.q)) err.push(`${ex}: немає питання (q).`);
+      if (e.img !== undefined && !(ASSET_RE.test(e.img) && str(e.alt))) err.push(`${ex}: img — шлях до картинки в курсі, і обов'язково alt.`);
       if (e.type === 'choice') {
         if (!(Array.isArray(e.options) && e.options.length >= 2 && e.options.every(str))) err.push(`${ex}: options — щонайменше 2 варіанти.`);
         else if (!(Number.isInteger(e.a) && e.a >= 0 && e.a < e.options.length)) err.push(`${ex}: a — номер правильного варіанта від 0.`);
       } else if (!(Array.isArray(e.a) && e.a.length && e.a.every(str))) err.push(`${ex}: a — список правильних відповідей.`);
     });
   });
+  for (const path of assetsOf(pack)) {
+    if (ASSET_RE.test(path) && !files.has(path)) err.push(`Картинки ${path} немає в курсі${files.size ? '' : ' — курс із картинками додається архівом .zip'}.`);
+  }
   return err;
 }
 
@@ -93,6 +131,27 @@ async function tx(mode, fn) {
 
 const installed = new Map();
 let catalogCache = null;
+// Курс → (шлях → адреса для <img>). SVG — data: (відкритий окремо, він не отримає наш origin), решта — blob:
+const urls = new Map();
+
+async function buildUrls(rec) {
+  dropUrls(rec.id);
+  const map = new Map();
+  for (const [path, blob] of Object.entries(rec.files ?? {})) {
+    map.set(path, mimeOf(path) === 'image/svg+xml'
+      ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(await blob.text())}`
+      : URL.createObjectURL(blob));
+  }
+  urls.set(rec.id, map);
+}
+
+function dropUrls(id) {
+  for (const url of urls.get(id)?.values() ?? []) if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+  urls.delete(id);
+}
+
+/** Адреса картинки курсу для <img>; немає — порожній рядок. */
+export const src = (cid) => (path) => urls.get(cid)?.get(path) ?? '';
 
 export const list = () => [...installed.values()].sort((a, b) => (a.added || 0) - (b.added || 0));
 export const enabled = () => list().filter((x) => x.enabled);
@@ -126,6 +185,7 @@ function markRemoved(id, on) {
 async function put(rec) {
   markRemoved(rec.id, false);
   await tx('readwrite', (s) => s.put(rec));
+  await buildUrls(rec);
   installed.set(rec.id, rec);
   window.dispatchEvent(new Event('courses-change'));
 }
@@ -141,32 +201,82 @@ export async function catalog() {
   return catalogCache;
 }
 
+/** Курс каталогу: файл .json або папка з course.json і картинками — їх беремо всі одразу, щоб курс працював без мережі. */
 async function fetchPack(entry) {
-  const res = await fetch(`./courses/${entry.file}`, { cache: 'no-cache' });
+  const base = entry.dir ? `./courses/${entry.dir}/` : './courses/';
+  const res = await fetch(entry.dir ? `${base}course.json` : `${base}${entry.file}`, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`Курс не завантажився (HTTP ${res.status})`);
-  return res.json();
+  const pack = await res.json();
+  const files = {};
+  for (const path of entry.dir ? assetsOf(pack) : []) {
+    if (!ASSET_RE.test(path)) continue;
+    const r = await fetch(base + path, { cache: 'no-cache' });
+    if (!r.ok) throw new Error(`Не завантажилась картинка ${path} (HTTP ${r.status})`);
+    files[path] = new Blob([await r.arrayBuffer()], { type: mimeOf(path) });
+  }
+  return { pack, files };
+}
+
+/** Картинки пакета: розмір і безпечний SVG. */
+export async function checkFiles(files) {
+  const err = [];
+  for (const [path, blob] of Object.entries(files)) {
+    if (blob.size > MAX_IMAGE) err.push(`Картинка ${path} завелика: ${Math.round(blob.size / 1024)} КБ, можна до ${MAX_IMAGE / 1e6} МБ (WebP чи менший розмір).`);
+    if (mimeOf(path) === 'image/svg+xml' && unsafeSvg(await blob.text())) err.push(`У ${path} є скрипт чи обробник подій — такий SVG не приймаємо.`);
+  }
+  return err;
 }
 
 /** Встановити з каталогу (або оновити, якщо там новіша версія). */
 export async function install(id) {
   const entry = (catalogCache ?? await catalog() ?? []).find((c) => c.id === id);
   if (!entry) throw new Error('Цього курсу немає в каталозі');
-  const pack = await fetchPack(entry);
-  const errors = validate(pack);
+  const { pack, files } = await fetchPack(entry);
+  const errors = [...validate(pack, new Set(Object.keys(files))), ...await checkFiles(files)];
   if (errors.length) throw new Error(errors[0]);
   const prev = installed.get(id);
-  await put({ id, pack, from: 'catalog', enabled: prev?.enabled ?? true, added: prev?.added ?? Date.now() });
+  await put({ id, pack, files, from: 'catalog', enabled: prev?.enabled ?? true, added: prev?.added ?? Date.now() });
 }
 
-/** Курс із файлу: перевірка формату; той самий id — заміна (прогрес лишається, він за id юнітів). */
-export async function importFile(text) {
-  if (text.length > MAX_BYTES) throw Object.assign(new Error('Файл завеликий для курсу (до 3 МБ).'), { errors: [] });
+const fail = (message, errors = []) => Object.assign(new Error(message), { errors });
+
+/** Архів: course.json у корені (або в одній папці — якщо стиснули саму папку курсу) і картинки поруч. */
+export async function readZip(buf) {
+  let entries;
+  try { entries = await unzip(buf, { maxBytes: MAX_PACKAGE }); } catch (e) { throw fail(e.message); }
+  const json = [...entries.keys()].filter((n) => n === 'course.json' || n.endsWith('/course.json')).sort((a, b) => a.length - b.length)[0];
+  if (!json) throw fail('В архіві немає course.json — це не курс Буквоїда.');
+  const root = json.slice(0, -'course.json'.length);
   let pack;
-  try { pack = JSON.parse(text); } catch { throw Object.assign(new Error('Це не JSON — файл курсу має бути .json.'), { errors: [] }); }
-  const errors = validate(pack);
-  if (errors.length) throw Object.assign(new Error('Файл не схожий на курс Буквоїда.'), { errors });
+  try { pack = JSON.parse(new TextDecoder().decode(entries.get(json))); } catch { throw fail('course.json в архіві — не JSON.'); }
+  const files = {};
+  for (const [name, bytes] of entries) {
+    const path = name.slice(root.length);
+    if (name.startsWith(root) && ASSET_RE.test(path)) files[path] = new Blob([bytes], { type: mimeOf(path) });
+  }
+  return { pack, files };
+}
+
+/**
+ * Курс із файлу (.json, або .zip з картинками): перевірка формату; той самий id — заміна
+ * (прогрес лишається, він за id юнітів). Приймає File або текст JSON.
+ */
+export async function importFile(input) {
+  let pack;
+  let files = {};
+  const blob = typeof input === 'string' ? new Blob([input]) : input;
+  const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  if (head[0] === 0x50 && head[1] === 0x4b) {
+    if (blob.size > MAX_PACKAGE) throw fail(`Архів завеликий для курсу (до ${MAX_PACKAGE / 1e6} МБ).`);
+    ({ pack, files } = await readZip(await blob.arrayBuffer()));
+  } else {
+    if (blob.size > MAX_BYTES) throw fail('Файл завеликий для курсу (до 3 МБ).');
+    try { pack = JSON.parse(await blob.text()); } catch { throw fail('Це не JSON і не .zip — курс буває файлом .json або архівом .zip.'); }
+  }
+  const errors = [...validate(pack, new Set(Object.keys(files))), ...await checkFiles(files)];
+  if (errors.length) throw fail('Файл не схожий на курс Буквоїда.', errors);
   const prev = installed.get(pack.id);
-  await put({ id: pack.id, pack, from: 'file', enabled: true, added: prev?.added ?? Date.now() });
+  await put({ id: pack.id, pack, files, from: 'file', enabled: true, added: prev?.added ?? Date.now() });
   return pack;
 }
 
@@ -179,6 +289,7 @@ export async function remove(id) {
   markRemoved(id, true);
   await tx('readwrite', (s) => s.delete(id));
   installed.delete(id);
+  dropUrls(id);
   window.dispatchEvent(new Event('courses-change'));
 }
 
@@ -190,7 +301,7 @@ export async function remove(id) {
 export async function ready() {
   try {
     const all = await tx('readonly', (s) => s.getAll());
-    for (const rec of all ?? []) installed.set(rec.id, rec);
+    for (const rec of all ?? []) { await buildUrls(rec); installed.set(rec.id, rec); }
   } catch { /* IndexedDB недоступна (приватний режим) — курси підтягнуться з мережі */ }
   const skip = removed();
   for (const id of DEFAULTS) if (!installed.has(id) && !skip.has(id)) await install(id).catch(() => {});
