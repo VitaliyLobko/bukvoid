@@ -17,7 +17,7 @@ export const isRight = (given, answers) => answers.some((a) => normalize(a) === 
 
 /** Число з відповіді: кома як крапка, пробіли між розрядами, одиниці після числа ігноруємо. */
 export const parseNumber = (s) => {
-  const m = String(s).replace(/\s+/g, '').replace(',', '.').match(/^[-−]?\d*\.?\d+/);
+  const m = String(s).replace(/\s+/g, '').replace(',', '.').match(/^[-−+]?\d*\.?\d+/);
   return m ? Number(m[0].replace('−', '-')) : NaN;
 };
 export const numberRight = (given, ex) => Math.abs(parseNumber(given) - ex.a) <= (ex.tol ?? 0) + 1e-9;

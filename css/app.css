@@ -213,6 +213,13 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .course-ico.small { width: 36px; height: 36px; border-radius: 10px; margin: 0; }
 .course-ico.small svg { width: 20px; height: 20px; }
 .course-tile b { font: 650 calc(17px * var(--fs))/1.3 var(--display); letter-spacing: -.01em; }
+/* Курс каталогу, якого ще немає на пристрої: бліда плитка, торкнулись — додається */
+.course-tile.add { font: inherit; text-align: left; cursor: pointer; background: transparent; border-style: dashed; }
+.course-tile.add > :not(.add-label) { opacity: .6; }
+.course-tile.add .course-ico { background: var(--surface-2); color: var(--muted); }
+.course-tile.add .add-label { margin-top: 4px; color: var(--muted); font-size: calc(13px * var(--fs)); }
+.course-tile.add .add-label > span:not(.errors) { color: var(--accent); font-weight: 600; }
+.course-tile.add:disabled { cursor: progress; }
 .course-meter { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .course-meter span { display: block; height: 100%; background: var(--good); border-radius: 3px; }
 /* Картка налаштувань, що згортається: заголовок — це summary */

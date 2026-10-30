@@ -312,11 +312,37 @@ function renderCourses() {
   view().innerHTML = `
     ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
     ${srsHero()}
-    ${tiles.length ? `<div class="tiles courses">${tiles.join('')}</div>` : '<div class="card"><p>Курсів не ввімкнено.</p></div>'}
-    <div id="kursy-catalog"></div>
+    <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
+    ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Курсів не ввімкнено — увімкніть у ⚙ → «Курси» або додайте з каталогу.</p>'}
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
-  const box = $('kursy-catalog');
-  drawFreshCatalog(box, () => { if (box.isConnected) renderCourses(); }, true);
+  addCatalogTiles($('kursy-tiles'));
+}
+
+/** Курси каталогу, яких ще немає на пристрої, — блідими плитками в тій самій сітці; торкнулись — курс додається. */
+async function addCatalogTiles(grid) {
+  const cat = await Courses.catalog();
+  if (!grid.isConnected || !cat) return;
+  const fresh = cat.filter((c) => !Courses.get(c.id));
+  if (fresh.length) $('kursy-empty')?.remove();
+  grid.insertAdjacentHTML('beforeend', fresh.map((c) => `<button type="button" class="tile course-tile add" data-course-add="${esc(c.id)}">
+      <span class="course-ico">${iconSvg(c.icon)}</span>
+      <b>${esc(c.title)}</b>
+      <span class="muted">${esc(c.subtitle || '')}</span>
+      <small class="add-label">${c.units ? `${c.units} тем · ` : ''}<span>Додати</span></small>
+    </button>`).join(''));
+  grid.querySelectorAll('[data-course-add]').forEach((b) => {
+    b.onclick = async () => {
+      b.disabled = true;
+      b.querySelector('.add-label span').textContent = 'Додаємо…';
+      try {
+        await Courses.install(b.dataset.courseAdd);
+        if (grid.isConnected) renderCourses();
+      } catch (err) {
+        b.querySelector('.add-label').innerHTML = `<span class="errors">Не вдалося: ${esc(err.message)}</span>`;
+        b.disabled = false;
+      }
+    };
+  });
 }
 
 const catalogRowHtml = (c) => `
@@ -325,23 +351,17 @@ const catalogRowHtml = (c) => `
     <button type="button" class="btn primary" data-course-add="${esc(c.id)}">Додати</button>
   </div>`;
 
-/**
- * Курси каталогу, яких ще немає на пристрої, з кнопкою «Додати». onAdded — після встановлення;
- * quiet — на вкладці «Курси»: без мережі чи без нових курсів блок просто не показується.
- */
-async function drawFreshCatalog(box, onAdded, quiet = false, msg = () => {}) {
+/** ⚙ → «Курси» → «Каталог»: курси, яких ще немає на пристрої, з кнопкою «Додати». */
+async function drawFreshCatalog(box, msg) {
   const cat = await Courses.catalog();
   if (!box.isConnected) return;
-  const fresh = (cat ?? []).filter((c) => !Courses.get(c.id));
-  if (quiet && !fresh.length) { box.innerHTML = ''; return; }
   if (!cat) { box.innerHTML = '<p class="muted">Каталог недоступний без мережі.</p>'; return; }
-  box.innerHTML = (quiet ? '<h2 class="section-title">Ще в каталозі</h2><div class="card">' : '')
-    + (fresh.length ? fresh.map(catalogRowHtml).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>')
-    + (quiet ? '</div>' : '');
+  const fresh = cat.filter((c) => !Courses.get(c.id));
+  box.innerHTML = fresh.length ? fresh.map(catalogRowHtml).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>';
   box.querySelectorAll('[data-course-add]').forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
-      try { await Courses.install(b.dataset.courseAdd); msg('Курс додано — він на вкладці «Курси».'); onAdded?.(); } catch (err) { msg(`Не вдалося додати: ${esc(err.message)}`); if (quiet) b.insertAdjacentHTML('afterend', `<p class="errors">${esc(err.message)}</p>`); b.disabled = false; }
+      try { await Courses.install(b.dataset.courseAdd); msg('Курс додано — він на вкладці «Курси».'); } catch (err) { msg(`Не вдалося додати: ${esc(err.message)}`); b.disabled = false; }
     };
   });
 }
@@ -681,7 +701,7 @@ function mountCourses() {
       };
     });
   };
-  const drawCatalog = () => $('courses-catalog') && drawFreshCatalog($('courses-catalog'), null, false, msg);
+  const drawCatalog = () => $('courses-catalog') && drawFreshCatalog($('courses-catalog'), msg);
   $('course-file').onchange = async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
