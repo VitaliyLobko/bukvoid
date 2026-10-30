@@ -432,6 +432,26 @@ th { color: var(--muted); font-weight: 600; font-size: calc(13px * var(--fs)); }
 .q-opt.good { border-color: var(--good); background: color-mix(in srgb, var(--good) 15%, var(--surface-2)); }
 .q-opt.bad { border-color: var(--bad); background: var(--bad-soft); }
 .q-opt:disabled { cursor: default; }
+.q-order { margin: 0; padding-left: 28px; display: grid; gap: 6px; min-height: 48px; border: 1px dashed var(--line-strong); border-radius: 11px; padding-top: 8px; padding-bottom: 8px; padding-right: 8px; }
+.q-order:empty::before { content: 'Торкайтеся пунктів унизу по черзі'; color: var(--muted); margin-left: -16px; align-self: center; }
+.q-pool { display: flex; flex-wrap: wrap; gap: 8px; }
+.q-pool:empty { display: none; }
+.q-item {
+  min-height: 44px; padding: 8px 14px; text-align: left; border-radius: 11px; border: 1px solid var(--line-strong);
+  background: var(--surface-2); color: var(--text); font: 600 calc(15px * var(--fs)) var(--sans); cursor: pointer;
+}
+.q-order .q-item { width: 100%; }
+.q-item:hover:not(:disabled) { border-color: var(--accent); }
+.q-item.good { border-color: var(--good); background: color-mix(in srgb, var(--good) 15%, var(--surface-2)); }
+.q-item.bad { border-color: var(--bad); background: var(--bad-soft); }
+.spot { position: relative; max-width: 640px; line-height: 0; }
+.spot img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #fff; cursor: crosshair; touch-action: manipulation; user-select: none; }
+.spot.answered img { cursor: default; }
+.spot-mark, .spot-zone { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; }
+.spot-mark { width: 18px; height: 18px; border: 3px solid #fff; box-shadow: 0 0 0 2px #000; }
+.spot-mark.good { background: var(--good); }
+.spot-mark.bad { background: var(--bad); }
+.spot-zone { aspect-ratio: 1; border: 3px dashed var(--good); box-shadow: 0 0 0 2px rgb(255 255 255 / .8); }
 .q-form { display: flex; gap: 8px; flex-wrap: wrap; }
 .q-input, textarea {
   flex: 1 1 240px; min-height: 48px; padding: 10px 14px; border-radius: 11px; border: 1px solid var(--line-strong);

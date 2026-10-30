@@ -86,3 +86,61 @@ export function courseIdsWithCards() {
   }
   return [...ids];
 }
+
+// ---------- помилки тестів ----------
+// Помилкова вправа стає карткою тієї ж колоди: ключ «курс/юніт:#q<відбиток>». Відбиток — з типу, питання,
+// картинки й відповіді: дві вправи «А ця?» з різними малюнками — різні картки; змінене питання — нова картка.
+
+const MISTAKE = ':#q';
+function exHash(ex) {
+  const s = `${ex.type}|${ex.q}|${ex.img ?? ''}|${JSON.stringify(ex.a)}|${JSON.stringify(ex.items ?? '')}`;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0;
+  return h.toString(36);
+}
+export const mistakeId = (cid, uid, ex) => `${cid}/${uid}${MISTAKE}${exHash(ex)}`;
+export const isMistake = (id) => id.includes(MISTAKE);
+
+/**
+ * Відповідь у тесті теми. Помилка — картка на завтра (сьогодні людина щойно бачила відповідь).
+ * Правильна відповідь на вправу, що вже чекає повторення, — зараховується як повторення.
+ */
+export function recordAnswer(cid, uid, ex, ok) {
+  const id = mistakeId(cid, uid, ex);
+  const c = get().srs[id];
+  if (!ok) update((s) => { s.srs[id] = { box: 0, due: addDays(today(), 1), at: Date.now() }; });
+  else if (c && c.due <= today()) grade(id, true);
+}
+
+/** Вправи з помилок, які сьогодні час повторити: [{...вправа, cid, uid, srsId, from}]. */
+export function dueMistakes(packs) {
+  const s = get();
+  const t = today();
+  const out = [];
+  for (const { id: cid, pack } of packs) {
+    for (const unit of pack.units) {
+      for (const ex of unit.exercises ?? []) {
+        const id = mistakeId(cid, unit.id, ex);
+        if (s.srs[id]?.due <= t) out.push({ ...ex, cid, uid: unit.id, srsId: id, from: `${pack.title} · ${unit.title}` });
+      }
+    }
+  }
+  return out;
+}
+
+/** Помилки в колоді: усього (лише тих вправ, що досі є в курсах) і на сьогодні. */
+export function mistakeCounts(packs) {
+  const s = get();
+  const t = today();
+  let total = 0;
+  let due = 0;
+  for (const { id: cid, pack } of packs) {
+    for (const unit of pack.units) {
+      for (const ex of unit.exercises ?? []) {
+        const c = s.srs[mistakeId(cid, unit.id, ex)];
+        if (c) { total += 1; if (c.due <= t) due += 1; }
+      }
+    }
+  }
+  return { total, due };
+}

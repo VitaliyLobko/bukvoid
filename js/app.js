@@ -15,7 +15,7 @@ const view = () => $('view');
 const st = () => S.get();
 const set = () => st().settings;
 
-const TABS = { druk: 'kursy', lesson: 'kursy', free: 'kursy', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', progress: 'progress', settings: 'settings' };
+const TABS = { druk: 'kursy', lesson: 'kursy', free: 'kursy', kursy: 'kursy', kurs: 'kursy', k: 'kursy', pravopys: 'kursy', topic: 'kursy', english: 'kursy', unit: 'kursy', srs: 'kursy', mistakes: 'kursy', progress: 'progress', settings: 'settings' };
 
 const PRAISE = ['Смачно! Буквоїд ситий.', 'Чисто, як у відмінника в зошиті.', 'Літери з\'їдено без кісточок.', 'Рівно й без поспіху — саме так.'];
 const SCOLD = ['Буквоїд вдавився: забагато помилок. Повільніше — і ще раз.', 'Поспіх — ворог точності. Спробуйте на третину повільніше.', 'Пальці випередили голову. Пригальмуйте й повторіть.'];
@@ -247,16 +247,42 @@ const unitDone = (r, pack) => Boolean(r?.total) && r.best / r.total >= (pack?.pa
 const courseProgress = (cid) => st().courses[cid] ?? {};
 
 /** Колода повторення: показується, коли в увімкнених курсах є фрази. */
+/** «Повторення»: фрази мовних курсів і помилки тестів — те, що сьогодні час повторити. */
 function srsHero() {
   const packs = Courses.enabled();
-  if (!packs.some(({ pack }) => pack.units.some((u) => u.words?.length))) return '';
+  const phrases = packs.some(({ pack }) => pack.units.some((u) => u.words?.length));
   const c = SRS.counts(packs);
-  return `<a class="hero srs-card" href="#srs">
-      <div class="hero-main"><div class="eyebrow">Повторення фраз</div>
-      <div class="hero-num">${c.due}<small> на сьогодні</small></div>
-      <div class="muted">${c.total ? `у колоді ${c.total}, вивчено ${c.learned}` : 'Відкрийте тему англійської — її фрази додадуться в колоду'}</div></div>
-      <span class="btn primary big">${c.due ? 'Повторити' : 'Колода'}</span>
-    </a>`;
+  const m = SRS.mistakeCounts(packs);
+  if (!phrases && !m.total) return '';
+  const parts = [phrases && `фраз ${c.due}`, m.total && `помилок ${m.due}`].filter(Boolean).join(' · ');
+  const buttons = [
+    phrases && `<a class="btn ${c.due ? 'primary' : ''}" href="#srs">${c.due ? 'Фрази' : 'Колода фраз'}</a>`,
+    m.due && '<a class="btn primary" href="#mistakes">Помилки</a>',
+  ].filter(Boolean).join('');
+  return `<section class="hero srs-card">
+      <div class="hero-main"><div class="eyebrow">Повторення</div>
+      <div class="hero-num">${c.due + m.due}<small> на сьогодні</small></div>
+      <div class="muted">${parts}${!m.total ? ' · помилки з тестів теж повертатимуться сюди' : ''}</div></div>
+      <div class="row">${buttons}</div>
+    </section>`;
+}
+
+/** Помилки з тестів усіх курсів, яким настав день: той самий тест, зарахування — у колоду. */
+function renderMistakes() {
+  const packs = Courses.enabled();
+  const due = SRS.dueMistakes(packs).sort(() => Math.random() - 0.5);
+  if (!due.length) {
+    view().innerHTML = `${head('Повторення помилок', '#kursy')}<div class="card quiz summary"><div class="big-score">0</div>
+      <p>Сьогодні повторювати нічого. Вправа, на якій помилились у тесті, повертається наступного дня, потім через 2, 4, 8 днів…</p>
+      <a class="btn primary" href="#kursy">До курсів</a></div>`;
+    return;
+  }
+  view().innerHTML = `${head('Повторення помилок', '#kursy', `${due.length} на сьогодні — помилки з тестів тем`)}<div id="quiz" class="card"></div>`;
+  mountQuiz($('quiz'), due, {
+    src: (path, ex) => Courses.src(ex.cid)(path),
+    onTime: (ms) => S.recordStudyTime(ms),
+    onAnswer: (ex, ok) => SRS.grade(ex.srsId, ok),
+  });
 }
 
 function courseTile({ href, icon, title, subtitle, done, started, total, word }) {
@@ -383,6 +409,7 @@ function renderCourseUnit(cid, uid) {
   if (t.exercises.length) {
     mountQuiz($('quiz'), t.exercises, {
       src: Courses.src(cid),
+      onAnswer: (ex, ok) => SRS.recordAnswer(cid, t.id, ex, ok),
       onTime: (ms) => S.recordStudyTime(ms),
       onDone: (score, total) => {
         S.recordUnit(cid, t.id, score, total);
@@ -917,7 +944,7 @@ function route() {
     kursy: renderCourses, kurs: renderCourse, k: renderCourseUnit,
     pravopys: () => renderCourse(S.SPELLING_COURSE), topic: (id) => renderCourseUnit(S.SPELLING_COURSE, id),
     english: renderCourses, unit: (id = '') => renderCourseUnit(`en-${id.slice(0, 2)}`, id),
-    srs: renderSrs, progress: renderProgress, settings: renderSettings,
+    srs: renderSrs, mistakes: renderMistakes, progress: renderProgress, settings: renderSettings,
   };
   const fn = views[name] || renderCourses;
   const tab = cid && cid === currentCourse() ? 'current' : TABS[name] || 'kursy';

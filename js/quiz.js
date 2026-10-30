@@ -15,7 +15,17 @@ export function normalize(s) {
 
 export const isRight = (given, answers) => answers.some((a) => normalize(a) === normalize(given));
 
-const TYPE_LABEL = { choice: 'Оберіть варіант', gap: 'Впишіть пропущене', fix: 'Виправте помилку — надрукуйте речення цілком', translate: 'Перекладіть англійською' };
+/** Число з відповіді: кома як крапка, пробіли між розрядами, одиниці після числа ігноруємо. */
+export const parseNumber = (s) => {
+  const m = String(s).replace(/\s+/g, '').replace(',', '.').match(/^[-−]?\d*\.?\d+/);
+  return m ? Number(m[0].replace('−', '-')) : NaN;
+};
+export const numberRight = (given, ex) => Math.abs(parseNumber(given) - ex.a) <= (ex.tol ?? 0) + 1e-9;
+
+const TYPE_LABEL = {
+  choice: 'Оберіть варіант', gap: 'Впишіть пропущене', fix: 'Виправте помилку — надрукуйте речення цілком',
+  translate: 'Перекладіть англійською', number: 'Впишіть число', order: 'Розставте по порядку', spot: 'Торкніться потрібного місця на малюнку',
+};
 
 function shuffle(arr) {
   const a = [...arr];
@@ -26,12 +36,22 @@ function shuffle(arr) {
   return a;
 }
 
+/** Правильна відповідь словами — для «Правильно: …» після помилки. */
+function answerText(ex) {
+  if (ex.type === 'choice') return ex.options[ex.a];
+  if (ex.type === 'number') return `${ex.a}${ex.unit ?? ''}`;
+  if (ex.type === 'order') return ex.items.join(' → ');
+  if (ex.type === 'spot') return '';
+  return ex.a[0];
+}
+
 /**
  * Тест: по одному завданню, перевірка Enter-ом, наприкінці — підсумок і
  * «Повторити помилки». onDone(score, total) — лише для повного проходу.
- * src(path) — адреса картинки курсу для вправ з img.
+ * onAnswer(ex, ok) — після кожної відповіді (ex — вправа з полями, які передали).
+ * src(path, ex) — адреса картинки курсу для вправ з img; ex.from — підпис, звідки вправа.
  */
-export function mountQuiz(root, exercises, { onDone, onTime, labels = {}, src } = {}) {
+export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = {}, src } = {}) {
   let list = exercises.map((ex, i) => ({ ...ex, i }));
   let shownAt = 0;
   let idx = 0;
@@ -42,19 +62,31 @@ export function mountQuiz(root, exercises, { onDone, onTime, labels = {}, src } 
   function show() {
     if (idx >= list.length) return summary();
     const ex = list[idx];
+    const exSrc = src ? (path) => src(path, ex) : undefined;
     const label = labels[ex.type] || TYPE_LABEL[ex.type] || '';
     let body;
     if (ex.type === 'choice') {
       const opts = shuffle(ex.options.map((o, i) => ({ o, ok: i === ex.a })));
       body = `<div class="q-options">${opts.map((x, n) => `<button type="button" class="q-opt" data-ok="${x.ok ? 1 : 0}"><kbd>${n + 1}</kbd>${esc(x.o)}</button>`).join('')}</div>`;
+    } else if (ex.type === 'order') {
+      // Перемішуємо так, щоб початковий порядок не збігся з правильним
+      let items = shuffle(ex.items.map((t, k) => ({ t, k })));
+      while (items.every((x, n) => x.k === n)) items = shuffle(items);
+      body = `<ol class="q-order" aria-label="Ваш порядок"></ol>
+        <div class="q-pool">${items.map((x) => `<button type="button" class="q-item" data-k="${x.k}">${esc(x.t)}</button>`).join('')}</div>
+        <div class="row"><button type="button" class="btn primary" data-act="check" disabled>Перевірити</button><button type="button" class="btn" data-act="reset">Скинути</button></div>`;
+    } else if (ex.type === 'spot') {
+      const url = exSrc?.(ex.img);
+      body = `<div class="spot"><img src="${esc(url || '')}" alt="${esc(ex.alt)}" draggable="false"><span class="spot-mark" hidden></span><span class="spot-zone" hidden></span></div>`;
     } else {
-      body = `<form class="q-form"><input class="q-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Відповідь" placeholder="${ex.type === 'gap' ? 'пропущене' : 'речення'}"><button type="submit" class="btn primary">Перевірити</button></form>`;
+      const num = ex.type === 'number';
+      body = `<form class="q-form"><input class="q-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"${num ? ' inputmode="decimal"' : ''} aria-label="Відповідь" placeholder="${num ? `число${ex.unit ? `, ${esc(ex.unit.trim())}` : ''}` : ex.type === 'gap' ? 'пропущене' : 'речення'}"><button type="submit" class="btn primary">Перевірити</button></form>`;
     }
     root.innerHTML = `
       <div class="quiz">
         <div class="q-progress"><span style="width:${(idx / list.length) * 100}%"></span></div>
-        <div class="q-meta muted">${idx + 1} з ${list.length} · ${esc(label)}</div>
-        ${exerciseFig(ex, src)}
+        <div class="q-meta muted">${idx + 1} з ${list.length} · ${esc(label)}${ex.from ? ` · ${esc(ex.from)}` : ''}</div>
+        ${ex.type === 'spot' ? '' : exerciseFig(ex, exSrc)}
         <div class="q-text">${inline(ex.q).replace(/◻|___/g, '<span class="gap">◻</span>')}</div>
         ${body}
         <div class="q-feedback" role="status" hidden></div>
@@ -63,17 +95,20 @@ export function mountQuiz(root, exercises, { onDone, onTime, labels = {}, src } 
     shownAt = Date.now();
     const done = (ok, given) => {
       onTime?.(Date.now() - shownAt);
+      onAnswer?.(ex, ok);
       if (ok) right += 1; else wrong.push(ex);
-      const answer = ex.type === 'choice' ? ex.options[ex.a] : ex.a[0];
+      const answer = answerText(ex);
       fb.hidden = false;
       fb.className = `q-feedback ${ok ? 'good' : 'bad'}`;
-      fb.innerHTML = `<b>${ok ? 'Правильно' : 'Не так'}</b>${ok ? '' : `${given ? `: ви написали «${esc(given)}»` : ''}. Правильно: <b>${esc(answer)}</b>`}`
+      const fix = [given && `Ви написали «${esc(given)}».`, answer ? `Правильно: <b>${esc(answer)}</b>` : ex.type === 'spot' && 'Правильне місце обведено.'].filter(Boolean).join(' ');
+      fb.innerHTML = `<b>${ok ? 'Правильно' : 'Не так'}</b>${ok || !fix ? '' : `<p>${fix}</p>`}`
         + (ex.why ? `<p>${inline(ex.why)}</p>` : '')
         + '<button type="button" class="btn primary q-next">Далі <kbd>Enter</kbd></button>';
       const next = fb.querySelector('.q-next');
       next.onclick = () => { idx += 1; show(); };
       next.focus();
     };
+    const quiz = root.querySelector('.quiz');
     if (ex.type === 'choice') {
       const buttons = [...root.querySelectorAll('.q-opt')];
       buttons.forEach((b) => {
@@ -83,19 +118,64 @@ export function mountQuiz(root, exercises, { onDone, onTime, labels = {}, src } 
           done(b.dataset.ok === '1', b.dataset.ok === '1' ? '' : b.textContent.slice(1));
         };
       });
-      root.querySelector('.quiz').tabIndex = -1;
-      root.querySelector('.quiz').focus({ preventScroll: true });
+      quiz.tabIndex = -1;
+      quiz.focus({ preventScroll: true });
+    } else if (ex.type === 'order') {
+      const ol = root.querySelector('.q-order');
+      const pool = root.querySelector('.q-pool');
+      const check = root.querySelector('[data-act="check"]');
+      // Торкнулись у запасі — пункт іде в кінець відповіді; у відповіді — повертається в запас
+      const move = (b) => {
+        if (b.closest('.q-pool')) { const li = document.createElement('li'); li.append(b); ol.append(li); } else { const li = b.parentElement; pool.append(b); li.remove(); }
+        check.disabled = pool.children.length > 0;
+      };
+      root.querySelectorAll('.q-item').forEach((b) => { b.onclick = () => move(b); });
+      root.querySelector('[data-act="reset"]').onclick = () => { [...ol.querySelectorAll('.q-item')].forEach(move); };
+      check.onclick = () => {
+        const got = [...ol.querySelectorAll('.q-item')];
+        const ok = got.every((b, n) => Number(b.dataset.k) === n);
+        got.forEach((b, n) => { b.disabled = true; b.classList.add(Number(b.dataset.k) === n ? 'good' : 'bad'); });
+        root.querySelectorAll('[data-act]').forEach((b) => { b.disabled = true; });
+        done(ok, ok ? '' : got.map((b) => b.textContent).join(' → '));
+      };
+      quiz.tabIndex = -1;
+      quiz.focus({ preventScroll: true });
+    } else if (ex.type === 'spot') {
+      const box = root.querySelector('.spot');
+      const img = box.querySelector('img');
+      let answered = false;
+      img.onclick = (e) => {
+        if (answered) return;
+        answered = true;
+        const r = img.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
+        // Відстань у пікселях: r цілі — відсоток ширини картинки
+        const ok = Math.hypot(((x - ex.a.x) / 100) * r.width, ((y - ex.a.y) / 100) * r.height) <= (ex.a.r / 100) * r.width;
+        const mark = box.querySelector('.spot-mark');
+        Object.assign(mark.style, { left: `${x}%`, top: `${y}%` });
+        mark.hidden = false;
+        mark.classList.add(ok ? 'good' : 'bad');
+        const zone = box.querySelector('.spot-zone');
+        Object.assign(zone.style, { left: `${ex.a.x}%`, top: `${ex.a.y}%`, width: `${ex.a.r * 2}%` });
+        zone.hidden = false;
+        box.classList.add('answered');
+        done(ok, '');
+      };
     } else {
       const input = root.querySelector('.q-input');
       root.querySelector('.q-form').onsubmit = (e) => {
         e.preventDefault();
         if (!input.value.trim()) return;
+        if (ex.type === 'number' && Number.isNaN(parseNumber(input.value))) { input.setCustomValidity('Впишіть число'); input.reportValidity(); return; }
+        input.setCustomValidity('');
         input.disabled = true;
         root.querySelector('.q-form button').disabled = true;
-        const ok = isRight(input.value, ex.a);
+        const ok = ex.type === 'number' ? numberRight(input.value, ex) : isRight(input.value, ex.a);
         input.classList.add(ok ? 'good' : 'bad');
         done(ok, input.value.trim());
       };
+      input.oninput = () => input.setCustomValidity('');
       input.focus({ preventScroll: true });
     }
   }

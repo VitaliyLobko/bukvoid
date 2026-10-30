@@ -27,7 +27,7 @@ export const isAsset = (path) => ASSET_RE.test(path);
 export const FORMAT = 'bukvoid-course';
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'table', 'img', 'swatches', 'contrast'];
-const TYPES = ['choice', 'gap', 'fix', 'translate'];
+const TYPES = ['choice', 'gap', 'fix', 'translate', 'number', 'order', 'spot'];
 
 /** Усі картинки, на які посилається курс: блоки img теорії й вправи з img. */
 export function assetsOf(pack) {
@@ -95,6 +95,20 @@ export function validate(pack, files = new Set()) {
       if (e.type === 'choice') {
         if (!(Array.isArray(e.options) && e.options.length >= 2 && e.options.every(str))) err.push(`${ex}: options — щонайменше 2 варіанти.`);
         else if (!(Number.isInteger(e.a) && e.a >= 0 && e.a < e.options.length)) err.push(`${ex}: a — номер правильного варіанта від 0.`);
+      } else if (e.type === 'number') {
+        if (!Number.isFinite(e.a)) err.push(`${ex}: a — число (3.14), не рядок.`);
+        if (e.tol !== undefined && !(Number.isFinite(e.tol) && e.tol >= 0)) err.push(`${ex}: tol — допуск, невід'ємне число.`);
+        if (e.unit !== undefined && !str(e.unit)) err.push(`${ex}: unit — одиниці, рядок (« см²»).`);
+      } else if (e.type === 'order') {
+        if (!(Array.isArray(e.items) && e.items.length >= 3 && e.items.length <= 8 && e.items.every(str) && new Set(e.items).size === e.items.length)) {
+          err.push(`${ex}: items — від 3 до 8 різних пунктів у правильному порядку.`);
+        }
+      } else if (e.type === 'spot') {
+        if (e.img === undefined) err.push(`${ex}: spot — потрібна картинка img і alt.`);
+        const a = e.a ?? {};
+        if (![a.x, a.y, a.r].every(Number.isFinite) || a.x < 0 || a.x > 100 || a.y < 0 || a.y > 100 || !(a.r > 0 && a.r <= 50)) {
+          err.push(`${ex}: a — {x, y, r} у відсотках картинки: центр цілі (0–100) і радіус (до 50, від ширини).`);
+        }
       } else if (!(Array.isArray(e.a) && e.a.length && e.a.every(str))) err.push(`${ex}: a — список правильних відповідей.`);
     });
   });
