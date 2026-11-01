@@ -22,5 +22,16 @@ const P = {
 
 export const ICONS = Object.keys(P);
 
+// Значки рядків налаштувань — лише для інтерфейсу, курсам недоступні
+const UI = {
+  stop: '<path d="M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2z"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
+  type: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
+  server: '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+  cloud: '<path d="M7 18.5a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.6 1.6 3.7 3.7 0 0 1-.6 7.4z"/>',
+  save: '<path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 15v5h14v-5"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 13h11l1-13M9 7V4h6v3"/>',
+};
+
 /** SVG значка; невідомий ключ — книжка. */
 export const iconSvg = (key) => `<svg viewBox="0 0 24 24" aria-hidden="true">${P[key] || P.book}</svg>`;
+export const uiSvg = (key) => `<svg viewBox="0 0 24 24" aria-hidden="true">${UI[key] || P[key]}</svg>`;

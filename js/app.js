@@ -8,7 +8,7 @@ import * as SRS from './srs.js';
 import * as Sync from './sync.js';
 import * as Bot from './bot.js';
 import * as Courses from './courses.js';
-import { iconSvg } from './icons.js';
+import { iconSvg, uiSvg } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const view = () => $('view');
@@ -571,75 +571,145 @@ function renderProgress() {
 
 // ---------- Налаштування ----------
 
+const SET_OPEN_KEY = 'bukvoid:set-open';
+const SIZES = [['s', 'Менший', 0.9], ['m', 'Звичайний', 1], ['l', 'Більший', 1.12], ['xl', 'Великий', 1.25]];
+const THEMES = [['auto', 'Як у системі'], ['dark', 'Темна'], ['light', 'Світла']];
+
+function openRow() {
+  try { return localStorage.getItem(SET_OPEN_KEY) || ''; } catch { return ''; }
+}
+
+/**
+ * Рядок налаштувань: значок, назва й поточне значення — видно, що де стоїть, нічого не відкриваючи.
+ * Тап розгортає керування під рядком; відкритий завжди один і пам'ятається між екранами.
+ */
+function setRow(key, ico, title, value, body, { danger = false } = {}) {
+  const open = openRow() === key;
+  return `
+    <div class="set-row${open ? ' open' : ''}${danger ? ' danger' : ''}" id="row-${key}" data-row="${key}">
+      <button type="button" class="set-head" aria-expanded="${open}">
+        <span class="course-ico small">${uiSvg(ico)}</span><span class="set-title">${title}</span>
+        <span class="set-val" id="val-${key}">${value}</span><span class="set-chev" aria-hidden="true">›</span>
+      </button>
+      <div class="set-body"${open ? '' : ' inert'}><div class="set-inner"><div class="set-pane stack">${body}</div></div></div>
+    </div>`;
+}
+
+/** Група: підпис над карткою, всередині — рядки через лінію. */
+const setGroup = (title, rows) => `<h2 class="section-title">${title}</h2><div class="card set-list">${rows.join('')}</div>`;
+
+function mountRows() {
+  view().querySelectorAll('.set-row').forEach((row) => {
+    row.querySelector('.set-head').onclick = () => {
+      const opening = !row.classList.contains('open');
+      view().querySelectorAll('.set-row.open').forEach((r) => setOpen(r, false));
+      setOpen(row, opening);
+      try { localStorage.setItem(SET_OPEN_KEY, opening ? row.dataset.row : ''); } catch { /* приватний режим */ }
+    };
+  });
+}
+
+function setOpen(row, open) {
+  row.classList.toggle('open', open);
+  row.querySelector('.set-head').setAttribute('aria-expanded', String(open));
+  row.querySelector('.set-body').inert = !open;
+}
+
+/** Значення рядка й крапка стану: ok — працює, bad — треба втрутитись. */
+function setVal(key, text, tone = '') {
+  const el = $(`val-${key}`);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `set-val${tone ? ` ${tone}` : ''}`;
+}
+
+/** Час обміну для рядка: сьогодні — година, раніше — дата. */
+function shortWhen(ts) {
+  const d = new Date(ts);
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString('uk', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('uk', { day: 'numeric', month: 'short' });
+}
+
+const prefLabels = (s) => ({
+  mode: s.mode === 'flow' ? 'Без зупинки' : 'Зупинка',
+  keyboard: s.keyboard ? 'Показувати' : 'Сховано',
+  size: SIZES.find(([v]) => v === (s.fontSize || 'm'))[1],
+  theme: THEMES.find(([v]) => v === s.theme)?.[1] ?? 'Як у системі',
+});
+
 function renderSettings(section) {
   const s = set();
+  // Посилання #settings/courses відкриває одразу «Курси»
+  if (section === 'courses') { try { localStorage.setItem(SET_OPEN_KEY, 'courses'); } catch { /* приватний режим */ } }
   const radio = (name, value, label, cur) => `<label class="opt"><input type="radio" name="${name}" value="${value}"${cur === value ? ' checked' : ''}> ${label}</label>`;
+  const v = prefLabels(s);
   view().innerHTML = `
     ${head('Налаштування', '')}
-    <form class="card stack" id="settings-form">
-      <fieldset><legend>Помилки під час друку</legend>
+    ${setGroup('Навчання', [
+    setRow('courses', 'book', 'Курси', '', `
+        <div id="courses-installed" class="stack"></div>
+        <h3 class="sub-title">Каталог</h3>
+        <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
+        <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
+        <div id="courses-msg" class="muted" role="status"></div>
+        <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>`),
+    setRow('mode', 'stop', 'Помилки під час друку', v.mode, `
         ${radio('mode', 'stop', '<b>Зупинка на помилці</b> — далі лише після правильної клавіші (радимо)', s.mode)}
-        ${radio('mode', 'flow', '<b>Без зупинки</b> — помилку позначено, текст іде далі, Backspace повертає', s.mode)}
-      </fieldset>
-      <fieldset><legend>Клавіатура на екрані</legend>
-        <label class="opt"><input type="checkbox" name="keyboard"${s.keyboard ? ' checked' : ''}> Показувати з підсвіткою наступної клавіші</label>
-      </fieldset>
-      <fieldset><legend>Розмір тексту</legend>
+        ${radio('mode', 'flow', '<b>Без зупинки</b> — помилку позначено, текст іде далі, Backspace повертає', s.mode)}`),
+    setRow('keyboard', 'keyboard', 'Клавіатура на екрані', v.keyboard,
+      `<label class="opt"><input type="checkbox" name="keyboard"${s.keyboard ? ' checked' : ''}> Показувати з підсвіткою наступної клавіші</label>`)])}
+    ${setGroup('Вигляд', [
+    setRow('size', 'type', 'Розмір тексту', v.size, `
         <div class="seg seg-size" role="radiogroup" aria-label="Розмір тексту">
-          ${[['s', 'Менший', 0.9], ['m', 'Звичайний', 1], ['l', 'Більший', 1.12], ['xl', 'Великий', 1.25]].map(([v, label, k]) => `<label class="size-opt${(s.fontSize || 'm') === v ? ' on' : ''}"><input type="radio" name="fontSize" value="${v}"${(s.fontSize || 'm') === v ? ' checked' : ''}><span style="font-size:${Math.round(18 * k * k)}px">Аа</span><small>${label}</small></label>`).join('')}
-        </div>
-      </fieldset>
-      <fieldset><legend>Тема</legend>
-        ${radio('theme', 'auto', 'Як у системі', s.theme)}${radio('theme', 'dark', 'Темна', s.theme)}${radio('theme', 'light', 'Світла', s.theme)}
-      </fieldset>
-    </form>
-    <details class="card stack fold-card" id="courses-card"${section === 'courses' ? ' open' : ''}>
-      <summary><h2>Курси</h2><span class="muted" id="courses-count"></span></summary>
-      <div id="courses-installed" class="stack"></div>
-      <h3 class="sub-title">Каталог</h3>
-      <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
-      <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
-      <div id="courses-msg" class="muted" role="status"></div>
-      <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>
-    </details>
-    <div class="card stack" id="server-card">
-      <h2>Синхронізація</h2>
-      <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
-      <div id="server-status" class="drive-status" role="status"></div>
-      <div id="server-body" class="stack"></div>
-    </div>
-    <div class="card stack" id="drive-card">
-      <h2>Google Диск${Bot.active() ? ' · щоденна копія' : ''}</h2>
-      <p class="muted">${Bot.active() ? 'Синхронізацію веде сервер, а Диск раз на день зберігає копію в файл bukvoid.json. Застосунок бачить лише свої файли.' : "Прогрес однаковий на комп'ютері й телефоні: копія лежить у файлі bukvoid.json на вашому Диску. Застосунок бачить лише свої файли. Увійшли в Google у Вазі чи Марнотраті — тут вхід уже є."}</p>
-      <div id="drive-status" class="drive-status" role="status"></div>
-      <div class="row" id="drive-actions"></div>
-    </div>
-    <div class="card stack">
-      <h2>Резервна копія</h2>
-      <p class="muted">Без Google Диска дані зберігаються лише в цьому браузері. Копія — файл, який можна перенести на інший пристрій.</p>
-      <div class="row">
-        <button type="button" class="btn" id="export">Зберегти копію</button>
-        <label class="btn">Відновити з файлу<input type="file" id="import" accept="application/json,.json" hidden></label>
-      </div>
-      <div class="row"><button type="button" class="btn danger" id="reset">Стерти весь прогрес</button><span id="reset-confirm" hidden><button type="button" class="btn danger" id="reset-yes">Так, стерти</button> <button type="button" class="btn" id="reset-no">Ні</button></span></div>
-      <p id="settings-msg" class="muted" role="status"></p>
-    </div>
+          ${SIZES.map(([val, label, k]) => `<label class="size-opt${(s.fontSize || 'm') === val ? ' on' : ''}"><input type="radio" name="fontSize" value="${val}"${(s.fontSize || 'm') === val ? ' checked' : ''}><span style="font-size:${Math.round(18 * k * k)}px">Аа</span><small>${label}</small></label>`).join('')}
+        </div>`),
+    setRow('theme', 'palette', 'Тема', v.theme, THEMES.map(([val, label]) => radio('theme', val, label, s.theme)).join(''))])}
+    ${setGroup('Синхронізація', [
+    setRow('server', 'server', 'Сервер бота', '', `
+        <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
+        <div id="server-status" class="drive-status" role="status"></div>
+        <div id="server-body" class="stack"></div>`),
+    setRow('drive', 'cloud', `Google Диск${Bot.active() ? ' · копія' : ''}`, '', `
+        <p class="muted">${Bot.active() ? 'Синхронізацію веде сервер, а Диск раз на день зберігає копію в файл bukvoid.json. Застосунок бачить лише свої файли.' : "Прогрес однаковий на комп'ютері й телефоні: копія лежить у файлі bukvoid.json на вашому Диску. Застосунок бачить лише свої файли. Увійшли в Google у Вазі чи Марнотраті — тут вхід уже є."}</p>
+        <div id="drive-status" class="drive-status" role="status"></div>
+        <div class="row" id="drive-actions"></div>`)])}
+    ${setGroup('Дані', [
+    setRow('backup', 'save', 'Резервна копія', '', `
+        <p class="muted">Без Google Диска дані зберігаються лише в цьому браузері. Копія — файл, який можна перенести на інший пристрій.</p>
+        <div class="row">
+          <button type="button" class="btn" id="export">Зберегти копію</button>
+          <label class="btn">Відновити з файлу<input type="file" id="import" accept="application/json,.json" hidden></label>
+        </div>`),
+    // Стерти — останнім рядком і згорнуте: небезпечна дія не має бути найпомітнішою на екрані
+    setRow('reset', 'trash', 'Стерти весь прогрес', '', `
+        <p class="muted">Уроки, тести, фрази й статистика клавіш — на цьому пристрої${Sync.enabled() || Bot.active() ? ' й під час синхронізації на інших' : ''}.</p>
+        <div class="row"><button type="button" class="btn danger" id="reset">Стерти весь прогрес</button><span id="reset-confirm" hidden><button type="button" class="btn danger" id="reset-yes">Так, стерти</button> <button type="button" class="btn" id="reset-no">Ні</button></span></div>`,
+    { danger: true })])}
+    <p id="settings-msg" class="muted" role="status"></p>
     ${aboutHtml()}`;
+  mountRows();
   mountServer();
   mountDrive();
   mountCourses();
-  if (section === 'courses') $('courses-card').scrollIntoView();
-  $('settings-form').onchange = () => {
-    const f = new FormData($('settings-form'));
-    S.update((x) => {
-      x.settings.mode = f.get('mode');
-      x.settings.theme = f.get('theme');
-      x.settings.keyboard = f.get('keyboard') === 'on';
-      x.settings.fontSize = f.get('fontSize') || 'm';
-    });
-    applyTheme();
-    view().querySelectorAll('.size-opt').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
-  };
+  view().querySelector('.about-avatar').onclick = avatarHi;
+  if (section === 'courses') $('row-courses').scrollIntoView();
+  // Кожен перемикач зберігає всі чотири, як раніше спільна форма, і одразу міняє значення в рядку
+  const prefs = view().querySelectorAll('input[name="mode"], input[name="keyboard"], input[name="fontSize"], input[name="theme"]');
+  const pick = (name) => view().querySelector(`input[name="${name}"]:checked`)?.value;
+  prefs.forEach((input) => {
+    input.onchange = () => {
+      S.update((x) => {
+        x.settings.mode = pick('mode');
+        x.settings.theme = pick('theme');
+        x.settings.keyboard = pick('keyboard') === 'on';
+        x.settings.fontSize = pick('fontSize') || 'm';
+      });
+      applyTheme();
+      view().querySelectorAll('.size-opt').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
+      Object.entries(prefLabels(set())).forEach(([k, text]) => setVal(k, text));
+    };
+  });
   const msg = (t) => { $('settings-msg').textContent = t; };
   $('export').onclick = () => {
     const blob = new Blob([S.exportJson()], { type: 'application/json' });
@@ -672,7 +742,7 @@ function mountCourses() {
   const drawInstalled = () => {
     if (!$('courses-installed')) return;
     const list = Courses.list();
-    $('courses-count').textContent = `увімкнено ${typingOn().length + Courses.enabled().length} з ${TYPING_COURSES.length + list.length}`;
+    setVal('courses', `${typingOn().length + Courses.enabled().length} з ${TYPING_COURSES.length + list.length}`);
     const typing = TYPING_COURSES.map(({ id, lang }) => `
       <div class="course-row">
         <label class="opt"><input type="checkbox" data-typing-on="${id}"${Courses.builtinOn(id) ? ' checked' : ''}>
@@ -741,6 +811,9 @@ function mountServer() {
     const state = cfg ? st.state : Bot.keyProblem() ? 'key' : 'off';
     $('server-status').innerHTML = (TEXT[state] ?? TEXT.off)(st);
     $('server-status').dataset.state = state === 'key' || state === 'old' ? 'auth' : state;
+    const VAL = { off: 'Вимкнено', syncing: 'Обмін…', offline: 'Офлайн', key: 'Ключ не підходить', old: 'Сервер не оновлено', error: 'Помилка' };
+    setVal('server', state === 'idle' ? (st.last ? shortWhen(st.last) : 'Увімкнено') : VAL[state] ?? VAL.off,
+      ['key', 'old', 'error'].includes(state) ? 'bad' : cfg ? 'ok' : '');
     if ($('server-body').contains(document.activeElement)) return;
     const form = `
       <label class="field">Адреса сервера<input type="url" id="srv-url" placeholder="https://….workers.dev" value="${esc(cfg?.url ?? '')}" autocomplete="off"></label>
@@ -792,6 +865,9 @@ function mountDrive() {
     $('drive-status').innerHTML = TEXT[st.state]?.(st) ?? '';
     $('drive-status').dataset.state = st.state;
     const on = Sync.enabled();
+    const VAL = { syncing: 'Синхронізація…', offline: 'Офлайн', auth: 'Увійти', error: 'Помилка' };
+    setVal('drive', !on ? 'Не підключено' : st.state === 'idle' ? (st.lastSync ? shortWhen(st.lastSync) : 'Підключено') : VAL[st.state] ?? '',
+      on && ['auth', 'error'].includes(st.state) ? 'bad' : on ? 'ok' : '');
     $('drive-actions').innerHTML = !on
       ? '<button type="button" class="btn primary" id="drive-connect">Підключити Google Диск</button>'
       : `${st.state === 'auth' ? '<button type="button" class="btn primary" id="drive-connect">Увійти</button>' : `<button type="button" class="btn" id="drive-sync"${st.state === 'syncing' ? ' disabled' : ''}>Синхронізувати зараз</button>`}
@@ -809,13 +885,43 @@ function mountDrive() {
   Sync.preload();
 }
 
+// Аватар кліпає, як у Журналі стрільця — фото те саме, тож і контури очей ті самі (координати фото 233×233).
+// Повіки — шар SVG поверх фото, обрізаний контуром білка; верхня з опуклою кромкою опускається, нижня підіймається
+// назустріч. Праве око перше: ліве його перекриває.
+const AVATAR_EYES = [
+  { d: 'M114 63L114 65L117 71L117 78L121 78L122 77L126 77L127 76L132 76L135 79L137 79L139 77L140 72L141 71L141 68L140 67L140 64L135 59L131 57L122 57L118 59Z', box: [114, 57, 142, 80] },
+  { d: 'M99 60L98 61L94 61L87 67L85 71L85 79L87 83L90 86L94 88L102 89L110 86L115 79L115 69L109 62Z', box: [85, 60, 116, 90] },
+];
+const AVATAR_SVG = '<svg viewBox="0 0 233 233" aria-hidden="true"><defs>'
+  + AVATAR_EYES.map(({ d }, i) => `<clipPath id="av-eye${i}"><path d="${d}"/></clipPath>`).join('')
+  + '</defs>'
+  + AVATAR_EYES.map(({ box: [x0, y0, x1, y1] }, i) => {
+    const hh = y1 - y0, e = y0 + hh * 0.6, k = hh * 0.26, cx = (x0 + x1) / 2, l = x0 - 3, r = x1 + 3;
+    const edge = `M${l} ${e}Q${cx} ${e + k} ${r} ${e}`;
+    return `<g clip-path="url(#av-eye${i})" fill="#fcd901">`
+      + `<path class="av-lid low" style="--o:${(y1 - e + 3).toFixed(1)}px" d="${edge}V${y1 + 3}H${l}Z"/>`
+      + `<g class="av-lid" style="--o:-${(e + k - y0 + 3).toFixed(1)}px"><path d="M${l} ${y0 - 3}H${r}V${e}Q${cx} ${e + k} ${l} ${e}Z"/>`
+      + `<path d="${edge}" fill="none" stroke="#1d1d1d" stroke-width="2.6" stroke-linecap="round"/></g></g>`;
+  }).join('')
+  + '</svg>';
+
+/** Тап по аватару — кліпнути одразу, не чекаючи свого часу. */
+function avatarHi(e) {
+  const el = e.currentTarget;
+  el.classList.remove('hi');
+  void el.offsetWidth;
+  el.classList.add('hi');
+  clearTimeout(el.hiTimer);
+  el.hiTimer = setTimeout(() => el.classList.remove('hi'), 600);
+}
+
 /** «Про застосунок», як у Вазі й Журналі стрільця: автор, що це, де дані, з чого почати. */
 function aboutHtml() {
   return `
     <section class="card stack about">
       <h2>Про застосунок</h2>
       <div class="about-head">
-        <img class="about-avatar" src="./icons/author.jpg" alt="" width="64" height="64" loading="lazy">
+        <span class="about-avatar"><img src="./icons/author.jpg" alt="" width="64" height="64" loading="lazy"><span class="av-live">${AVATAR_SVG}</span></span>
         <p class="muted">Буквоїд ${esc(self.APP_VERSION || '')}: друк наосліп, український правопис і англійська. Працює без інтернету, усе рахується на пристрої.</p>
       </div>
       <details class="about-more"><summary>Де мої дані</summary>

@@ -508,7 +508,39 @@ legend { font-weight: 650; margin-bottom: 6px; padding: 0; }
 .drive-status[data-state="idle"] .muted { color: var(--muted); }
 .about-head { display: flex; align-items: center; gap: 14px; }
 .about-head p { margin: 0; }
-.about-avatar { flex: none; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
+/* аватар кліпає, як у Журналі стрільця: повіки — шар SVG над фото */
+.about-avatar { position: relative; flex: none; width: 64px; height: 64px; overflow: hidden; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.about-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.av-live, .av-live svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.av-lid { transform: translateY(var(--o)); animation: av-blink 7s ease-in-out 1.5s infinite; }
+.about-avatar.hi .av-lid { animation: av-blink-now .3s ease-in-out; }
+@keyframes av-blink { 0%, 41%, 44.5%, 84%, 86.6%, 87%, 89.4%, 100% { transform: translateY(var(--o)); } 42.2%, 42.8%, 85.2%, 85.6%, 88.2%, 88.4% { transform: none; } }
+@keyframes av-blink-now { 0%, 100% { transform: translateY(var(--o)); } 28%, 40% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .about-avatar .av-lid { animation: none !important; } }
+/* налаштування: підпис групи над карткою, всередині — рядки «значок · назва · значення ›» */
+.card.set-list { padding: 0 16px; }
+.set-row + .set-row { border-top: 1px solid var(--line); }
+.set-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 0; border: 0; background: none;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.set-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.set-val { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: calc(14px * var(--fs)); font-variant-numeric: tabular-nums; }
+.set-val:empty { display: none; }
+.set-val.ok::before, .set-val.bad::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 6px 1px 0; border-radius: 50%; background: var(--good); }
+.set-val.bad { color: var(--bad); }
+.set-val.bad::before { background: var(--bad); }
+.set-chev { flex: none; width: 14px; color: var(--muted); font-size: calc(20px * var(--fs)); line-height: 1; text-align: center; transition: transform .2s ease; }
+.set-row.open .set-chev { transform: rotate(90deg); }
+.set-row.danger .course-ico { background: var(--bad-soft); color: var(--bad); }
+.set-row.danger .set-title { color: var(--bad); font-weight: 500; }
+/* розгортання — висотою сітки 0fr → 1fr: плавно й без підрахунку висоти в JS */
+.set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s ease; }
+.set-row.open .set-body { grid-template-rows: 1fr; }
+.set-inner { min-height: 0; overflow: hidden; }
+.set-pane { padding: 0 0 16px; }
+.set-pane > p { margin: 0; }
+#settings-msg:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .set-body, .set-chev { transition: none; } }
 .about-more { border-top: 1px solid var(--line); }
 .about-more > summary { display: flex; align-items: center; min-height: var(--tap); color: var(--accent); font-weight: 650; cursor: pointer; list-style: none; }
 .about-more > summary::-webkit-details-marker { display: none; }
