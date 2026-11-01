@@ -30,6 +30,7 @@ const UI = {
   cloud: '<path d="M7 18.5a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.6 1.6 3.7 3.7 0 0 1-.6 7.4z"/>',
   save: '<path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 15v5h14v-5"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 13h11l1-13M9 7V4h6v3"/>',
+  gallery: '<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15.5l-5-5-8.5 9"/>',
 };
 
 /** SVG значка; невідомий ключ — книжка. */

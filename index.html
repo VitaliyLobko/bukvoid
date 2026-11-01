@@ -14,7 +14,10 @@
       var pref = 'auto';
       try { pref = localStorage.getItem('bukvoid:theme') || 'auto'; } catch (e) { /* приватний режим */ }
       var light = pref === 'light' || (pref === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
-      document.documentElement.dataset.theme = light ? 'light' : 'dark';
+      document.documentElement.dataset.theme = ['night', 'phosphor', 'amber', 'white'].indexOf(pref) >= 0 ? pref : light ? 'light' : 'dark';
+      // Фон під картками — теж до першого кадру; у спецрежимах його немає
+      var th = document.documentElement.dataset.theme, bk = { dark: 'bukvoid:bg', light: 'bukvoid:bg-light' }[th];
+      if (bk) { var bg = null; try { bg = localStorage.getItem(bk); } catch (e) { /* приватний режим */ } document.documentElement.dataset.bg = bg || (th === 'light' ? 'l-plain' : 'plain'); }
       // Розмір тексту — до першого кадру, щоб сторінка не стрибала
       try { var fs = localStorage.getItem('bukvoid:fs'); if (fs) document.documentElement.style.setProperty('--fs', fs); } catch (e) { /* приватний режим */ }
     })();
@@ -24,6 +27,7 @@
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="night-red" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".4 .48 .08 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter><filter id="phosphor" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".075 .148 .028 0 0  .3 .59 .11 0 0  .12 .236 .044 0 0  0 0 0 1 0"/></filter><filter id="amber" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".4 .78 .15 0 0  .27 .53 .1 0 0  .06 .11 .02 0 0  0 0 0 1 0"/></filter><filter id="white" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".3 .58 .11 0 0  .32 .63 .12 0 0  .35 .68 .13 0 0  0 0 0 1 0"/></filter></svg>
   <a class="skip" href="#view">До змісту</a>
   <header class="topbar">
     <div class="topbar-row">

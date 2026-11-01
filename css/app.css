@@ -57,6 +57,103 @@
   color-scheme: light;
 }
 
+/* Нічна: темна тема, уся сторінка яскравістю в червоний канал, щоб не збивати нічний зір (як у Shooter's Log) */
+:root[data-theme="night"] { --bg: #000000; filter: url(#night-red); }
+/* Монітори-кінескопи (Фосфор — зелений, Бурштин — янтарний, Білий фосфор): уся сторінка в один колір, свічення, рядки
+   розгортки; заголовки й великі числа (шрифт --display), кнопки й вкладки — моноширинним */
+:root:is([data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) { --bg: #0b0d0b; --display: var(--mono); }
+:root[data-theme="phosphor"] { filter: url(#phosphor); }
+:root[data-theme="amber"] { filter: url(#amber); }
+:root[data-theme="white"] { filter: url(#white); }
+:root:is([data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) body {
+  text-shadow: 0 0 6px color-mix(in srgb, currentColor 55%, transparent); }
+:root:is([data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) :is(.btn, .tabs a) { font-family: var(--mono); }
+:root:is([data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) body::after { content: ""; position: fixed; inset: 0;
+  z-index: 2147483647; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgb(0 0 0 / .22) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse 85% 75% at 50% 50%, transparent 55%, rgb(0 0 0 / .55)); }
+/* В одному кольорі червоне й жовте у вправі не розрізнити: помилка на літері — ще й закреслена, виправлена — пунктиром;
+   ненадрукований текст яскравий, надрукований пригашений — інакше вони однакові за яскравістю */
+:root:is([data-theme="night"], [data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) .typer-text span:not(.ok, .fixed, .miss, .cur) { color: var(--text); }
+:root:is([data-theme="night"], [data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) .typer-text span.ok { opacity: .35; }
+:root:is([data-theme="night"], [data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) .typer-text span.cur.bad { text-decoration: line-through 2px; }
+:root:is([data-theme="night"], [data-theme="phosphor"], [data-theme="amber"], [data-theme="white"]) .typer-text span.fixed { text-decoration: underline dotted; text-underline-offset: 4px; }
+.night-level { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.night-level input { width: 100%; accent-color: var(--accent); }
+
+/* Фон під картками (⚙ → Вигляд → Фон), як у Shooter's Log без камуфляжів: малюнок — у --paper на <html> і на плитках вибору;
+   --bg — тон шапки й смуги браузера. «Без малюнка» — звичне тло Буквоїда; помаранчеві відблиски Арсеналу — синім акцентом
+   або прибрані, акцентні лінії в картинках перефарбовані в акцент. У спецрежимах data-bg немає */
+[data-bg="plain"] { --paper: #10131c; }
+[data-bg="map"] { --paper: radial-gradient(70% 40% at 100% 0%, rgb(125 147 255 / .14), transparent 70%), url(topo.svg) center / cover no-repeat,
+  linear-gradient(180deg, #171d2c 0%, #0c0f17 100%); }
+[data-bg="olive"] { --paper: radial-gradient(130% 70% at 0% 0%, #34472b, transparent 70%), linear-gradient(180deg, #1a2417 0%, #0d120c 100%); }
+/* Карбон — плетіння з шести градієнтів по 20 px і віньєтка, щоб краї не рябіли */
+[data-bg="carbon"] { --paper: radial-gradient(70% 40% at 100% 0%, rgb(125 147 255 / .08), transparent 70%),
+  radial-gradient(120% 80% at 50% 40%, transparent 45%, rgb(0 0 0 / .5)),
+  linear-gradient(27deg, #121313 5px, transparent 5px) 0 5px / 20px 20px, linear-gradient(207deg, #121313 5px, transparent 5px) 10px 0 / 20px 20px,
+  linear-gradient(27deg, #1b1c1d 5px, transparent 5px) 0 10px / 20px 20px, linear-gradient(207deg, #1b1c1d 5px, transparent 5px) 10px 5px / 20px 20px,
+  linear-gradient(90deg, #161717 10px, transparent 10px) 0 0 / 20px 20px,
+  linear-gradient(#171818 25%, #151616 25%, #151616 50%, transparent 50%, transparent 75%, #1d1e1f 75%, #1d1e1f) 0 0 / 20px 20px, #141515; }
+[data-bg="coyote"] { --paper: radial-gradient(130% 70% at 0% 0%, #3b2f20, transparent 70%), linear-gradient(180deg, #221b13 0%, #100d09 100%); }
+/* Лінії — чорне тло з кривими, пучками й дугами; «з акцентом» — кілька синіх */
+[data-bg="lines"] { --paper: url(lines.webp) center / cover no-repeat, #0e0f11; }
+[data-bg="lines-acc"] { --paper: url(lines-acc.webp) center / cover no-repeat, #0e0f11; }
+[data-bg="l-plain"] { --paper: #f6f7fb; }
+[data-bg="l-map"] { --paper: url(topo-light.svg) center / cover no-repeat, linear-gradient(180deg, #f6f2e7 0%, #ebe3d0 100%); }
+/* Міліметрівка — тонка лінія через 10 px, товща через 50 px */
+[data-bg="l-mm"] { --paper: repeating-linear-gradient(0deg, rgb(60 120 90 / .17) 0 1px, transparent 1px 50px),
+  repeating-linear-gradient(90deg, rgb(60 120 90 / .17) 0 1px, transparent 1px 50px),
+  repeating-linear-gradient(0deg, rgb(60 120 90 / .07) 0 1px, transparent 1px 10px),
+  repeating-linear-gradient(90deg, rgb(60 120 90 / .07) 0 1px, transparent 1px 10px), #f5f6ef; }
+[data-bg="l-sand"] { --paper: linear-gradient(180deg, #f4ead8 0%, #e5d4b5 100%); }
+[data-bg="l-khaki"] { --paper: radial-gradient(130% 70% at 0% 0%, #e2e6cd, transparent 70%), linear-gradient(180deg, #e9ebdb 0%, #d6dac0 100%); }
+[data-bg="l-sand-acc"] { --paper: url(lines-sand.webp) center / cover no-repeat, #ecdfc6; }
+[data-bg="l-khaki-acc"] { --paper: url(lines-khaki.webp) center / cover no-repeat, #e0e3cf; }
+/* Картинки-фони — вертикальні 1080×2160 під телефон; на широкому екрані комп'ютера — горизонтальні 2560×1440 (*-wide.webp).
+   Телефон їх не завантажує */
+@media (min-width: 900px) and (min-aspect-ratio: 4/3) {
+  [data-bg="lines"] { --paper: url(lines-wide.webp) center / cover no-repeat, #0e0f11; }
+  [data-bg="lines-acc"] { --paper: url(lines-acc-wide.webp) center / cover no-repeat, #0e0f11; }
+  [data-bg="l-sand-acc"] { --paper: url(lines-sand-wide.webp) center / cover no-repeat, #ecdfc6; }
+  [data-bg="l-khaki-acc"] { --paper: url(lines-khaki-wide.webp) center / cover no-repeat, #e0e3cf; }
+}
+/* Палітри фонів: картки, лінії й сірий текст у тон підкладки; акцент лишається синім (на піску й хакі — як чорнило на папері).
+   Текст ~14:1, сірий ≥5:1, межі полів (--line-strong) ≥3:1 до картки, як у базових темах */
+:root[data-bg="map"] { --bg: #121624; }
+:root[data-bg="olive"] { --bg: #131b11; --surface: #1b2216; --surface-2: #263020; --line: #36422b; --line-strong: #717f61; --text: #ebefdf; --muted: #a0aa8e; }
+:root[data-bg="coyote"] { --bg: #1b160f; --surface: #221c15; --surface-2: #2e261c; --line: #3e3326; --line-strong: #86755e; --text: #f2ebdf; --muted: #b0a18a; }
+:root:is([data-bg="carbon"], [data-bg="lines"], [data-bg="lines-acc"]) { --bg: #131414; --surface: #1b1c1e; --surface-2: #252629; --line: #323438;
+  --line-strong: #6f7279; --text: #ecedef; --muted: #9da0a6; }
+:root:is([data-bg="lines"], [data-bg="lines-acc"]) { --bg: #0e0f11; }
+:root[data-bg="l-map"] { --bg: #f3eee2; }
+:root[data-bg="l-mm"] { --bg: #f5f6ef; }
+:root:is([data-bg="l-sand"], [data-bg="l-sand-acc"]) { --bg: #f1e6d1; --surface: #f8f4eb; --surface-2: #efe8da; --line: #ddd3bf; --line-strong: #8e816a;
+  --text: #2b261d; --muted: #6a6151; }
+:root:is([data-bg="l-khaki"], [data-bg="l-khaki-acc"]) { --bg: #e6e9d7; --surface: #f5f7f0; --surface-2: #e8ece0; --line: #d1d8c5; --line-strong: #7f8a73;
+  --text: #1f251c; --muted: #5a6454; }
+/* Фон — окремий нерухомий шар під сторінкою: background-attachment: fixed на телефоні перемальовує тло на кожному кадрі прокрутки,
+   а шар position: fixed браузер лише зсуває. Висота — велике вікно (lvh), щоб під час ховання адресного рядка не було щілини */
+:root[data-bg] body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100lvh; z-index: -1;
+  background: var(--paper); pointer-events: none; }
+/* На малюнку вправа — на непрозорій картці: лічильники, підказка й клавіатура не губляться в лініях */
+:root[data-bg]:not([data-bg="plain"], [data-bg="l-plain"]) .typer { padding: 14px; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--line); }
+
+/* Стрічка фонів — як стрічка цілей у Shooter's Log: вибраний посередині в рамці, сусіди видні й гаснуть до країв, «‹ ›» по боках */
+.bg-wheel { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 2px; margin: 0 -8px; }
+.bg-nav { width: 28px; height: 56px; padding: 0; border: 0; background: none; color: var(--muted); font: 600 26px var(--sans); cursor: pointer; }
+.bg-picks { position: relative; display: flex; gap: 10px; padding-block: 4px 6px; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; overscroll-behavior-x: contain; mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+.bg-picks::-webkit-scrollbar { display: none; }
+.bg-pick { flex: none; display: grid; gap: 6px; justify-items: center; width: 84px; padding: 0; border: 0; background: none; scroll-snap-align: center;
+  color: var(--muted); font: 600 calc(12px * var(--fs)) var(--sans); text-align: center; cursor: pointer; }
+/* Гасне лише плитка сусіда, підпис лишається читабельним */
+.bg-sw { display: block; width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); opacity: .55; transition: opacity .2s; }
+.bg-pick.focus .bg-sw { opacity: 1; }
+.bg-pick[aria-checked="true"] { color: var(--accent); }
+.bg-pick[aria-checked="true"] .bg-sw { box-shadow: 0 0 0 2px var(--accent); }
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html {
