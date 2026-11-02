@@ -247,6 +247,70 @@ function renderFree(kind, lang = set().lang) {
 const unitDone = (r, pack) => Boolean(r?.total) && r.best / r.total >= (pack?.pass ?? 1);
 const courseProgress = (cid) => st().courses[cid] ?? {};
 
+// Остання відкрита тема курсу — на цьому пристрої, як і поточний курс: тест міг ще не початися
+const LAST_UNIT_KEY = 'bukvoid:last-unit:';
+function lastUnitIndex(cid, pack) {
+  let id = null;
+  try { id = localStorage.getItem(LAST_UNIT_KEY + cid); } catch { /* приватний режим */ }
+  const i = id ? pack.units.findIndex((u) => u.id === id) : -1;
+  if (i >= 0) return i;
+  // Тут курс ще не відкривали — тема з найсвіжішим тестом (результати тестів синхронізуються)
+  const p = courseProgress(cid);
+  let at = '';
+  let last = -1;
+  pack.units.forEach((u, k) => { const r = p[u.id]; if (r && (r.at || '') >= at) { at = r.at || ''; last = k; } });
+  return last;
+}
+
+/**
+ * Де зупинились: незакінчена остання тема — «Продовжити», закінчена — «Далі» на наступну непройдену.
+ * { href, how, n, total, title, word, started } або null, якщо курсу немає.
+ */
+function resumeOf(cid) {
+  const typing = TYPING_COURSES.find((c) => c.id === cid);
+  if (typing) {
+    const list = lessons(typing.lang);
+    const l = nextLesson(typing.lang);
+    const done = typingDone(typing.lang);
+    const how = done === list.length ? 'Повторити' : lessonState(l.id).parts.a ? 'Продовжити' : done ? 'Далі' : 'Почати';
+    return { href: `#lesson/${typing.lang}/${l.n}`, how, n: l.n, total: list.length, title: l.title, word: 'Урок',
+      started: done > 0 || Boolean(lessonState(l.id).parts.a) };
+  }
+  const pack = Courses.get(cid);
+  if (!pack?.units.length) return null;
+  const p = courseProgress(cid);
+  const undone = (k) => !unitDone(p[pack.units[k].id], pack);
+  const last = lastUnitIndex(cid, pack);
+  let i = last;
+  let how = 'Продовжити';
+  if (last < 0) {
+    i = Math.max(0, pack.units.findIndex((u, k) => undone(k)));
+    how = 'Почати';
+  } else if (!undone(last)) {
+    const ahead = pack.units.findIndex((u, k) => k > last && undone(k));
+    const any = ahead >= 0 ? ahead : pack.units.findIndex((u, k) => undone(k));
+    [i, how] = any >= 0 ? [any, 'Далі'] : [last, 'Повторити'];
+  }
+  const u = pack.units[i];
+  return { href: `#k/${esc(cid)}/${esc(u.id)}`, how, n: i + 1, total: pack.units.length, title: u.title, word: 'Тема', started: last >= 0 };
+}
+
+/** «Де зупинились» угорі «Курсів»: останній відкритий курс і його тема — одним дотиком. */
+function resumeHero() {
+  const cid = lastCourse();
+  const r = cid && resumeOf(cid);
+  if (!r) return '';
+  const typing = TYPING_COURSES.find((c) => c.id === cid);
+  const pack = typing ? null : Courses.get(cid);
+  return `<section class="hero resume">
+      <span class="course-ico">${iconSvg(typing ? 'keyboard' : pack.icon)}</span>
+      <div class="hero-main"><div class="eyebrow">Де зупинились</div>
+      <b>${esc(typing ? typingTitle(typing.lang) : pack.title)}</b>
+      <div class="muted">${r.word} ${r.n} з ${r.total} · ${esc(r.title)}</div></div>
+      <a class="btn primary big" href="${r.href}">${r.how}</a>
+    </section>`;
+}
+
 /** Колода повторення: показується, коли в увімкнених курсах є фрази. */
 /** «Повторення»: фрази мовних курсів і помилки тестів — те, що сьогодні час повторити. */
 function srsHero() {
@@ -286,13 +350,16 @@ function renderMistakes() {
   });
 }
 
-function courseTile({ href, icon, title, subtitle, done, started, total, word }) {
-  return `<a class="tile course-tile" href="${href}">
+function courseTile({ id, href, icon, title, subtitle, done, started, total, word }) {
+  const r = resumeOf(id);
+  const cur = id === lastCourse();
+  return `<a class="tile course-tile${cur ? ' current' : ''}" href="${href}">
         <span class="course-ico">${iconSvg(icon)}</span>
         <b>${esc(title)}</b>
         <span class="muted">${esc(subtitle || '')}</span>
         <span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>
-        <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small></a>`;
+        <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small>
+        ${r?.started ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
 }
 
 function renderCourses() {
@@ -301,17 +368,18 @@ function renderCourses() {
   const tiles = [
     ...typing.map(({ id, lang }) => {
       const ls = lessons(lang);
-      return courseTile({ href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
+      return courseTile({ id, href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
         done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' });
     }),
     ...list.map(({ id, pack }) => {
       const p = courseProgress(id);
-      return courseTile({ href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
+      return courseTile({ id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
         done: pack.units.filter((u) => unitDone(p[u.id], pack)).length, started: pack.units.filter((u) => p[u.id]).length, total: pack.units.length, word: 'тем' });
     }),
   ];
   view().innerHTML = `
     ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
+    ${resumeHero()}
     ${srsHero()}
     <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
     ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Курсів не ввімкнено — увімкніть у ⚙ → «Курси» або додайте з каталогу.</p>'}
@@ -373,12 +441,21 @@ function renderCourse(cid) {
   const pack = Courses.get(cid);
   if (!pack) return go('kursy');
   const p = courseProgress(cid);
+  const res = resumeOf(cid);
+  const done = pack.units.filter((u) => unitDone(p[u.id], pack)).length;
   view().innerHTML = `
     ${head(pack.title, '#kursy', esc(pack.subtitle || ''))}
+    ${res ? `<section class="hero">
+      <div class="hero-main">
+        <div class="hero-num">${done}<small>з ${pack.units.length} тем пройдено</small></div>
+        <div class="muted">${res.how === 'Продовжити' ? 'Зупинились на темі' : res.how === 'Повторити' ? 'Усе пройдено. Остання тема' : 'Наступна тема'} ${res.n}: ${esc(res.title)}</div>
+      </div>
+      <a class="btn primary big" href="${res.href}">${res.how}: тема ${res.n}</a>
+    </section>` : ''}
     <ol class="lessons topics">
       ${pack.units.map((u, i) => {
         const r = p[u.id];
-        return `<li><a href="#k/${esc(cid)}/${esc(u.id)}" class="${unitDone(r, pack) ? 'done' : ''}">
+        return `<li><a href="#k/${esc(cid)}/${esc(u.id)}" class="${unitDone(r, pack) ? 'done' : ''}${res && i === res.n - 1 ? ' current' : ''}">
           <span class="num">${i + 1}</span>
           <span class="l-title">${esc(u.title)}<span class="muted small">${esc(u.topic || u.source || '')}</span></span>
           <span class="l-state">${r ? `${r.best}/${r.total}` : ''}</span></a></li>`;
@@ -403,6 +480,7 @@ function renderCourseUnit(cid, uid) {
   const t = pack.units[i];
   const next = pack.units[i + 1];
   const lang = pack.lang || 'uk';
+  try { localStorage.setItem(LAST_UNIT_KEY + cid, uid); } catch { /* приватний режим */ }
   SRS.enroll(cid, t);
   const pairs = t.examples?.length && t.examples.every((x) => x && typeof x === 'object' && x.en);
   // Зміст — для довгих тем, де, крім правила й тесту, є фрази чи відео
@@ -1175,10 +1253,14 @@ function routeCourse(name, args) {
   return null;
 }
 const courseExists = (id) => TYPING_COURSES.some((c) => c.id === id) || !!Courses.get(id);
-function currentCourse() {
+/** Останній відкритий курс на цьому пристрої; null — ще жодного не відкривали. */
+function lastCourse() {
   let id = null;
   try { id = localStorage.getItem(CURRENT_KEY); } catch { /* приватний режим */ }
-  return id && courseExists(id) ? id : `druk-${set().lang}`;
+  return id && courseExists(id) ? id : null;
+}
+function currentCourse() {
+  return lastCourse() ?? `druk-${set().lang}`;
 }
 function drawCurrentTab() {
   const id = currentCourse();
