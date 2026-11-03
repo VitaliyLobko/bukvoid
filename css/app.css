@@ -339,9 +339,10 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .fold-card > summary h2 { flex: 1; }
 .fold-card > summary::after { content: '+'; color: var(--muted); font-size: calc(22px * var(--fs)); line-height: 1; }
 .fold-card[open] > summary::after { content: '−'; }
-.course-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.course-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 6px 0; border-top: 1px solid var(--line); }
 .course-row:first-child { border-top: 0; }
-.course-row .opt { flex: 1; min-width: 0; }
+.course-row .opt { flex: 1 1 180px; min-width: 0; }
+.row-btns { display: flex; gap: 8px; margin-left: auto; }
 .sub-title { margin: 6px 0 0; font: 600 calc(15px * var(--fs)) var(--display); }
 .errors { margin: 6px 0 0; padding-left: 20px; color: var(--bad); }
 

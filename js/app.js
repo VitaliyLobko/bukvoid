@@ -382,7 +382,7 @@ function renderCourses() {
     ${resumeHero()}
     ${srsHero()}
     <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
-    ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Курсів не ввімкнено — увімкніть у ⚙ → «Курси» або додайте з каталогу.</p>'}
+    ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте з каталогу.</p>'}
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
   addCatalogTiles($('kursy-tiles'));
 }
@@ -793,7 +793,8 @@ function renderSettings(section) {
     ${setGroup('Навчання', [
     setRow('courses', 'book', 'Курси', '', `
         <div id="courses-installed" class="stack"></div>
-        <h3 class="sub-title">Каталог</h3>
+        <h3 class="sub-title">Можна додати</h3>
+        <p class="muted small">Курси з каталогу, яких ще немає на пристрої.</p>
         <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
         <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
         <div id="courses-msg" class="muted" role="status"></div>
@@ -908,24 +909,34 @@ function mountCourses() {
     if (!$('courses-installed')) return;
     const list = Courses.list();
     setVal('courses', `${typingOn().length + Courses.enabled().length} з ${TYPING_COURSES.length + list.length}`);
-    const typing = TYPING_COURSES.map(({ id, lang }) => `
-      <div class="course-row">
-        <label class="opt"><input type="checkbox" data-typing-on="${id}"${Courses.builtinOn(id) ? ' checked' : ''}>
-          <span class="course-ico small">${iconSvg('keyboard')}</span>
-          <span><b>${esc(typingTitle(lang))}</b><br><span class="muted small">${lessons(lang).length} уроків · вбудований</span></span></label>
-      </div>`).join('');
-    $('courses-installed').innerHTML = typing + (list.length ? list.map(({ id, pack, enabled, from }) => `
-      <div class="course-row">
-        <label class="opt"><input type="checkbox" data-course-on="${esc(id)}"${enabled ? ' checked' : ''}>
-          <span class="course-ico small">${iconSvg(pack.icon)}</span>
-          <span><b>${esc(pack.title)}</b><br><span class="muted small">${pack.units.length} тем · ${from === 'file' ? 'з файлу' : 'з каталогу'}</span></span></label>
-        <button type="button" class="btn danger" data-course-del="${esc(id)}">Видалити</button>
-      </div>`).join('') : '<p class="muted">Жодного курсу з файлом. Додайте з каталогу нижче.</p>');
-    $('courses-installed').querySelectorAll('[data-typing-on]').forEach((c) => {
-      c.onchange = () => Courses.setBuiltin(c.dataset.typingOn, c.checked);
+    // Три стани: на вкладці → сховані (на пристрої, прогрес цілий) → видалені (знову в «Можна додати»)
+    const all = [
+      ...TYPING_COURSES.map(({ id, lang }) => ({ id, builtin: true, on: Courses.builtinOn(id), icon: 'keyboard', title: typingTitle(lang), meta: `${lessons(lang).length} уроків · вбудований` })),
+      ...list.map(({ id, pack, enabled, from }) => ({ id, on: enabled, icon: pack.icon, title: pack.title, meta: `${pack.units.length} тем · ${from === 'file' ? 'з файлу' : 'з каталогу'}` })),
+    ];
+    const row = (c) => `
+      <div class="course-row" data-course-row="${esc(c.id)}">
+        <span class="opt"><span class="course-ico small">${iconSvg(c.icon)}</span>
+          <span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.meta)}</span></span></span>
+        <span class="row-btns">${c.on
+    ? `<button type="button" class="btn" data-course-hide="${esc(c.id)}">Сховати</button>`
+    : `<button type="button" class="btn primary" data-course-show="${esc(c.id)}">Показати</button>${c.builtin ? '' : `<button type="button" class="btn danger" data-course-del="${esc(c.id)}">Видалити</button>`}`}</span>
+      </div>`;
+    const on = all.filter((c) => c.on);
+    const off = all.filter((c) => !c.on);
+    $('courses-installed').innerHTML = `
+      <h3 class="sub-title">На вкладці «Курси»</h3>
+      <p class="muted small">Курси, які ви проходите: їхні помилки й фрази — у повторенні.</p>
+      ${on.length ? `<div class="course-list">${on.map(row).join('')}</div>` : '<p class="muted">Жодного — покажіть схований курс або додайте з каталогу.</p>'}
+      ${off.length ? `<h3 class="sub-title">Сховані</h3>
+      <p class="muted small">Лежать на пристрої, прогрес збережено. «Видалити» прибере курс із пристрою, прогрес лишиться й тоді.</p>
+      <div class="course-list">${off.map(row).join('')}</div>` : ''}`;
+    const toggle = (id, show) => (TYPING_COURSES.some((t) => t.id === id) ? Courses.setBuiltin(id, show) : Courses.setEnabled(id, show));
+    $('courses-installed').querySelectorAll('[data-course-hide]').forEach((b) => {
+      b.onclick = () => { toggle(b.dataset.courseHide, false); msg('Курс сховано — він у «Схованих», прогрес цілий.'); };
     });
-    $('courses-installed').querySelectorAll('[data-course-on]').forEach((c) => {
-      c.onchange = () => Courses.setEnabled(c.dataset.courseOn, c.checked);
+    $('courses-installed').querySelectorAll('[data-course-show]').forEach((b) => {
+      b.onclick = () => { toggle(b.dataset.courseShow, true); msg('Курс знову на вкладці «Курси».'); };
     });
     $('courses-installed').querySelectorAll('[data-course-del]').forEach((b) => {
       b.onclick = async () => {
