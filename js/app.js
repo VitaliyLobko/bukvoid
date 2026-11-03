@@ -1081,6 +1081,12 @@ function avatarHi(e) {
 }
 
 /** «Про застосунок», як у Вазі й Журналі стрільця: автор, що це, де дані, з чого почати. */
+// «На каву автору», як у Shooter’s Log: банка Монобанку звичайним посиланням, без сторонніх скриптів
+const CUP_SVG = '<svg viewBox="0 0 16 20" aria-hidden="true">'
+  + '<path class="st" d="M6 8.5c-2-2 2-3 0-6"/><path class="st" d="M10 8.5c-2-2 2-3 0-6"/>'
+  + '<path d="M3 10h9v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" fill="#f4f1ea" stroke="#3a2a1c"/>'
+  + '<path d="M12 11.5h1.2a2 2 0 0 1 0 4H12" fill="none" stroke="#3a2a1c"/><ellipse cx="7.5" cy="10.4" rx="4" ry=".9" fill="#6b3f1f"/></svg>';
+
 function aboutHtml() {
   return `
     <section class="card stack about">
@@ -1089,6 +1095,14 @@ function aboutHtml() {
         <span class="about-avatar"><img src="./icons/author.jpg" alt="" width="64" height="64" loading="lazy"><span class="av-live">${AVATAR_SVG}</span></span>
         <p class="muted">Буквоїд ${esc(self.APP_VERSION || '')}: друк наосліп, український правопис і англійська. Працює без інтернету, усе рахується на пристрої.</p>
       </div>
+      <a class="donate-card" href="https://send.monobank.ua/jar/XJKDMyVfW" target="_blank" rel="noopener">
+        <span class="donate-art">
+          <span class="donate-cat"><img src="./icons/cat-portrait.png" alt="" width="50" height="50"><span class="donate-cup">${CUP_SVG}</span></span>
+          <span class="donate-plate" aria-hidden="true">mono</span>
+        </span>
+        <span class="donate-text"><b>На каву автору</b><small>Безкоштовно й без реклами — тримається на вашій підтримці</small></span>
+        <span class="donate-go" aria-hidden="true">→</span>
+      </a>
       <details class="about-more"><summary>Де мої дані</summary>
         <div class="muted">
           <p>Прогрес лежить у браузері на цьому пристрої. Сервера в застосунку немає, автор не отримує ні даних, ні статистики.</p>
