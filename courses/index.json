@@ -85,6 +85,15 @@
    "units": 12,
    "icon": "geometry",
    "dir": "knife-sharpening"
+  },
+  {
+   "id": "fpv-build",
+   "version": 1,
+   "title": "Збірка FPV-дрона: 5″ і 7″",
+   "subtitle": "5″ для фрістайлу, 7″ для краєвидів і далекольоту: деталі, покупки, пайка, Betaflight, ELRS, Walksnail, GPS",
+   "units": 14,
+   "icon": "idea",
+   "dir": "fpv-build"
   }
  ]
 }
