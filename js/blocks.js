@@ -4,10 +4,12 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 const COLOR_CODE = /^(#[0-9a-f]{6}|#[0-9a-f]{3}|hsl\(\d{1,3}(?:deg)?,\s?\d{1,3}%,\s?\d{1,3}%\)|rgb\(\d{1,3},\s?\d{1,3},\s?\d{1,3}\))$/i;
 const codeHtml = (c) => (COLOR_CODE.test(c) ? `<code class="color-code"><span class="color-dot" style="background:${c}"></span>${c}</code>` : `<code>${c}</code>`);
 
-/** **жирний** і `код` — єдина розмітка всередині текстів курсів. */
+/** Розмітка всередині текстів курсів: **жирний**, `код` і [посилання](https://…) — лише https. */
 export const inline = (s) => esc(s)
   .replace(/`([^`]+)`/g, (_, c) => codeHtml(c))
-  .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+  // після esc() у адресі немає лапок і кутових дужок — у href потрапляє лише безпечний текст
+  .replace(/\[([^\]]+)\]\((https:\/\/[^\s()]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 
 /** Відносна яскравість кольору #rrggbb за WCAG 2.x. */
 function luminance(hex) {
@@ -44,7 +46,8 @@ const figHtml = (path, alt, caption, src) => {
 export const exerciseFig = (ex, src) => (ex.img ? figHtml(ex.img, ex.alt, '', src) : '');
 
 /**
- * Теорія з блоків {h}|{p}|{ul}|{table}|{tip}|{warn}|{img}|{swatches}|{contrast}.
+ * Теорія з блоків {h}|{p}|{ul}|{table}|{tip}|{warn}|{recall, a}|{img}|{swatches}|{contrast}.
+ * recall — «пригадайте самі»: питання, відповідь розкривається торканням.
  * src(path) — адреса картинки курсу (Courses.src); без неї замість картинки — її опис.
  */
 export function blocksHtml(blocks = [], { src } = {}) {
@@ -69,6 +72,7 @@ export function blocksHtml(blocks = [], { src } = {}) {
     if (b.ul) return `<ul>${b.ul.map((li) => `<li>${inline(li)}</li>`).join('')}</ul>`;
     if (b.tip) return `<div class="callout tip">${inline(b.tip)}</div>`;
     if (b.warn) return `<div class="callout warn">${inline(b.warn)}</div>`;
+    if (b.recall) return `<details class="callout recall"><summary>${inline(b.recall)}</summary><p>${inline(b.a)}</p></details>`;
     if (b.table) {
       const [head, ...rows] = b.table;
       return `<div class="table-wrap"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead>`

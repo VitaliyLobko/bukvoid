@@ -88,10 +88,10 @@
   },
   {
    "id": "fpv-build",
-   "version": 1,
-   "title": "Збірка FPV-дрона: 5″ і 7″",
-   "subtitle": "5″ для фрістайлу, 7″ для краєвидів і далекольоту: деталі, покупки, пайка, Betaflight, ELRS, Walksnail, GPS",
-   "units": 14,
+   "version": 2,
+   "title": "Збірка й налаштування FPV-дрона",
+   "subtitle": "Від списку деталей до 7″ на Li-ion: сумісність, пайка, Betaflight, ELRS, Walksnail, GPS — тема за темою",
+   "units": 1,
    "icon": "idea",
    "dir": "fpv-build"
   }

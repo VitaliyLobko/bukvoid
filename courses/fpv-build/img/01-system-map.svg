@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 510" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c8641b"/></marker>
+    <marker id="as" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6f9f"/></marker>
+  </defs>
+  <rect width="400" height="510" fill="#ffffff"/>
+  <!-- signal chain -->
+  <g stroke="#2f6f9f" stroke-width="3" stroke-dasharray="7 5" fill="none">
+    <path d="M70,68 L140,146" marker-end="url(#as)"/>
+    <path d="M200,70 L200,146" marker-start="url(#as)" marker-end="url(#as)"/>
+    <path d="M330,68 L262,146" marker-end="url(#as)"/>
+    <path d="M240,216 L240,296" marker-end="url(#as)"/>
+  </g>
+  <g fill="#2f6f9f" font-size="14" font-weight="600">
+    <text x="12" y="118">CRSF · UART2</text>
+    <text x="206" y="104">MSP</text>
+    <text x="206" y="121">UART1</text>
+    <text x="300" y="118">UART6</text>
+    <text x="300" y="135">+ I2C</text>
+    <text x="248" y="262">DShot</text>
+  </g>
+  <!-- power chain -->
+  <g stroke="#c8641b" stroke-width="7" fill="none">
+    <path d="M160,298 L160,222" marker-end="url(#ap)"/>
+    <path d="M90,428 L135,372" marker-end="url(#ap)"/>
+    <path d="M265,366 L310,424" marker-end="url(#ap)"/>
+  </g>
+  <g fill="#c8641b" font-size="14" font-weight="600">
+    <text x="108" y="262">VBAT</text>
+    <text x="14" y="392">до 25,2 В</text>
+    <text x="300" y="392">3 фази</text>
+  </g>
+  <!-- boxes -->
+  <g stroke-width="2.5" fill="#f2efe6">
+    <rect x="10" y="10" width="120" height="58" rx="8" stroke="#2f6f9f"/>
+    <rect x="140" y="10" width="120" height="58" rx="8" stroke="#2f6f9f"/>
+    <rect x="270" y="10" width="120" height="58" rx="8" stroke="#2f6f9f"/>
+    <rect x="100" y="150" width="200" height="64" rx="8" stroke="#1d1c1a"/>
+    <rect x="100" y="300" width="200" height="64" rx="8" stroke="#c8641b"/>
+    <rect x="10" y="432" width="160" height="66" rx="8" stroke="#c8641b"/>
+    <rect x="230" y="432" width="160" height="66" rx="8" stroke="#c8641b"/>
+  </g>
+  <g fill="#1d1c1a" text-anchor="middle">
+    <text x="70" y="36" font-size="17" font-weight="700">Приймач</text>
+    <text x="70" y="57" font-size="14">RP3 V2</text>
+    <text x="200" y="36" font-size="17" font-weight="700">Walksnail</text>
+    <text x="200" y="57" font-size="14">VTX</text>
+    <text x="330" y="36" font-size="17" font-weight="700">GPS</text>
+    <text x="330" y="57" font-size="14">M100-5883</text>
+    <text x="200" y="179" font-size="18" font-weight="700">Польотник F405</text>
+    <text x="200" y="202" font-size="14">Betaflight · BEC 5/9 В</text>
+    <text x="200" y="329" font-size="18" font-weight="700">ESC 4-в-1</text>
+    <text x="200" y="352" font-size="14">55 А × 4</text>
+    <text x="90" y="461" font-size="17" font-weight="700">Батарея 6S</text>
+    <text x="90" y="483" font-size="14">LiPo / Li-ion</text>
+    <text x="310" y="461" font-size="17" font-weight="700">4 мотори</text>
+    <text x="310" y="483" font-size="14">2807 1300KV</text>
+  </g>
+</svg>

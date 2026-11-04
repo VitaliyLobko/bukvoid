@@ -26,7 +26,7 @@ export const isAsset = (path) => ASSET_RE.test(path);
 
 export const FORMAT = 'bukvoid-course';
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
-const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'table', 'img', 'swatches', 'contrast'];
+const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'recall', 'table', 'img', 'swatches', 'contrast'];
 const TYPES = ['choice', 'gap', 'fix', 'translate', 'number', 'order', 'spot'];
 
 /** Усі картинки, на які посилається курс: блоки img теорії й вправи з img. */
@@ -80,6 +80,8 @@ export function validate(pack, files = new Set()) {
         err.push(`${at}, теорія ${k + 1}: swatches — до 12 кольорів {hex: "#1e88e5", name, note}.`);
       } else if (key === 'contrast' && !(Array.isArray(b.contrast) && b.contrast.length && b.contrast.length <= 8 && b.contrast.every((c) => c && HEX_RE.test(c.fg ?? '') && HEX_RE.test(c.bg ?? '')))) {
         err.push(`${at}, теорія ${k + 1}: contrast — до 8 пар {fg: "#000000", bg: "#ffffff", text}.`);
+      } else if (key === 'recall' && !(str(b.recall) && str(b.a))) {
+        err.push(`${at}, теорія ${k + 1}: recall — питання й відповідь {recall: "…", a: "…"}.`);
       } else if (!['ul', 'table', 'img', 'swatches', 'contrast'].includes(key) && !str(b[key])) err.push(`${at}, теорія ${k + 1}: порожній текст.`);
     });
     if (u.examples && !(Array.isArray(u.examples) && u.examples.every((x) => str(x) || (x && (str(x.w) || (str(x.en) && str(x.uk))))))) err.push(`${at}: examples — рядки, {w, note} або {en, uk}.`);
