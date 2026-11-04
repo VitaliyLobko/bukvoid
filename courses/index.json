@@ -88,10 +88,10 @@
   },
   {
    "id": "fpv-build",
-   "version": 8,
+   "version": 10,
    "title": "Збірка й налаштування FPV-дрона",
    "subtitle": "Від списку деталей до 7″ на Li-ion: сумісність, пайка, Betaflight, ELRS, Walksnail, GPS — тема за темою",
-   "units": 9,
+   "units": 11,
    "icon": "idea",
    "dir": "fpv-build"
   }
