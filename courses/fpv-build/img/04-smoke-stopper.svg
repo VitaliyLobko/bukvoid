@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 460" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c8641b"/></marker>
+  </defs>
+  <rect width="400" height="460" fill="#ffffff"/>
+  <!-- power arrows -->
+  <g stroke="#c8641b" stroke-width="7" fill="none">
+    <path d="M200,84 L200,138" marker-end="url(#ap)"/>
+    <path d="M200,238 L200,292" marker-end="url(#ap)"/>
+  </g>
+  <g fill="#c8641b" font-size="16" font-weight="600">
+    <text x="214" y="118">XT60</text>
+    <text x="214" y="272">XT60</text>
+  </g>
+  <!-- boxes -->
+  <rect x="80" y="12" width="240" height="70" rx="8" fill="#f2efe6" stroke="#c8641b" stroke-width="2.5"/>
+  <rect x="40" y="142" width="320" height="94" rx="8" fill="#f2efe6" stroke="#b5452c" stroke-width="4"/>
+  <rect x="80" y="296" width="240" height="70" rx="8" fill="#f2efe6" stroke="#1d1c1a" stroke-width="2.5"/>
+  <g fill="#1d1c1a" text-anchor="middle">
+    <text x="200" y="44" font-size="20" font-weight="700">Батарея 6S</text>
+    <text x="200" y="68" font-size="16">до 25,2 В</text>
+    <text x="200" y="178" font-size="21" font-weight="700">Smoke stopper</text>
+    <text x="200" y="204" font-size="16">струм вище порогу 1–2 А →</text>
+    <text x="200" y="225" font-size="16">коло розірване за ≈ 3 мс</text>
+    <text x="200" y="328" font-size="20" font-weight="700">Дрон</text>
+    <text x="200" y="352" font-size="16">без пропелерів</text>
+  </g>
+  <g fill="#b3261e" text-anchor="middle" font-size="16" font-weight="600">
+    <text x="200" y="404">Лампа 3157 — лише 12 В (3S)</text>
+    <text x="200" y="428">і тільки обмежує струм:</text>
+    <text x="200" y="452">для 6S не підходить</text>
+  </g>
+</svg>

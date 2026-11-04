@@ -51,7 +51,7 @@ function answerText(ex) {
  * onAnswer(ex, ok) і onTime(ms, ex) — після кожної відповіді (ex — вправа з полями, які передали).
  * src(path, ex) — адреса картинки курсу для вправ з img; ex.from — підпис, звідки вправа.
  */
-export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = {}, src } = {}) {
+export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = {}, src, pass = 1, next = null } = {}) {
   let list = exercises.map((ex, i) => ({ ...ex, i }));
   let shownAt = 0;
   let idx = 0;
@@ -184,13 +184,16 @@ export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = 
     const total = list.length;
     if (full) onDone?.(right, total);
     const pct = Math.round((right / total) * 100);
+    // Перехід далі — лише після повного тесту, коли тему зараховано
+    const passed = full && right / total >= pass;
     root.innerHTML = `
       <div class="quiz summary">
         <div class="big-score">${right}<small> / ${total}</small></div>
-        <p>${pct === 100 ? 'Без жодної помилки. Буквоїд аплодує.' : pct >= 80 ? 'Добре. Помилки варто пройти ще раз — саме на них закріплюється правило.' : 'Перечитайте правило вгорі й повторіть помилки.'}</p>
+        <p>${pct === 100 ? 'Без жодної помилки. Буквоїд аплодує.' : pct >= 80 ? 'Добре. Помилки варто пройти ще раз — саме на них закріплюється знання.' : 'Перечитайте теорію вгорі й повторіть помилки.'}${wrong.length ? ' Помилки також повернуться в «Повторення» завтра.' : ''}</p>
         <div class="row">
-          ${wrong.length ? '<button type="button" class="btn primary" data-act="wrong">Повторити помилки</button>' : ''}
+          ${wrong.length ? `<button type="button" class="btn ${passed ? '' : 'primary'}" data-act="wrong">Повторити помилки</button>` : ''}
           <button type="button" class="btn" data-act="again">Пройти знову</button>
+          ${passed && next ? `<a class="btn primary" href="${next.href}">Наступна тема ›</a>` : ''}
         </div>
       </div>`;
     const again = (items, isFull) => { list = items; idx = 0; right = 0; wrong = []; full = isFull; show(); };

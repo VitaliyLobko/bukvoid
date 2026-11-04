@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 440" font-family="system-ui, sans-serif">
+  <rect width="400" height="440" fill="#ffffff"/>
+  <text x="12" y="24" font-size="15" fill="#6b6760">перед ↑</text>
+  <g fill="none" stroke="#c9c3b5" stroke-width="2" stroke-dasharray="6 5">
+    <circle cx="70" cy="80" r="58"/><circle cx="330" cy="80" r="58"/>
+    <circle cx="70" cy="370" r="58"/><circle cx="330" cy="370" r="58"/>
+  </g>
+  <g stroke="#6b6760" stroke-width="14" stroke-linecap="round">
+    <line x1="178" y1="160" x2="70" y2="80"/><line x1="222" y1="160" x2="330" y2="80"/>
+    <line x1="178" y1="290" x2="70" y2="370"/><line x1="222" y1="290" x2="330" y2="370"/>
+  </g>
+  <g fill="#f2efe6" stroke="#1d1c1a" stroke-width="2.5">
+    <circle cx="70" cy="80" r="22"/><circle cx="330" cy="80" r="22"/>
+    <circle cx="70" cy="370" r="22"/><circle cx="330" cy="370" r="22"/>
+    <rect x="160" y="100" width="80" height="250" rx="8"/>
+  </g>
+  <rect x="182" y="86" width="36" height="22" rx="4" fill="#1d1c1a"/>
+  <rect x="180" y="124" width="40" height="24" rx="4" fill="#ffffff" stroke="#2f6f9f" stroke-width="2.5"/>
+  <text x="200" y="141" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6f9f">RX</text>
+  <rect x="174" y="166" width="52" height="52" rx="4" fill="none" stroke="#1d1c1a" stroke-width="2.5"/>
+  <text x="200" y="198" text-anchor="middle" font-size="15" fill="#1d1c1a">стек</text>
+  <rect x="176" y="256" width="48" height="48" rx="4" fill="none" stroke="#b5452c" stroke-width="3"/>
+  <text x="200" y="286" text-anchor="middle" font-size="15" font-weight="700" fill="#b5452c">VTX</text>
+  <!-- VTX antennas -->
+  <g stroke="#b5452c" stroke-width="3.5" fill="#b5452c">
+    <line x1="190" y1="304" x2="172" y2="366"/><circle cx="172" cy="368" r="8"/>
+    <line x1="210" y1="304" x2="228" y2="366"/><circle cx="228" cy="368" r="8"/>
+  </g>
+  <!-- RX antenna 1: good, vertical on front-left arm -->
+  <path d="M180,136 L136,134" fill="none" stroke="#2f6f9f" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="128" cy="134" r="11" fill="#ffffff" stroke="#2f6f9f" stroke-width="3.5"/>
+  <circle cx="128" cy="134" r="4" fill="#2f6f9f"/>
+  <!-- RX antenna 2: bad, flat on carbon next to VTX antenna -->
+  <path d="M220,136 L246,150 L246,300" fill="none" stroke="#2f6f9f" stroke-width="2" stroke-dasharray="4 3"/>
+  <line x1="240" y1="312" x2="246" y2="372" stroke="#2f6f9f" stroke-width="5" stroke-linecap="round"/>
+  <text x="200" y="420" text-anchor="middle" font-size="15" fill="#1d1c1a">синє — антени приймача, червоне — VTX</text>
+</svg>

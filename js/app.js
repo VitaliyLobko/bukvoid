@@ -365,26 +365,33 @@ function courseTile({ id, href, icon, title, subtitle, done, started, total, wor
 function renderCourses() {
   const list = Courses.enabled();
   const typing = typingOn();
-  const tiles = [
+  const items = [
     ...typing.map(({ id, lang }) => {
       const ls = lessons(lang);
-      return courseTile({ id, href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
-        done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' });
+      return { id, href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
+        done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' };
     }),
     ...list.map(({ id, pack }) => {
       const p = courseProgress(id);
-      return courseTile({ id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
-        done: pack.units.filter((u) => unitDone(p[u.id], pack)).length, started: pack.units.filter((u) => p[u.id]).length, total: pack.units.length, word: 'тем' });
+      return { id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
+        done: pack.units.filter((u) => unitDone(p[u.id], pack)).length, started: pack.units.filter((u) => p[u.id]).length, total: pack.units.length, word: 'тем' };
     }),
   ];
+  // Спершу курс, де зупинились, далі розпочаті (менше лишилось — вище), далі нерозпочаті — у порядку з налаштувань
+  const cur = lastCourse();
+  const rank = (x) => (x.id === cur ? 0 : x.done >= x.total ? 2 : x.done || x.started ? 1 : 3);
+  const tiles = items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => courseTile(x));
   view().innerHTML = `
-    ${head('Курси', '', 'Правило, приклади, тест і друк — тема за темою')}
+    ${head('Курси', '', 'Теорія, тест, повторення помилок і практика — тема за темою')}
     ${resumeHero()}
     ${srsHero()}
+    <h2 class="section-title">Мої курси</h2>
     <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
     ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте з каталогу.</p>'}
+    <section id="kursy-catalog" hidden><h2 class="section-title">Каталог <span class="muted">торкніться, щоб додати</span></h2>
+    <div class="tiles courses" id="catalog-tiles"></div></section>
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
-  addCatalogTiles($('kursy-tiles'));
+  addCatalogTiles($('catalog-tiles'));
 }
 
 /** Курси каталогу, яких ще немає на пристрої, — блідими плитками в тій самій сітці; торкнулись — курс додається. */
@@ -392,7 +399,7 @@ async function addCatalogTiles(grid) {
   const cat = await Courses.catalog();
   if (!grid.isConnected || !cat) return;
   const fresh = cat.filter((c) => !Courses.get(c.id));
-  if (fresh.length) $('kursy-empty')?.remove();
+  if (fresh.length) grid.closest('section')?.removeAttribute('hidden');
   grid.insertAdjacentHTML('beforeend', fresh.map((c) => `<button type="button" class="tile course-tile add" data-course-add="${esc(c.id)}">
       <span class="course-ico">${iconSvg(c.icon)}</span>
       <b>${esc(c.title)}</b>
@@ -435,7 +442,7 @@ async function drawFreshCatalog(box, msg) {
   });
 }
 
-function renderCourse(cid) {
+function renderCourse(cid, focus) {
   const typing = TYPING_COURSES.find((c) => c.id === cid);
   if (typing) return renderTypingCourse(typing.lang);
   const pack = Courses.get(cid);
@@ -452,16 +459,33 @@ function renderCourse(cid) {
       </div>
       <a class="btn primary big" href="${res.href}">${res.how}: тема ${res.n}</a>
     </section>` : ''}
+    ${mistakesLine(cid, pack)}
     <ol class="lessons topics">
       ${pack.units.map((u, i) => {
         const r = p[u.id];
         return `<li><a href="#k/${esc(cid)}/${esc(u.id)}" class="${unitDone(r, pack) ? 'done' : ''}${res && i === res.n - 1 ? ' current' : ''}">
           <span class="num">${i + 1}</span>
           <span class="l-title">${esc(u.title)}<span class="muted small">${esc(u.topic || u.source || '')}</span></span>
-          <span class="l-state">${r ? `${r.best}/${r.total}` : ''}</span></a></li>`;
+          <span class="l-state">${r ? `${r.best}/${r.total}` : ''}${tasksState(cid, u)}</span></a></li>`;
       }).join('')}
     </ol>
+    ${pack.reference?.length ? `<h2 class="section-title" id="course-ref">Довідник</h2>${pack.reference.map((r) => `<details class="fold ref" id="ref-${esc(r.id)}"><summary>${esc(r.title)}</summary><div class="prose">${blocksHtml(r.theory, { src: Courses.src(cid) })}</div></details>`).join('')}` : ''}
     ${pack.source?.url ? `<p class="muted small">Джерело: <a href="${esc(pack.source.url)}" target="_blank" rel="noopener">${esc(pack.source.title || pack.source.url)}</a></p>` : ''}`;
+  if (focus === 'ref') $('course-ref')?.scrollIntoView();
+}
+
+/** «✓ 2/4 завд.» у списку тем — скільки практичних завдань теми виконано. */
+function tasksState(cid, u) {
+  if (!u.tasks?.length) return '';
+  const n = u.tasks.filter((_, i) => S.taskDone(S.taskKey(cid, u.id, i))).length;
+  return `<small class="tasks-state${n === u.tasks.length ? ' all' : ''}">${n === u.tasks.length ? '✓ ' : ''}завд. ${n}/${u.tasks.length}</small>`;
+}
+
+/** Помилки тестів цього курсу, яким настав день повторення. */
+function mistakesLine(cid, pack) {
+  const m = SRS.mistakeCounts([{ id: cid, pack }]);
+  if (!m.total) return '';
+  return `<div class="card mistakes-line"><span>Помилки цього курсу: <b>${m.due}</b> на сьогодні · усього ${m.total}</span>${m.due ? '<a class="btn primary" href="#mistakes">Повторити</a>' : ''}</div>`;
 }
 
 function examplesHtml(list) {
@@ -484,25 +508,37 @@ function renderCourseUnit(cid, uid) {
   SRS.enroll(cid, t);
   const pairs = t.examples?.length && t.examples.every((x) => x && typeof x === 'object' && x.en);
   // Зміст — для довгих тем, де, крім правила й тесту, є фрази чи відео
-  const toc = [['u-theory', 'Правило'], t.examples?.length && ['u-examples', 'Приклади'], t.words?.length && ['u-words', 'Фрази'],
-    t.media?.length && ['u-media', 'Відео й аудіо'], t.exercises.length && ['u-test', 'Тест'], t.typing?.length && ['u-typing', 'Друк']].filter(Boolean);
+  // «Правило» — у мовних курсах; в інших — «Теорія»
+  const ruleWord = cid === S.SPELLING_COURSE || lang === 'en' ? 'Правило' : 'Теорія';
+  const toc = [['u-theory', ruleWord], t.examples?.length && ['u-examples', 'Приклади'], t.words?.length && ['u-words', 'Фрази'],
+    t.media?.length && ['u-media', 'Відео й аудіо'], t.exercises.length && ['u-test', 'Тест'], t.tasks?.length && ['u-tasks', 'Завдання'], pack.reference?.length && [`kurs/${esc(cid)}/ref`, 'Довідник'], t.typing?.length && ['u-typing', 'Друк']].filter(Boolean);
   view().innerHTML = `
     ${head(t.title, `#kurs/${esc(cid)}`, esc(t.topic ? `${t.topic} · ${pack.title}` : t.goal || ''))}
     ${t.topic && t.goal ? `<p class="goal">${inline(t.goal)}</p>` : ''}
-    ${t.words?.length || t.media?.length ? `<nav class="toc">${toc.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav>` : ''}
-    <article class="prose card" id="u-theory">${blocksHtml(t.theory, { src: Courses.src(cid) })}</article>
+    ${t.words?.length || t.media?.length || t.tasks?.length || pack.reference?.length ? `<nav class="toc">${toc.map(([id, label]) => `<a href="#${id}"${id.includes('/') ? ' data-route' : ''}>${label}</a>`).join('')}</nav>` : ''}
+    <article class="prose card" id="u-theory">${blocksHtml(t.theory, { src: Courses.src(cid), sections: true })}</article>
     ${t.examples?.length ? `<h2 class="section-title" id="u-examples">Приклади</h2>${pairs
     ? `<div class="card pairs">${t.examples.map((x) => pairHtml(inline(x.en), inline(x.uk), x.en, lang)).join('')}</div>`
     : examplesHtml(t.examples)}` : ''}
     ${t.words?.length ? `<h2 class="section-title" id="u-words">Фрази теми <span class="muted">уже в колоді повторення</span></h2>
     <div class="card pairs">${t.words.map((w) => pairHtml(`<b>${esc(w.en)}</b>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}`, esc(w.uk), w.ex || w.en, lang)).join('')}</div>` : ''}
-    ${t.media?.length ? `<h2 class="section-title" id="u-media">Відео й матеріали</h2><div class="media">${t.media.map((m) => `<a class="tile" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
+    ${t.media?.length ? `<h2 class="section-title" id="u-media">Відео й матеріали</h2><div class="media">${[...t.media].sort((a, b) => Boolean(b.main) - Boolean(a.main)).map((m) => `<a class="tile${m.main ? ' main' : ''}" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${m.main ? 'Головне джерело · ' : ''}${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
     ${t.exercises.length ? '<h2 class="section-title" id="u-test">Тест</h2><div id="quiz" class="card"></div>' : ''}
+    ${t.tasks?.length ? tasksHtml(cid, t) : ''}
     <h2 class="section-title" id="u-typing">${lang === 'en' ? 'Надрукуйте фрази' : cid === S.SPELLING_COURSE ? 'Надрукуйте правильно' : 'Надрукуйте головне'}</h2>
     <div id="typer" class="card"></div><div id="after"></div>
     ${next ? `<a class="btn next-topic" href="#k/${esc(cid)}/${esc(next.id)}">Наступна тема: ${esc(next.title)} ›</a>` : ''}`;
   view().querySelectorAll('[data-say]').forEach((b) => { b.onclick = () => speak(b.dataset.say); });
-  view().querySelectorAll('.toc a').forEach((a) => {
+  const all = view().querySelector('[data-sec-all]');
+  if (all) {
+    all.onclick = () => {
+      const secs = [...view().querySelectorAll('details.sec')];
+      const open = !secs.every((d) => d.open);
+      secs.forEach((d) => { d.open = open; });
+      all.textContent = open ? 'Згорнути все' : 'Розгорнути все';
+    };
+  }
+  view().querySelectorAll('.toc a:not([data-route])').forEach((a) => {
     a.onclick = (e) => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' }); };
   });
   if (t.exercises.length) {
@@ -510,6 +546,8 @@ function renderCourseUnit(cid, uid) {
       src: Courses.src(cid),
       onAnswer: (ex, ok) => SRS.recordAnswer(cid, t.id, ex, ok),
       onTime: (ms) => S.recordStudyTime(ms, { cid }),
+      pass: pack.pass ?? 1,
+      next: next && { href: `#k/${esc(cid)}/${esc(next.id)}`, title: next.title },
       onDone: (score, total) => {
         S.recordUnit(cid, t.id, score, total);
         S.recordTest(`c:${cid}/${t.id}`, score, total);
@@ -517,6 +555,22 @@ function renderCourseUnit(cid, uid) {
     });
   }
   typingBlock(t.typing, lang, cid);
+  view().querySelectorAll('[data-task]').forEach((c) => {
+    c.onchange = () => {
+      S.setTask(c.dataset.task, c.checked);
+      c.closest('li').classList.toggle('done', c.checked);
+      const all = view().querySelectorAll('[data-task]');
+      $('tasks-count').textContent = `${[...all].filter((x) => x.checked).length} з ${all.length}`;
+    };
+  });
+}
+
+/** Практичні завдання теми: робота руками поза застосунком; позначки синхронізуються. */
+function tasksHtml(cid, t) {
+  const keys = t.tasks.map((_, i) => S.taskKey(cid, t.id, i));
+  const done = keys.filter(S.taskDone).length;
+  return `<h2 class="section-title" id="u-tasks">Завдання на практиці <span class="muted" id="tasks-count">${done} з ${keys.length}</span></h2>
+    <ul class="card tasks">${t.tasks.map((x, i) => `<li class="${S.taskDone(keys[i]) ? 'done' : ''}"><label><input type="checkbox" data-task="${esc(keys[i])}"${S.taskDone(keys[i]) ? ' checked' : ''}><span>${inline(x)}</span></label></li>`).join('')}</ul>`;
 }
 
 /** Друк речень теми: закріплює і правопис, і руку. */
@@ -560,7 +614,7 @@ function renderSrs() {
       const c = SRS.counts(packs);
       view().innerHTML = `${head('Повторення фраз', '#kursy')}<div class="card quiz summary">
         <div class="big-score">${done ? `${ok}<small> / ${done}</small>` : '0'}</div>
-        <p>${done ? 'На сьогодні все. Наступні фрази повернуться в потрібний день — так вони переходять у довгу пам\'ять.' : c.total ? 'Сьогодні повторювати нічого. Завтра колода покаже нові.' : 'Колода порожня: відкрийте будь-яку тему англійської — її фрази додадуться сюди.'}</p>
+        <p>${done ? 'На сьогодні все. Наступні фрази повернуться в потрібний день — так вони переходять у довгу пам\'ять.' : c.total ? 'Сьогодні повторювати нічого. Завтра колода покаже нові.' : 'Колода порожня: фрази додаються з тем мовних курсів, щойно ви їх відкриєте.'}</p>
         <a class="btn primary" href="#kursy">До курсів</a></div>`;
       return;
     }
@@ -615,37 +669,55 @@ function renderProgress() {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = S.dayKey(d);
-    days.push({ key, label: d.getDate(), ...S.day(key) });
+    const x = S.day(key);
+    days.push({ key, label: d.getDate(), min: Math.round((x.ms + x.qms) / 60000) });
   }
-  const max = Math.max(1, ...days.map((d) => d.chars));
+  const max = Math.max(1, ...days.map((d) => d.min));
+  const week = days.slice(-7).reduce((n, d) => n + d.min, 0);
   const langs = ['uk', 'en', 'ru'];
-  const c = SRS.counts(Courses.enabled());
+  const packs = Courses.enabled();
+  const c = SRS.counts(packs);
+  const typingLangs = langs.filter((l) => Courses.builtinOn(`druk-${l}`) || typingDone(l));
+  const typing = tot.chars > 0 || typingLangs.length;
+  const courseRow = ({ id, pack }) => {
+    const topics = pack.units.filter((u) => unitDone(s.courses[id]?.[u.id], pack)).length;
+    const tasks = pack.units.flatMap((u) => (u.tasks ?? []).map((_, i) => S.taskKey(id, u.id, i)));
+    const tdone = tasks.filter((k) => S.taskDone(k)).length;
+    const m = SRS.mistakeCounts([{ id, pack }]);
+    const bits = [`тем ${topics}/${pack.units.length}`, tasks.length && `завдань ${tdone}/${tasks.length}`, m.total && `помилок ${m.due} на сьогодні з ${m.total}`].filter(Boolean);
+    return `<a class="li" href="#kurs/${id}"><span>${esc(pack.title)}<small class="muted">${bits.join(' · ')}</small></span><b>${Math.round((topics / Math.max(1, pack.units.length)) * 100)}%</b></a>`;
+  };
   view().innerHTML = `
     ${head('Прогрес', '')}
+    <div class="stat-grid">
+      <div class="stat"><b>${week}</b><span>хвилин навчання за 7 днів</span></div>
+      <div class="stat"><b>${packs.reduce((n, { id, pack }) => n + pack.units.filter((u) => unitDone(s.courses[id]?.[u.id], pack)).length, 0)}</b><span>тем пройдено</span></div>
+    </div>
+    <h2 class="section-title">Останні 14 днів</h2>
+    <div class="card bars" role="img" aria-label="Хвилин навчання за день">
+      ${days.map((d) => `<div class="bar" title="${d.key}: ${d.min} хв"><span style="height:${(d.min / max) * 100}%"></span><small>${d.label}</small></div>`).join('')}
+    </div>
+    <h2 class="section-title">Курси</h2>
+    <div class="card list progress-courses">
+      ${packs.map(courseRow).join('') || '<p class="muted">Додайте курс у «Курсах» — тут з’явиться, скільки тем і завдань пройдено.</p>'}
+      ${c.total ? `<div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>` : ''}
+    </div>
+    ${typing ? `<h2 class="section-title">Друк наосліп</h2>
     <div class="stat-grid">
       <div class="stat"><b>${tot.chars.toLocaleString('uk')}</b><span>букв з'їдено</span></div>
       <div class="stat"><b>${Math.round(tot.ms / 60000)}</b><span>хвилин друку</span></div>
       <div class="stat"><b>${tot.bestCpm}</b><span>найкраща швидкість, зн/хв</span></div>
       <div class="stat"><b>${tot.sessions}</b><span>вправ</span></div>
     </div>
-    <h2 class="section-title">Останні 14 днів</h2>
-    <div class="card bars" role="img" aria-label="Знаків за день">
-      ${days.map((d) => `<div class="bar" title="${d.key}: ${d.chars} знаків"><span style="height:${(d.chars / max) * 100}%"></span><small>${d.label}</small></div>`).join('')}
-    </div>
-    <h2 class="section-title">Курси</h2>
-    <div class="card list">
-      ${langs.filter((l) => Courses.builtinOn(`druk-${l}`) || typingDone(l)).map((l) => `<div class="li"><span>${esc(typingTitle(l))}</span><b>${typingDone(l)}/${lessons(l).length}</b></div>`).join('')}
-      ${Courses.enabled().map(({ id, pack }) => `<div class="li"><span>${esc(pack.title)}</span><b>${pack.units.filter((u) => unitDone(s.courses[id]?.[u.id], pack)).length}/${pack.units.length}</b></div>`).join('')}
-      <div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>
-    </div>
-    <h2 class="section-title">Слабкі клавіші</h2>
+    ${typingLangs.length ? `<div class="card list">${typingLangs.map((l) => `<div class="li"><span>${esc(typingTitle(l))}</span><b>${typingDone(l)}/${lessons(l).length}</b></div>`).join('')}</div>` : ''}
+    <h3 class="section-title">Слабкі клавіші</h3>
     ${langs.map((l) => {
       const w = weakKeys(S.keyStats(l), 8);
       if (!w.length) return '';
       return `<div class="card"><div class="muted">${LANG_NAMES[l]}</div><div class="table-wrap"><table class="weak"><thead><tr><th>Клавіша</th><th>Помилок</th><th>Сер. час</th></tr></thead><tbody>
         ${w.map((k) => `<tr><td><kbd>${esc(k.ch === ' ' ? '␣' : k.ch)}</kbd></td><td>${Math.round(k.rate * 100)}%</td><td>${Math.round(k.ms)} мс</td></tr>`).join('')}
       </tbody></table></div></div>`;
-    }).join('') || '<p class="muted">З\'являться після кількох вправ.</p>'}`;
+    }).join('') || '<p class="muted">З’являться після кількох вправ.</p>'}` : ''}`;
 }
 
 // ---------- Налаштування ----------
@@ -1104,7 +1176,7 @@ function aboutHtml() {
       <h2>Про застосунок</h2>
       <div class="about-head">
         <span class="about-avatar"><img src="./icons/author.jpg" alt="" width="64" height="64" loading="lazy"><span class="av-live">${AVATAR_SVG}</span></span>
-        <p class="muted">Буквоїд ${esc(self.APP_VERSION || '')}: друк наосліп, український правопис і англійська. Працює без інтернету, усе рахується на пристрої.</p>
+        <p class="muted">Буквоїд ${esc(self.APP_VERSION || '')}: курси з теорією, тестами, повторенням помилок і практичними завданнями, а також друк наосліп. Працює без інтернету, усе рахується на пристрої.</p>
       </div>
       <a class="donate-card" href="https://send.monobank.ua/jar/XJKDMyVfW" target="_blank" rel="noopener">
         <span class="donate-art">

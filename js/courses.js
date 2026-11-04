@@ -26,12 +26,17 @@ export const isAsset = (path) => ASSET_RE.test(path);
 
 export const FORMAT = 'bukvoid-course';
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
-const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'recall', 'table', 'img', 'swatches', 'contrast'];
+const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'note', 'recall', 'table', 'img', 'swatches', 'contrast'];
+const MAX_TASKS = 20;  // практичні завдання теми
+const MAX_REFS = 20;   // сторінки довідника курсу
 const TYPES = ['choice', 'gap', 'fix', 'translate', 'number', 'order', 'spot'];
 
-/** Усі картинки, на які посилається курс: блоки img теорії й вправи з img. */
+/** Усі картинки, на які посилається курс: блоки img теорії й довідника, вправи з img. */
 export function assetsOf(pack) {
   const out = new Set();
+  for (const r of Array.isArray(pack?.reference) ? pack.reference : []) {
+    for (const b of Array.isArray(r?.theory) ? r.theory : []) if (typeof b?.img === 'string') out.add(b.img);
+  }
   for (const u of Array.isArray(pack?.units) ? pack.units : []) {
     for (const b of Array.isArray(u?.theory) ? u.theory : []) if (typeof b?.img === 'string') out.add(b.img);
     for (const e of Array.isArray(u?.exercises) ? u.exercises : []) if (typeof e?.img === 'string') out.add(e.img);
@@ -68,7 +73,40 @@ export function validate(pack, files = new Set()) {
     ids.add(u.id);
     if (!str(u.title)) err.push(`${at}: немає назви.`);
     if (!Array.isArray(u.theory)) err.push(`${at}: theory має бути списком блоків.`);
-    else u.theory.forEach((b, k) => {
+    else checkBlocks(u.theory, at);
+    if (u.tasks !== undefined && !(Array.isArray(u.tasks) && u.tasks.length && u.tasks.length <= MAX_TASKS && u.tasks.every(str))) {
+      err.push(`${at}: tasks — від 1 до ${MAX_TASKS} практичних завдань (рядки).`);
+    }
+    if (u.examples && !(Array.isArray(u.examples) && u.examples.every((x) => str(x) || (x && (str(x.w) || (str(x.en) && str(x.uk))))))) err.push(`${at}: examples — рядки, {w, note} або {en, uk}.`);
+    if (u.words && !(Array.isArray(u.words) && u.words.every((w) => w && str(w.en) && str(w.uk) && (w.ex === undefined || str(w.ex))))) err.push(`${at}: words — фрази {en, uk, ex?} для повторення.`);
+    if (u.typing && !(Array.isArray(u.typing) && u.typing.every(str))) err.push(`${at}: typing — список речень.`);
+    if (u.media && !(Array.isArray(u.media) && u.media.every((m) => m && str(m.title) && /^https:\/\//.test(m.url ?? '')))) err.push(`${at}: media — {title, url https://…, main?}.`);
+    if (!Array.isArray(u.exercises)) err.push(`${at}: exercises має бути списком.`);
+    else u.exercises.forEach((e, k) => checkExercise(e, `${at}, вправа ${k + 1}`));
+  });
+  // Довідник курсу: шпаргалки, таблиці, формули — окремо від тем, щоб повертатися до них
+  if (pack.reference !== undefined) {
+    if (!(Array.isArray(pack.reference) && pack.reference.length && pack.reference.length <= MAX_REFS)) err.push(`reference — від 1 до ${MAX_REFS} сторінок довідника {id, title, theory}.`);
+    else {
+      const refIds = new Set();
+      pack.reference.forEach((r, i) => {
+        const at = `Довідник ${i + 1}${r?.title ? ` «${r.title}»` : ''}`;
+        if (!r || typeof r !== 'object') { err.push(`${at}: не об'єкт.`); return; }
+        if (!ID_RE.test(r.id ?? '') || refIds.has(r.id)) err.push(`${at}: id — латиниця, цифри й дефіс, без повторів.`);
+        refIds.add(r.id);
+        if (!str(r.title)) err.push(`${at}: немає назви.`);
+        if (!(Array.isArray(r.theory) && r.theory.length)) err.push(`${at}: theory — список блоків.`);
+        else checkBlocks(r.theory, at);
+      });
+    }
+  }
+  for (const path of assetsOf(pack)) {
+    if (ASSET_RE.test(path) && !files.has(path)) err.push(`Картинки ${path} немає в курсі${files.size ? '' : ' — курс із картинками додається архівом .zip'}.`);
+  }
+  return err;
+
+  function checkBlocks(list, at) {
+    list.forEach((b, k) => {
       const key = b && Object.keys(b).find((x) => BLOCKS.includes(x));
       if (!key) err.push(`${at}, теорія ${k + 1}: блок має бути одним із ${BLOCKS.join(', ')}.`);
       else if (key === 'ul' && !(Array.isArray(b.ul) && b.ul.every(str))) err.push(`${at}, теорія ${k + 1}: ul — список рядків.`);
@@ -84,40 +122,31 @@ export function validate(pack, files = new Set()) {
         err.push(`${at}, теорія ${k + 1}: recall — питання й відповідь {recall: "…", a: "…"}.`);
       } else if (!['ul', 'table', 'img', 'swatches', 'contrast'].includes(key) && !str(b[key])) err.push(`${at}, теорія ${k + 1}: порожній текст.`);
     });
-    if (u.examples && !(Array.isArray(u.examples) && u.examples.every((x) => str(x) || (x && (str(x.w) || (str(x.en) && str(x.uk))))))) err.push(`${at}: examples — рядки, {w, note} або {en, uk}.`);
-    if (u.words && !(Array.isArray(u.words) && u.words.every((w) => w && str(w.en) && str(w.uk) && (w.ex === undefined || str(w.ex))))) err.push(`${at}: words — фрази {en, uk, ex?} для повторення.`);
-    if (u.typing && !(Array.isArray(u.typing) && u.typing.every(str))) err.push(`${at}: typing — список речень.`);
-    if (u.media && !(Array.isArray(u.media) && u.media.every((m) => m && str(m.title) && /^https:\/\//.test(m.url ?? '')))) err.push(`${at}: media — {title, url https://…}.`);
-    if (!Array.isArray(u.exercises)) err.push(`${at}: exercises має бути списком.`);
-    else u.exercises.forEach((e, k) => {
-      const ex = `${at}, вправа ${k + 1}`;
-      if (!e || !TYPES.includes(e.type)) { err.push(`${ex}: type — ${TYPES.join(', ')}.`); return; }
-      if (!str(e.q)) err.push(`${ex}: немає питання (q).`);
-      if (e.img !== undefined && !(ASSET_RE.test(e.img) && str(e.alt))) err.push(`${ex}: img — шлях до картинки в курсі, і обов'язково alt.`);
-      if (e.type === 'choice') {
-        if (!(Array.isArray(e.options) && e.options.length >= 2 && e.options.every(str))) err.push(`${ex}: options — щонайменше 2 варіанти.`);
-        else if (!(Number.isInteger(e.a) && e.a >= 0 && e.a < e.options.length)) err.push(`${ex}: a — номер правильного варіанта від 0.`);
-      } else if (e.type === 'number') {
-        if (!Number.isFinite(e.a)) err.push(`${ex}: a — число (3.14), не рядок.`);
-        if (e.tol !== undefined && !(Number.isFinite(e.tol) && e.tol >= 0)) err.push(`${ex}: tol — допуск, невід'ємне число.`);
-        if (e.unit !== undefined && !str(e.unit)) err.push(`${ex}: unit — одиниці, рядок (« см²»).`);
-      } else if (e.type === 'order') {
-        if (!(Array.isArray(e.items) && e.items.length >= 3 && e.items.length <= 8 && e.items.every(str) && new Set(e.items).size === e.items.length)) {
-          err.push(`${ex}: items — від 3 до 8 різних пунктів у правильному порядку.`);
-        }
-      } else if (e.type === 'spot') {
-        if (e.img === undefined) err.push(`${ex}: spot — потрібна картинка img і alt.`);
-        const a = e.a ?? {};
-        if (![a.x, a.y, a.r].every(Number.isFinite) || a.x < 0 || a.x > 100 || a.y < 0 || a.y > 100 || !(a.r > 0 && a.r <= 50)) {
-          err.push(`${ex}: a — {x, y, r} у відсотках картинки: центр цілі (0–100) і радіус (до 50, від ширини).`);
-        }
-      } else if (!(Array.isArray(e.a) && e.a.length && e.a.every(str))) err.push(`${ex}: a — список правильних відповідей.`);
-    });
-  });
-  for (const path of assetsOf(pack)) {
-    if (ASSET_RE.test(path) && !files.has(path)) err.push(`Картинки ${path} немає в курсі${files.size ? '' : ' — курс із картинками додається архівом .zip'}.`);
   }
-  return err;
+
+  function checkExercise(e, ex) {
+    if (!e || !TYPES.includes(e.type)) { err.push(`${ex}: type — ${TYPES.join(', ')}.`); return; }
+    if (!str(e.q)) err.push(`${ex}: немає питання (q).`);
+    if (e.img !== undefined && !(ASSET_RE.test(e.img) && str(e.alt))) err.push(`${ex}: img — шлях до картинки в курсі, і обов'язково alt.`);
+    if (e.type === 'choice') {
+      if (!(Array.isArray(e.options) && e.options.length >= 2 && e.options.every(str))) err.push(`${ex}: options — щонайменше 2 варіанти.`);
+      else if (!(Number.isInteger(e.a) && e.a >= 0 && e.a < e.options.length)) err.push(`${ex}: a — номер правильного варіанта від 0.`);
+    } else if (e.type === 'number') {
+      if (!Number.isFinite(e.a)) err.push(`${ex}: a — число (3.14), не рядок.`);
+      if (e.tol !== undefined && !(Number.isFinite(e.tol) && e.tol >= 0)) err.push(`${ex}: tol — допуск, невід'ємне число.`);
+      if (e.unit !== undefined && !str(e.unit)) err.push(`${ex}: unit — одиниці, рядок (« см²»).`);
+    } else if (e.type === 'order') {
+      if (!(Array.isArray(e.items) && e.items.length >= 3 && e.items.length <= 8 && e.items.every(str) && new Set(e.items).size === e.items.length)) {
+        err.push(`${ex}: items — від 3 до 8 різних пунктів у правильному порядку.`);
+      }
+    } else if (e.type === 'spot') {
+      if (e.img === undefined) err.push(`${ex}: spot — потрібна картинка img і alt.`);
+      const a = e.a ?? {};
+      if (![a.x, a.y, a.r].every(Number.isFinite) || a.x < 0 || a.x > 100 || a.y < 0 || a.y > 100 || !(a.r > 0 && a.r <= 50)) {
+        err.push(`${ex}: a — {x, y, r} у відсотках картинки: центр цілі (0–100) і радіус (до 50, від ширини).`);
+      }
+    } else if (!(Array.isArray(e.a) && e.a.length && e.a.every(str))) err.push(`${ex}: a — список правильних відповідей.`);
+  }
 }
 
 // ---------- IndexedDB ----------

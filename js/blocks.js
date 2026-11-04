@@ -46,38 +46,63 @@ const figHtml = (path, alt, caption, src) => {
 export const exerciseFig = (ex, src) => (ex.img ? figHtml(ex.img, ex.alt, '', src) : '');
 
 /**
- * Теорія з блоків {h}|{p}|{ul}|{table}|{tip}|{warn}|{recall, a}|{img}|{swatches}|{contrast}.
- * recall — «пригадайте самі»: питання, відповідь розкривається торканням.
+ * Теорія з блоків {h}|{p}|{ul}|{table}|{tip}|{warn}|{note}|{recall, a}|{img}|{swatches}|{contrast}.
+ * note — примітка на полях (деталь, цікавинка); recall — «пригадайте самі»: питання, відповідь розкривається торканням.
  * src(path) — адреса картинки курсу (Courses.src); без неї замість картинки — її опис.
  */
-export function blocksHtml(blocks = [], { src } = {}) {
-  return blocks.map((b) => {
-    if (b.img) return figHtml(b.img, b.alt, b.caption, src);
-    // hex перевірено validate() — у style лише #rrggbb
-    if (b.swatches) {
-      return `<div class="swatches">${b.swatches.map((c) => `<div class="swatch"><span class="chip" style="background:${esc(c.hex)}"></span>`
-        + `<span class="swatch-text">${c.name ? `<b>${inline(c.name)}</b>` : ''}<code>${esc(c.hex.toLowerCase())}</code>${c.note ? `<small>${inline(c.note)}</small>` : ''}</span></div>`).join('')}</div>`;
-    }
-    if (b.contrast) {
-      return `<div class="contrast">${b.contrast.map((c) => {
-        const ratio = contrastRatio(c.fg, c.bg);
-        const g = contrastGrade(ratio);
-        return `<div class="contrast-pair"><div class="contrast-sample" style="color:${esc(c.fg)};background:${esc(c.bg)}">${inline(c.text || 'Текст на тлі')}</div>`
-          + `<div class="contrast-verdict ${g.ok === true ? 'good' : g.ok ? 'mid' : 'bad'}"><b>${(Math.floor(ratio * 10) / 10).toFixed(1)}:1</b> <span>${g.mark} · ${g.text}</span>`
-          + `<small><code>${esc(c.fg.toLowerCase())}</code> на <code>${esc(c.bg.toLowerCase())}</code></small></div></div>`;
-      }).join('')}</div>`;
-    }
-    if (b.h) return `<h2>${inline(b.h)}</h2>`;
-    if (b.p) return `<p>${inline(b.p)}</p>`;
-    if (b.ul) return `<ul>${b.ul.map((li) => `<li>${inline(li)}</li>`).join('')}</ul>`;
-    if (b.tip) return `<div class="callout tip">${inline(b.tip)}</div>`;
-    if (b.warn) return `<div class="callout warn">${inline(b.warn)}</div>`;
-    if (b.recall) return `<details class="callout recall"><summary>${inline(b.recall)}</summary><p>${inline(b.a)}</p></details>`;
-    if (b.table) {
-      const [head, ...rows] = b.table;
-      return `<div class="table-wrap"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead>`
-        + `<tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-    }
-    return '';
-  }).join('');
+export function blocksHtml(blocks = [], { src, sections = false } = {}) {
+  const one = (b) => blockHtml(b, src);
+  if (!sections) return blocks.map(one).join('');
+  // Довга теорія: розділи за заголовками h згортаються — на телефоні до тесту не треба гортати 30 екранів.
+  // Вступ (до першого h) і завершальне «Пригадайте» лишаються відкритими; перший розділ розгорнуто.
+  const heads = blocks.filter((b) => b.h).length;
+  const body = blocks.filter((b) => !b.h).length;
+  if (heads < 2 || body <= SECTIONS_FROM) return blocks.map(one).join('');
+  const tail = blocks.length && blocks[blocks.length - 1].recall ? [blocks[blocks.length - 1]] : [];
+  const main = tail.length ? blocks.slice(0, -1) : blocks;
+  const intro = [];
+  const secs = [];
+  for (const b of main) {
+    if (b.h) secs.push({ h: b.h, items: [] });
+    else (secs.length ? secs[secs.length - 1].items : intro).push(b);
+  }
+  return `${intro.map(one).join('')}
+    <div class="sec-tools"><button type="button" class="link" data-sec-all>Розгорнути все</button></div>
+    ${secs.map((s, i) => `<details class="sec"${i === 0 ? ' open' : ''}><summary><h2>${inline(s.h)}</h2></summary>${s.items.map(one).join('')}</details>`).join('')}
+    ${tail.map(one).join('')}`;
+}
+
+/** Від скількох блоків теорії (без заголовків) розділи згортаються. */
+export const SECTIONS_FROM = 12;
+
+/** Один блок теорії. */
+function blockHtml(b, src) {
+  if (b.img) return figHtml(b.img, b.alt, b.caption, src);
+  // hex перевірено validate() — у style лише #rrggbb
+  if (b.swatches) {
+    return `<div class="swatches">${b.swatches.map((c) => `<div class="swatch"><span class="chip" style="background:${esc(c.hex)}"></span>`
+      + `<span class="swatch-text">${c.name ? `<b>${inline(c.name)}</b>` : ''}<code>${esc(c.hex.toLowerCase())}</code>${c.note ? `<small>${inline(c.note)}</small>` : ''}</span></div>`).join('')}</div>`;
+  }
+  if (b.contrast) {
+    return `<div class="contrast">${b.contrast.map((c) => {
+      const ratio = contrastRatio(c.fg, c.bg);
+      const g = contrastGrade(ratio);
+      return `<div class="contrast-pair"><div class="contrast-sample" style="color:${esc(c.fg)};background:${esc(c.bg)}">${inline(c.text || 'Текст на тлі')}</div>`
+        + `<div class="contrast-verdict ${g.ok === true ? 'good' : g.ok ? 'mid' : 'bad'}"><b>${(Math.floor(ratio * 10) / 10).toFixed(1)}:1</b> <span>${g.mark} · ${g.text}</span>`
+        + `<small><code>${esc(c.fg.toLowerCase())}</code> на <code>${esc(c.bg.toLowerCase())}</code></small></div></div>`;
+    }).join('')}</div>`;
+  }
+  if (b.h) return `<h2>${inline(b.h)}</h2>`;
+  if (b.p) return `<p>${inline(b.p)}</p>`;
+  if (b.ul) return `<ul>${b.ul.map((li) => `<li>${inline(li)}</li>`).join('')}</ul>`;
+  if (b.tip) return `<div class="callout tip">${inline(b.tip)}</div>`;
+  if (b.warn) return `<div class="callout warn">${inline(b.warn)}</div>`;
+  if (b.note) return `<aside class="callout note">${inline(b.note)}</aside>`;
+  if (b.recall) return `<details class="callout recall"><summary>${inline(b.recall)}</summary><p>${inline(b.a)}</p></details>`;
+  if (b.table) {
+    const [head, ...rows] = b.table;
+    return `<div class="table-wrap"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead>`
+      + `<tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
+  return '';
 }

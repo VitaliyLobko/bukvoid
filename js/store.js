@@ -29,6 +29,7 @@ const empty = () => ({
   typing: {},     // 'uk:3' → {parts: {a: {acc, cpm}}, done}
   courses: {},    // курс → юніт → {best, total, at} (до курсів — spelling і english, див. foldLegacy)
   srs: {},        // cardId → {box, due, at}
+  tasks: {},      // 'курс/тема/№' → {done, at}: практичні завдання тем курсів
   dev: {},        // пристрій → {keys: {uk: {'п': {n, e, t}}}, days: {дата: {chars, ms, errors}}, chars, ms, sessions, bestCpm}
 });
 
@@ -224,6 +225,7 @@ export function merge(localRaw, remote) {
     typing,
     courses: mergeMap(local.courses, foldLegacy(remote).courses, (a, b) => mergeMap(a, b, bestOf)),
     srs: mergeMap(local.srs, remote.srs, newer),
+    tasks: mergeMap(local.tasks, remote.tasks, newer),
     dev: mergeMap(local.dev, remote.dev, fuller),
   };
 }
@@ -247,6 +249,13 @@ export function recordUnit(courseId, unitId, score, total) {
     const prev = c[unitId];
     c[unitId] = { best: Math.max(prev?.best ?? 0, score), total, at: today() };
   });
+}
+
+/** Практичне завдання теми: позначка «зроблено» синхронізується; новіша позначка перемагає. */
+export const taskKey = (courseId, unitId, i) => `${courseId}/${unitId}/${i}`;
+export const taskDone = (key) => Boolean(state.tasks?.[key]?.done);
+export function setTask(key, done) {
+  update((st) => { (st.tasks ||= {})[key] = { done, at: Date.now() }; });
 }
 
 /** Прийняти злиту копію; true — щось змінилося й екран треба перемалювати. */

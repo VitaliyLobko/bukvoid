@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 790" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="cw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c8641b"/></marker>
+    <marker id="ccw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f6f9f"/></marker>
+  </defs>
+  <rect width="400" height="790" fill="#ffffff"/>
+
+  <!-- ===== props in ===== -->
+  <text x="200" y="30" text-anchor="middle" font-size="22" font-weight="700" fill="#1d1c1a">Props in (типово)</text>
+  <g transform="translate(200,205) scale(1.3)">
+    <g stroke="#6b6760" stroke-width="5"><line x1="-70" y1="-70" x2="70" y2="70"/><line x1="70" y1="-70" x2="-70" y2="70"/></g>
+    <rect x="-22" y="-40" width="44" height="80" rx="6" fill="#f2efe6" stroke="#1d1c1a" stroke-width="2"/>
+    <rect x="-12" y="-53" width="24" height="14" rx="2" fill="#1d1c1a"/>
+    <g fill="none" stroke="#ddd8cc" stroke-width="1.5" stroke-dasharray="5 4">
+      <circle cx="-70" cy="-70" r="44"/><circle cx="70" cy="-70" r="44"/><circle cx="-70" cy="70" r="44"/><circle cx="70" cy="70" r="44"/>
+    </g>
+    <g fill="#f2efe6" stroke="#1d1c1a" stroke-width="2"><circle cx="-70" cy="-70" r="12"/><circle cx="70" cy="-70" r="12"/><circle cx="-70" cy="70" r="12"/><circle cx="70" cy="70" r="12"/></g>
+    <g fill="none" stroke-width="4">
+      <path d="M-115,-96 A52,52 0 0 1 -25,-96" stroke="#c8641b" marker-end="url(#cw)"/>
+      <path d="M115,-96 A52,52 0 0 0 25,-96" stroke="#2f6f9f" marker-end="url(#ccw)"/>
+      <path d="M-115,96 A52,52 0 0 0 -25,96" stroke="#2f6f9f" marker-end="url(#ccw)"/>
+      <path d="M115,96 A52,52 0 0 1 25,96" stroke="#c8641b" marker-end="url(#cw)"/>
+    </g>
+    <g font-size="14" font-weight="700" text-anchor="middle">
+      <text x="-70" y="-38" fill="#c8641b">CW</text><text x="70" y="-38" fill="#2f6f9f">CCW</text>
+      <text x="-70" y="48" fill="#2f6f9f">CCW</text><text x="70" y="48" fill="#c8641b">CW</text>
+    </g>
+  </g>
+  <text x="200" y="129" text-anchor="middle" font-size="16" fill="#1d1c1a">камера</text>
+
+  <!-- ===== props out ===== -->
+  <text x="200" y="410" text-anchor="middle" font-size="22" font-weight="700" fill="#1d1c1a">Props out</text>
+  <g transform="translate(200,585) scale(1.3)">
+    <g stroke="#6b6760" stroke-width="5"><line x1="-70" y1="-70" x2="70" y2="70"/><line x1="70" y1="-70" x2="-70" y2="70"/></g>
+    <rect x="-22" y="-40" width="44" height="80" rx="6" fill="#f2efe6" stroke="#1d1c1a" stroke-width="2"/>
+    <rect x="-12" y="-53" width="24" height="14" rx="2" fill="#1d1c1a"/>
+    <g fill="none" stroke="#ddd8cc" stroke-width="1.5" stroke-dasharray="5 4">
+      <circle cx="-70" cy="-70" r="44"/><circle cx="70" cy="-70" r="44"/><circle cx="-70" cy="70" r="44"/><circle cx="70" cy="70" r="44"/>
+    </g>
+    <g fill="#f2efe6" stroke="#1d1c1a" stroke-width="2"><circle cx="-70" cy="-70" r="12"/><circle cx="70" cy="-70" r="12"/><circle cx="-70" cy="70" r="12"/><circle cx="70" cy="70" r="12"/></g>
+    <g fill="none" stroke-width="4">
+      <path d="M-25,-96 A52,52 0 0 0 -115,-96" stroke="#2f6f9f" marker-end="url(#ccw)"/>
+      <path d="M25,-96 A52,52 0 0 1 115,-96" stroke="#c8641b" marker-end="url(#cw)"/>
+      <path d="M-25,96 A52,52 0 0 1 -115,96" stroke="#c8641b" marker-end="url(#cw)"/>
+      <path d="M25,96 A52,52 0 0 0 115,96" stroke="#2f6f9f" marker-end="url(#ccw)"/>
+    </g>
+    <g font-size="14" font-weight="700" text-anchor="middle">
+      <text x="-70" y="-38" fill="#2f6f9f">CCW</text><text x="70" y="-38" fill="#c8641b">CW</text>
+      <text x="-70" y="48" fill="#c8641b">CW</text><text x="70" y="48" fill="#2f6f9f">CCW</text>
+    </g>
+  </g>
+  <text x="200" y="509" text-anchor="middle" font-size="16" fill="#1d1c1a">камера</text>
+
+  <text x="200" y="778" text-anchor="middle" font-size="15" fill="#6b6760">Вид згори · помаранчеве — CW, синє — CCW</text>
+</svg>
