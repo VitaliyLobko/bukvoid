@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220" viewBox="0 0 200 110">
+  <rect x="5" y="80" width="190" height="22" fill="#ddd8cc"/>
+  <rect x="45" y="75" width="110" height="5" fill="#c8641b"/>
+  <rect x="5" y="50" width="62" height="16" rx="3" fill="#2f6f9f"/>
+  <ellipse cx="108" cy="48" rx="44" ry="27" fill="#8a857c" fill-opacity=".45" stroke="#1d1c1a" stroke-width="1.5"/>
+  <path d="M90,34 q12,-8 26,-4" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="12" y="22" font-family="sans-serif" font-size="18" font-weight="700" fill="#1d1c1a">В</text>
+</svg>
