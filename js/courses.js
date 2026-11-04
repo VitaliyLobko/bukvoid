@@ -59,6 +59,7 @@ export function validate(pack, files = new Set()) {
   if (pack.v !== 1) err.push('Поле v має бути 1 (версія формату).');
   if (!ID_RE.test(pack.id ?? '')) err.push('id курсу — латиниця, цифри й дефіс, 2–40 знаків (напр. geometry-8).');
   if (!str(pack.title)) err.push('Немає назви курсу (title).');
+  if (pack.short !== undefined && !(str(pack.short) && pack.short.length <= 24)) err.push('short — коротка назва для нижньої панелі, до 24 знаків (напр. «FPV-дрон»).');
   if (pack.lang && !['uk', 'en'].includes(pack.lang)) err.push('lang — uk або en (мова друку в курсі).');
   if (pack.icon !== undefined && !ICONS.includes(pack.icon)) err.push(`icon — один зі значків: ${ICONS.join(', ')}.`);
   if (pack.pass !== undefined && !(typeof pack.pass === 'number' && pack.pass > 0 && pack.pass <= 1)) err.push('pass — частка правильних для «пройдено», від 0 до 1 (напр. 0.8).');

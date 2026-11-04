@@ -98,7 +98,7 @@ function blockHtml(b, src) {
   if (b.tip) return `<div class="callout tip">${inline(b.tip)}</div>`;
   if (b.warn) return `<div class="callout warn">${inline(b.warn)}</div>`;
   if (b.note) return `<aside class="callout note">${inline(b.note)}</aside>`;
-  if (b.recall) return `<details class="callout recall"><summary>${inline(b.recall)}</summary><p>${inline(b.a)}</p></details>`;
+  if (b.recall) return `<details class="callout recall"><summary><span>${inline(b.recall)}</span></summary><p>${inline(b.a)}</p></details>`;
   if (b.table) {
     const [head, ...rows] = b.table;
     return `<div class="table-wrap"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead>`

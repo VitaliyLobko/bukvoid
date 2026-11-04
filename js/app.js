@@ -69,6 +69,12 @@ const typingTitle = (lang) => `Друк наосліп · ${LANG_NAMES[lang]}`;
 const typingOn = () => TYPING_COURSES.filter((c) => Courses.builtinOn(c.id));
 const typingDone = (lang) => lessons(lang).filter((l) => lessonState(l.id).done).length;
 
+/** На телефоні: друк наосліп — це фізична клавіатура; екранна клавіатура телефону вчить іншого. */
+function touchNote() {
+  if (!touchOnly()) return '';
+  return '<aside class="callout note touch-note">Друк наосліп тренують на <b>фізичній клавіатурі</b>: відкрийте Буквоїд на комп’ютері або підключіть клавіатуру до планшета. Прогрес той самий, якщо ввімкнено синхронізацію. Тут можна прочитати поради й подивитися уроки.</aside>';
+}
+
 function renderTypingCourse(lang) {
   // Мова останнього відкритого курсу друку — для вільного тренування й старого #druk
   if (set().lang !== lang) S.update((s) => { s.settings.lang = lang; });
@@ -78,6 +84,7 @@ function renderTypingCourse(lang) {
   const weak = weakKeys(S.keyStats(lang));
   view().innerHTML = `
     ${head(typingTitle(lang), '#kursy', `${list.length} уроків: основний ряд → верхній → нижній → знаки й цифри → текст`)}
+    ${touchNote()}
     <section class="hero">
       <div class="hero-main">
         <div class="hero-num">${day.chars}<small>букв з'їдено сьогодні</small></div>
@@ -135,6 +142,7 @@ function renderLesson(lang, n) {
     const state = lessonState(lesson.id);
     view().innerHTML = `
       ${head(`Урок ${lesson.n}. ${lesson.title}`, `#kurs/druk-${lang}`, lesson.fresh.length ? `Нові клавіші: ${lesson.fresh.map((c) => `<kbd>${esc(c.toUpperCase())}</kbd>`).join(' ')}` : esc(lesson.note || ''))}
+      ${touchNote()}
       <div class="parts">
         ${exs.map((e) => {
           const p = state.parts[e.key];
@@ -295,6 +303,23 @@ function resumeOf(cid) {
   return { href: `#k/${esc(cid)}/${esc(u.id)}`, how, n: i + 1, total: pack.units.length, title: u.title, word: 'Тема', started: last >= 0 };
 }
 
+/** Перший запуск (жодного курсу ще не відкривали й прогресу немає): що це за застосунок і з чого почати. */
+function welcomeHero() {
+  if (lastCourse()) return '';
+  const s = st();
+  const any = Object.keys(s.courses || {}).length || ['uk', 'en', 'ru'].some((l) => typingDone(l)) || SRS.counts(Courses.enabled()).total;
+  if (any) return '';
+  return `<section class="card welcome">
+      <div class="eyebrow">Як тут вчитися</div>
+      <p>Кожна тема курсу — <b>теорія, приклади й тест</b>. Помилки тесту повертаються на <b>повторення</b> наступного дня, потім через 2, 4, 8 днів — так знання переходять у довгу пам'ять. Фрази мовних курсів збираються в колоду.</p>
+      <p>Відкрийте будь-який курс нижче або додайте новий з <button type="button" class="link" data-to-catalog>каталогу</button>. ${touchOnly() ? 'Друк наосліп тренують на клавіатурі комп’ютера.' : 'Друк наосліп — окремі курси з екранною клавіатурою.'}</p>
+      <p class="muted small">Щоб прогрес був однаковий на телефоні й комп'ютері — ⚙ → «Google Диск».</p>
+    </section>`;
+}
+
+/** Пристрій без фізичної клавіатури й миші (телефон, планшет): друк наосліп тут не потренуєш. */
+const touchOnly = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
+
 /** «Де зупинились» угорі «Курсів»: останній відкритий курс і його тема — одним дотиком. */
 function resumeHero() {
   const cid = lastCourse();
@@ -315,19 +340,21 @@ function resumeHero() {
 /** «Повторення»: фрази мовних курсів і помилки тестів — те, що сьогодні час повторити. */
 function srsHero() {
   const packs = Courses.enabled();
-  const phrases = packs.some(({ pack }) => pack.units.some((u) => u.words?.length));
   const c = SRS.counts(packs);
   const m = SRS.mistakeCounts(packs);
-  if (!phrases && !m.total) return '';
-  const parts = [phrases && `фраз ${c.due}`, m.total && `помилок ${m.due}`].filter(Boolean).join(' · ');
+  if (!c.total && !m.total) return '';
+  if (!c.due && !m.due) {
+    return `<p class="srs-line"><span class="eyebrow">Повторення</span> <span class="muted">на сьогодні все${m.total ? ` · помилок у черзі ${m.total}` : ''}</span>${c.total ? ' <a href="#srs">Колода фраз</a>' : ''}</p>`;
+  }
+  const parts = [c.total && `фраз ${c.due}`, m.total && `помилок ${m.due}`].filter(Boolean).join(' · ');
   const buttons = [
-    phrases && `<a class="btn ${c.due ? 'primary' : ''}" href="#srs">${c.due ? 'Фрази' : 'Колода фраз'}</a>`,
+    c.due && '<a class="btn primary" href="#srs">Фрази</a>',
     m.due && '<a class="btn primary" href="#mistakes">Помилки</a>',
   ].filter(Boolean).join('');
   return `<section class="hero srs-card">
       <div class="hero-main"><div class="eyebrow">Повторення</div>
       <div class="hero-num">${c.due + m.due}<small> на сьогодні</small></div>
-      <div class="muted">${parts}${!m.total ? ' · помилки з тестів теж повертатимуться сюди' : ''}</div></div>
+      <div class="muted">${parts}</div></div>
       <div class="row">${buttons}</div>
     </section>`;
 }
@@ -359,7 +386,7 @@ function courseTile({ id, href, icon, title, subtitle, done, started, total, wor
         <span class="muted">${esc(subtitle || '')}</span>
         <span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>
         <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small>
-        ${r?.started ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
+        ${r?.started && !cur ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
 }
 
 function renderCourses() {
@@ -383,7 +410,7 @@ function renderCourses() {
   const tiles = items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => courseTile(x));
   view().innerHTML = `
     ${head('Курси', '', 'Теорія, тест, повторення помилок і практика — тема за темою')}
-    ${resumeHero()}
+    ${resumeHero() || welcomeHero()}
     ${srsHero()}
     <h2 class="section-title">Мої курси</h2>
     <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
@@ -392,6 +419,7 @@ function renderCourses() {
     <div class="tiles courses" id="catalog-tiles"></div></section>
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
   addCatalogTiles($('catalog-tiles'));
+  view().querySelector('[data-to-catalog]')?.addEventListener('click', () => $('kursy-catalog')?.scrollIntoView({ behavior: 'smooth' }));
 }
 
 /** Курси каталогу, яких ще немає на пристрої, — блідими плитками в тій самій сітці; торкнулись — курс додається. */
@@ -417,27 +445,6 @@ async function addCatalogTiles(grid) {
         b.querySelector('.add-label').innerHTML = `<span class="errors">Не вдалося: ${esc(err.message)}</span>`;
         b.disabled = false;
       }
-    };
-  });
-}
-
-const catalogRowHtml = (c) => `
-  <div class="course-row">
-    <span class="opt"><span class="course-ico small">${iconSvg(c.icon)}</span><span><b>${esc(c.title)}</b><br><span class="muted small">${esc(c.subtitle || '')}${c.units ? ` · ${c.units} тем` : ''}</span></span></span>
-    <button type="button" class="btn primary" data-course-add="${esc(c.id)}">Додати</button>
-  </div>`;
-
-/** ⚙ → «Курси» → «Каталог»: курси, яких ще немає на пристрої, з кнопкою «Додати». */
-async function drawFreshCatalog(box, msg) {
-  const cat = await Courses.catalog();
-  if (!box.isConnected) return;
-  if (!cat) { box.innerHTML = '<p class="muted">Каталог недоступний без мережі.</p>'; return; }
-  const fresh = cat.filter((c) => !Courses.get(c.id));
-  box.innerHTML = fresh.length ? fresh.map(catalogRowHtml).join('') : '<p class="muted">Усі курси каталогу вже додано.</p>';
-  box.querySelectorAll('[data-course-add]').forEach((b) => {
-    b.onclick = async () => {
-      b.disabled = true;
-      try { await Courses.install(b.dataset.courseAdd); msg('Курс додано — він на вкладці «Курси».'); } catch (err) { msg(`Не вдалося додати: ${esc(err.message)}`); b.disabled = false; }
     };
   });
 }
@@ -623,16 +630,20 @@ function renderSrs() {
         <div class="q-meta muted">${esc(card.unit.title)}</div>
         <div class="q-text">${esc(card.word.uk)}</div>
         ${card.word.ex ? `<p class="muted">${esc(maskPhrase(card.word.ex, card.word.en))}</p>` : ''}
-        <form class="q-form" id="srs-form"><input class="q-input" id="srs-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="англійською" aria-label="Фраза англійською"><button type="submit" class="btn primary">Перевірити</button></form>
+        <form class="q-form" id="srs-form"><input class="q-input" id="srs-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="англійською" aria-label="Фраза англійською"><button type="submit" class="btn primary">Перевірити</button><button type="button" class="btn" id="srs-skip">Не пам’ятаю</button></form>
         <div class="q-feedback" id="srs-fb" hidden></div>
       </div>`;
     const input = $('srs-input');
     const shownAt = Date.now();
     input.focus();
+    // «Не пам’ятаю» — чесна відповідь «не знаю»: фраза рахується помилкою й повертається в чергу
+    let giveUp = false;
+    $('srs-skip').onclick = () => { giveUp = true; $('srs-form').requestSubmit(); };
     $('srs-form').onsubmit = (e) => {
       e.preventDefault();
       const given = input.value.trim();
-      if (!given) return;
+      if (!given && !giveUp) return;
+      $('srs-skip').hidden = true;
       const right = normalizeLoose(given) === normalizeLoose(card.word.en);
       input.disabled = true;
       input.classList.add(right ? 'good' : 'bad');
@@ -865,17 +876,17 @@ function renderSettings(section) {
     ${setGroup('Навчання', [
     setRow('courses', 'book', 'Курси', '', `
         <div id="courses-installed" class="stack"></div>
-        <h3 class="sub-title">Можна додати</h3>
-        <p class="muted small">Курси з каталогу, яких ще немає на пристрої.</p>
-        <div id="courses-catalog" class="stack"><p class="muted">Завантажую каталог…</p></div>
+        <p class="muted small">Нові курси — у розділі «Каталог» на вкладці <a href="#kursy">«Курси»</a>: торкніться плитки — курс додано.</p>
         <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
         <div id="courses-msg" class="muted" role="status"></div>
-        <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>`),
+        <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>`)])}
+    ${setGroup('Друк наосліп', [
     setRow('mode', 'stop', 'Помилки під час друку', v.mode, `
         ${radio('mode', 'stop', '<b>Зупинка на помилці</b> — далі лише після правильної клавіші (радимо)', s.mode)}
         ${radio('mode', 'flow', '<b>Без зупинки</b> — помилку позначено, текст іде далі, Backspace повертає', s.mode)}`),
     setRow('keyboard', 'keyboard', 'Клавіатура на екрані', v.keyboard,
-      `<label class="opt"><input type="checkbox" name="keyboard"${s.keyboard ? ' checked' : ''}> Показувати з підсвіткою наступної клавіші</label>`)])}
+      `<label class="opt"><input type="checkbox" name="keyboard"${s.keyboard ? ' checked' : ''}> Показувати з підсвіткою наступної клавіші</label>
+       <p class="muted small">На вузькому екрані (телефон) клавіатуру не показано — їй бракує місця.</p>`)])}
     ${setGroup('Вигляд', [
     setRow('size', 'type', 'Розмір тексту', v.size, `
         <div class="seg seg-size" role="radiogroup" aria-label="Розмір тексту">
@@ -981,7 +992,7 @@ function mountCourses() {
     if (!$('courses-installed')) return;
     const list = Courses.list();
     setVal('courses', `${typingOn().length + Courses.enabled().length} з ${TYPING_COURSES.length + list.length}`);
-    // Три стани: на вкладці → сховані (на пристрої, прогрес цілий) → видалені (знову в «Можна додати»)
+    // Три стани: на вкладці → сховані (на пристрої, прогрес цілий) → видалені (знову в «Каталозі» на вкладці «Курси»)
     const all = [
       ...TYPING_COURSES.map(({ id, lang }) => ({ id, builtin: true, on: Courses.builtinOn(id), icon: 'keyboard', title: typingTitle(lang), meta: `${lessons(lang).length} уроків · вбудований` })),
       ...list.map(({ id, pack, enabled, from }) => ({ id, on: enabled, icon: pack.icon, title: pack.title, meta: `${pack.units.length} тем · ${from === 'file' ? 'з файлу' : 'з каталогу'}` })),
@@ -1019,7 +1030,6 @@ function mountCourses() {
       };
     });
   };
-  const drawCatalog = () => $('courses-catalog') && drawFreshCatalog($('courses-catalog'), msg);
   $('course-file').onchange = async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
@@ -1032,7 +1042,7 @@ function mountCourses() {
       msg(`<b>${esc(err.message)}</b>${list}`);
     }
   };
-  const redraw = () => { drawInstalled(); drawCatalog(); };
+  const redraw = () => { drawInstalled(); };
   redraw();
   window.addEventListener('courses-change', redraw);
   window.addEventListener('hashchange', () => window.removeEventListener('courses-change', redraw), { once: true });
@@ -1196,9 +1206,9 @@ function aboutHtml() {
       </details>
       <details class="about-more"><summary>З чого почати</summary>
         <ol class="about-steps">
-          <li>Прочитайте «Як ставити руки» на вкладці «Друк» і покладіть пальці на основний ряд.</li>
-          <li>Проходьте уроки по черзі, 15–20 хвилин щодня. Урок зараховано від 97% точності — не поспішайте.</li>
-          <li>Між уроками — тема з «Правопису» чи юніт англійської: правило, тест, друк правильних форм.</li>
+          <li>Оберіть курс на вкладці «Курси» або додайте з «Каталогу». Тема — теорія, приклади, тест; «Завдання» — те, що варто зробити руками.</li>
+          <li>Тест зараховано від прохідного балу курсу (зазвичай 80%). Помилки повертаються в «Повторення» наступного дня — заходьте туди щодня, хоч на 5 хвилин.</li>
+          <li>Друк наосліп — на комп'ютері: «Перш ніж почати» на сторінці курсу, далі уроки по черзі, 15–20 хвилин щодня; урок зараховано від 97% точності.</li>
           <li>Підключіть Google Диск, щоб прогрес був однаковий на комп'ютері й телефоні.</li>
         </ol>
       </details>
@@ -1359,6 +1369,12 @@ function lastCourse() {
 function currentCourse() {
   return lastCourse() ?? `druk-${set().lang}`;
 }
+/** Назва для нижньої панелі: поле short курсу, інакше частина до « · » чи «:» («English A2 · Elementary» → «English A2»). */
+function shortTitle(pack) {
+  if (pack.short) return pack.short;
+  const cut = pack.title.split(/ · |: /)[0];
+  return cut.length >= 4 ? cut : pack.title;
+}
 function drawCurrentTab() {
   const id = currentCourse();
   const typing = TYPING_COURSES.find((c) => c.id === id);
@@ -1369,7 +1385,7 @@ function drawCurrentTab() {
   a.title = title;
   a.setAttribute('aria-label', `Поточний курс: ${title}`);
   // У панелі коротко: «Друк · Українська» — повна назва на вузькому екрані обрізалась би
-  a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(typing ? `Друк · ${LANG_NAMES[typing.lang]}` : title)}</span>`;
+  a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(typing ? `Друк · ${LANG_NAMES[typing.lang]}` : shortTitle(pack))}</span>`;
 }
 
 function route() {
@@ -1428,6 +1444,12 @@ function registerWorker() {
 document.querySelector('.skip').addEventListener('click', (e) => { e.preventDefault(); $('view').focus(); });
 
 applyTheme();
+// Висота шапки — для змісту теми, що прилипає під нею (шапка росте з розміром тексту й safe-area)
+{
+  const bar = document.querySelector('.topbar');
+  const setH = () => document.documentElement.style.setProperty('--topbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
+  if (bar) { setH(); new ResizeObserver(setH).observe(bar); }
+}
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
 window.addEventListener('hashchange', route);
 registerWorker();

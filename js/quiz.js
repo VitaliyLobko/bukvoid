@@ -67,7 +67,9 @@ export function mountQuiz(root, exercises, { onDone, onTime, onAnswer, labels = 
     let body;
     if (ex.type === 'choice') {
       const opts = shuffle(ex.options.map((o, i) => ({ o, ok: i === ex.a })));
-      body = `<div class="q-options">${opts.map((x, n) => `<button type="button" class="q-opt" data-ok="${x.ok ? 1 : 0}"><kbd>${n + 1}</kbd>${esc(x.o)}</button>`).join('')}</div>`;
+      // Непарна кількість чи довгий варіант — на телефоні стовпцем, щоб варіант не висів один і не ламався
+      const stack = opts.length % 2 || opts.some((x) => String(x.o).length > 12);
+      body = `<div class="q-options${stack ? ' stack' : ''}">${opts.map((x, n) => `<button type="button" class="q-opt" data-ok="${x.ok ? 1 : 0}"><kbd>${n + 1}</kbd>${esc(x.o)}</button>`).join('')}</div>`;
     } else if (ex.type === 'order') {
       // Перемішуємо так, щоб початковий порядок не збігся з правильним
       let items = shuffle(ex.items.map((t, k) => ({ t, k })));
