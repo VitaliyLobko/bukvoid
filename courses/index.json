@@ -79,10 +79,10 @@
   },
   {
    "id": "knife-sharpening",
-   "version": 2,
+   "version": 4,
    "title": "Заточка ножа на верстаті",
    "subtitle": "Точильна система з фіксацією кута: терміни, кут, маркер, задирка, камені й сталь",
-   "units": 12,
+   "units": 13,
    "icon": "geometry",
    "dir": "knife-sharpening"
   },
