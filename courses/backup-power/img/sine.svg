@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260" font-family="system-ui, sans-serif">
+  <rect width="360" height="260" fill="#ffffff"/>
+  <text x="20" y="24" font-size="15" font-weight="bold" fill="#1e88e5">Чиста синусоїда</text>
+  <line x1="20" y1="75" x2="345" y2="75" stroke="#bbb" stroke-width="1"/>
+  <path d="M20,75 C45,15 75,15 100,75 C125,135 155,135 180,75 C205,15 235,15 260,75 C285,135 315,135 340,75" fill="none" stroke="#1e88e5" stroke-width="3.5"/>
+  <text x="20" y="152" font-size="15" font-weight="bold" fill="#ef6c00">Модифікована синусоїда</text>
+  <line x1="20" y1="205" x2="345" y2="205" stroke="#bbb" stroke-width="1"/>
+  <polyline fill="none" stroke="#ef6c00" stroke-width="3.5" points="20,205 35,205 35,165 85,165 85,205 100,205 115,205 115,245 165,245 165,205 180,205 195,205 195,165 245,165 245,205 260,205 275,205 275,245 325,245 325,205 340,205"/>
+</svg>
