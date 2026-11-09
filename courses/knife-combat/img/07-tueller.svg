@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260" font-family="system-ui, sans-serif">
+  <rect width="700" height="260" fill="#ffffff"/>
+  <circle cx="70" cy="120" r="26" fill="#c62828"/>
+  <text x="70" y="176" font-size="22" text-anchor="middle" fill="#c62828">ніж</text>
+  <circle cx="630" cy="120" r="26" fill="#1e88e5"/>
+  <text x="630" y="176" font-size="22" text-anchor="middle" fill="#1e88e5">ти</text>
+  <line x1="105" y1="120" x2="590" y2="120" stroke="#374151" stroke-width="5"/>
+  <path d="M576 108 L596 120 L576 132" fill="none" stroke="#374151" stroke-width="5"/>
+  <text x="350" y="96" font-size="34" font-weight="700" text-anchor="middle" fill="#111827">≈ 1,5 секунди</text>
+  <text x="350" y="160" font-size="26" text-anchor="middle" fill="#374151">6,4 м (21 фут)</text>
+  <text x="350" y="226" font-size="21" text-anchor="middle" fill="#6b7280">Tueller Drill (Dennis Tueller, 1983)</text>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 560" font-family="system-ui, sans-serif">
+  <rect width="700" height="560" fill="#ffffff"/>
+  <g fill="#eef0f3" stroke="#6b7280" stroke-width="4" stroke-linejoin="round">
+    <circle cx="230" cy="70" r="40"/>
+    <rect x="212" y="108" width="36" height="28"/>
+    <path d="M160 136 H300 L312 330 H148 Z"/>
+    <path d="M160 140 L118 250 L100 360 L122 364 L146 262 L170 190 Z"/>
+    <path d="M300 140 L342 250 L360 360 L338 364 L314 262 L290 190 Z"/>
+    <path d="M152 330 H228 L222 540 H180 Z"/>
+    <path d="M232 330 H308 L280 540 H238 Z"/>
+  </g>
+  <rect x="175" y="150" width="110" height="130" rx="10" fill="#9ca3af" opacity="0.55"/>
+  <text x="230" y="222" font-size="22" text-anchor="middle" fill="#374151">плита</text>
+  <g fill="#c62828" fill-opacity="0.25" stroke="#c62828" stroke-width="3">
+    <circle cx="230" cy="122" r="22"/>
+    <circle cx="164" cy="160" r="20"/>
+    <circle cx="112" cy="320" r="22"/>
+    <circle cx="208" cy="372" r="24"/>
+  </g>
+  <g font-size="26" font-weight="700" fill="#c62828">
+    <text x="260" y="112">1</text>
+    <text x="124" y="150">2</text>
+    <text x="72" y="330">3</text>
+    <text x="164" y="410">4</text>
+  </g>
+  <g font-size="22" fill="#111827">
+    <text x="380" y="110"><tspan font-weight="700" fill="#c62828">1</tspan> шия збоку</text>
+    <text x="380" y="138" fill="#6b7280" font-size="22">сонна артерія, вени</text>
+    <text x="380" y="190"><tspan font-weight="700" fill="#c62828">2</tspan> пахва</text>
+    <text x="380" y="218" fill="#6b7280" font-size="22">пахвова артерія</text>
+    <text x="380" y="270"><tspan font-weight="700" fill="#c62828">3</tspan> передпліччя зсередини</text>
+    <text x="380" y="298" fill="#6b7280" font-size="22">сухожилля кисті</text>
+    <text x="380" y="350"><tspan font-weight="700" fill="#c62828">4</tspan> пах, стегно зсередини</text>
+    <text x="380" y="378" fill="#6b7280" font-size="22">стегнова артерія</text>
+    <text x="380" y="440" font-size="22" fill="#374151">Плита — лише центр корпусу.</text>
+    <text x="380" y="468" font-size="22" fill="#374151">Зони 1, 2, 4 — ті самі, де</text>
+    <text x="380" y="494" font-size="22" fill="#374151">турнікет не допоможе:</text>
+    <text x="380" y="520" font-size="22" fill="#374151">тампонування і тиск.</text>
+  </g>
+</svg>

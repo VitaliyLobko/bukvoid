@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420" font-family="system-ui, sans-serif">
+  <rect width="700" height="420" fill="#ffffff"/>
+  <text x="350" y="32" font-size="22" text-anchor="middle" fill="#6b7280">кути атаки — приклад нумерації</text>
+  <g fill="none" stroke="#9ca3af" stroke-width="4">
+    <circle cx="350" cy="110" r="38"/>
+    <path d="M285 160 H415 L425 360 H275 Z"/>
+  </g>
+  <g stroke-width="6" fill="none">
+    <path d="M150 70 L300 190" stroke="#1e88e5"/>
+    <path d="M550 70 L400 190" stroke="#2e7d32"/>
+    <path d="M140 250 L290 250" stroke="#ef6c00"/>
+    <path d="M560 250 L410 250" stroke="#8e24aa"/>
+    <path d="M350 400 L350 300" stroke="#c62828"/>
+  </g>
+  <g stroke-width="6" fill="none" stroke-linejoin="round">
+    <path d="M275 186 L300 190 L290 167" stroke="#1e88e5"/>
+    <path d="M425 186 L400 190 L410 167" stroke="#2e7d32"/>
+    <path d="M272 238 L292 250 L272 262" stroke="#ef6c00"/>
+    <path d="M428 238 L408 250 L428 262" stroke="#8e24aa"/>
+    <path d="M338 318 L350 298 L362 318" stroke="#c62828"/>
+  </g>
+  <g font-size="30" font-weight="700">
+    <text x="118" y="70" fill="#1e88e5">1</text>
+    <text x="566" y="70" fill="#2e7d32">2</text>
+    <text x="108" y="260" fill="#ef6c00">3</text>
+    <text x="574" y="260" fill="#8e24aa">4</text>
+    <text x="372" y="400" fill="#c62828">5</text>
+  </g>
+  <g font-size="20" fill="#374151">
+    <text x="20" y="320">1, 2 — діагональ згори</text>
+    <text x="20" y="346">3, 4 — горизонтально</text>
+    <text x="20" y="372">5 — укол прямо</text>
+  </g>
+</svg>

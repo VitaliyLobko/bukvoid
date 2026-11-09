@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 360" font-family="system-ui, sans-serif">
+  <rect width="700" height="360" fill="#ffffff"/>
+  <text x="350" y="34" font-size="22" text-anchor="middle" fill="#6b7280">вигляд згори</text>
+  <circle cx="90" cy="190" r="28" fill="#6b7280"/>
+  <text x="90" y="246" font-size="22" text-anchor="middle" fill="#374151">противник</text>
+  <line x1="125" y1="190" x2="640" y2="190" stroke="#9ca3af" stroke-width="4" stroke-dasharray="14 10"/>
+  <text x="300" y="178" font-size="22" text-anchor="middle" fill="#6b7280">лінія атаки</text>
+  <circle cx="400" cy="190" r="28" fill="#1e88e5"/>
+  <text x="400" y="246" font-size="22" text-anchor="middle" fill="#1e88e5">ти</text>
+  <line x1="435" y1="190" x2="590" y2="190" stroke="#c62828" stroke-width="6"/>
+  <path d="M578 178 L600 190 L578 202" fill="none" stroke="#c62828" stroke-width="6"/>
+  <text x="560" y="236" font-size="22" font-weight="700" text-anchor="middle" fill="#c62828">✗ назад по лінії</text>
+  <line x1="420" y1="162" x2="470" y2="85" stroke="#2e7d32" stroke-width="6"/>
+  <path d="M452 92 L474 78 L474 104" fill="none" stroke="#2e7d32" stroke-width="6"/>
+  <text x="500" y="80" font-size="22" font-weight="700" fill="#2e7d32">✓ крок під кутом</text>
+  <text x="350" y="320" font-size="21" text-anchor="middle" fill="#374151">хто відступає по лінії — програє в швидкості тому, хто наступає</text>
+</svg>

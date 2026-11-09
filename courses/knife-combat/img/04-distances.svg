@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 300" font-family="system-ui, sans-serif">
+  <rect width="700" height="300" fill="#ffffff"/>
+  <rect x="80" y="70" width="130" height="140" fill="#fde2e2"/>
+  <rect x="210" y="70" width="200" height="140" fill="#fff1d6"/>
+  <rect x="410" y="70" width="260" height="140" fill="#e3f0e3"/>
+  <circle cx="60" cy="140" r="26" fill="#1e88e5"/>
+  <text x="60" y="243" font-size="22" text-anchor="middle" fill="#1e88e5">ти</text>
+  <g font-size="24" font-weight="700" text-anchor="middle" fill="#111827">
+    <text x="145" y="128">ближня</text>
+    <text x="310" y="128">середня</text>
+    <text x="540" y="128">далека</text>
+  </g>
+  <g font-size="20" text-anchor="middle" fill="#374151">
+    <text x="145" y="160">клінч,</text>
+    <text x="145" y="184">захвати</text>
+    <text x="310" y="160">досяжність</text>
+    <text x="310" y="184">рук і ножа</text>
+    <text x="540" y="160">вогнепальна</text>
+    <text x="540" y="184">зброя і рух</text>
+  </g>
+  <text x="350" y="40" font-size="22" text-anchor="middle" fill="#6b7280">чим ближче — тим менше часу на реакцію</text>
+  <path d="M80 270 H670" stroke="#6b7280" stroke-width="3"/>
+  <path d="M660 262 L672 270 L660 278" fill="none" stroke="#6b7280" stroke-width="3"/>
+</svg>

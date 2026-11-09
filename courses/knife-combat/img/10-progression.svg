@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 364" font-family="system-ui, sans-serif">
+  <rect width="700" height="364" fill="#ffffff"/>
+  <rect x="20" y="250" width="160" height="70" fill="#e3f0e3"/>
+  <rect x="190" y="190" width="160" height="130" fill="#d4ead4"/>
+  <rect x="360" y="130" width="160" height="190" fill="#fff1d6"/>
+  <rect x="530" y="70" width="160" height="250" fill="#fde2e2"/>
+  <g font-size="40" font-weight="700" fill="#374151" text-anchor="middle">
+    <text x="100" y="300">1</text>
+    <text x="270" y="240">2</text>
+    <text x="440" y="180">3</text>
+    <text x="610" y="120">4</text>
+  </g>
+  <g font-size="20" fill="#111827" text-anchor="middle">
+    <text x="100" y="222">техніка</text>
+    <text x="100" y="244">повільно</text>
+    <text x="270" y="162">з опором</text>
+    <text x="270" y="184">партнера</text>
+    <text x="440" y="102">сценарій:</text>
+    <text x="440" y="124">атака невідома</text>
+    <text x="610" y="42">спаринг</text>
+    <text x="610" y="64">маркерними</text>
+  </g>
+  <text x="350" y="352" font-size="20" text-anchor="middle" fill="#6b7280">кожна сходинка — лише коли попередня виходить стабільно</text>
+</svg>
