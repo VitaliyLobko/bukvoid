@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 250" font-family="system-ui, sans-serif">
+  <rect width="360" height="250" fill="#ffffff"/>
+  <line x1="30" y1="210" x2="345" y2="210" stroke="#444" stroke-width="1.5"/>
+  <g fill="#ef6c00">
+    <rect x="40" y="50" width="36" height="160"/>
+    <rect x="92" y="64.6" width="36" height="145.4"/>
+    <rect x="144" y="77.8" width="36" height="132.2"/>
+    <rect x="196" y="89.8" width="36" height="120.2"/>
+    <rect x="248" y="100.7" width="36" height="109.3"/>
+    <rect x="300" y="110.6" width="36" height="99.4"/>
+  </g>
+  <g font-size="13" fill="#222" text-anchor="middle" font-weight="bold">
+    <text x="58" y="44">100</text>
+    <text x="110" y="58">91</text>
+    <text x="162" y="72">83</text>
+    <text x="214" y="84">75</text>
+    <text x="266" y="95">68</text>
+    <text x="318" y="105">62</text>
+  </g>
+  <g font-size="12" fill="#444" text-anchor="middle">
+    <text x="58" y="226">зараз</text>
+    <text x="110" y="226">1 рік</text>
+    <text x="162" y="226">2</text>
+    <text x="214" y="226">3</text>
+    <text x="266" y="226">4</text>
+    <text x="318" y="226">5</text>
+  </g>
+  <text x="180" y="22" font-size="13" fill="#444" text-anchor="middle">Що купить 100 грн при інфляції 10% на рік</text>
+  <text x="180" y="244" font-size="12" fill="#444" text-anchor="middle">у цінах сьогодні, грн</text>
+</svg>
