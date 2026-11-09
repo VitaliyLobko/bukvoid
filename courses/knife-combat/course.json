@@ -2,7 +2,7 @@
  "format": "bukvoid-course",
  "v": 1,
  "id": "knife-combat",
- "version": 3,
+ "version": 4,
  "title": "Ножовий бій для військового",
  "short": "Ножовий бій",
  "subtitle": "Теорія до живих тренувань: вибір і носіння ножа, вилучення, удари й анатомія цілей, захист від ножа, клінч, партер і безпечні тренування.",
@@ -133,10 +133,15 @@
    "title": "Джерела фото",
    "theory": [
     {
-     "p": "Усі фото — суспільне надбання (public domain), Wikimedia Commons. Схеми намальовано для курсу."
+     "p": "Фото з Wikimedia Commons: більшість — суспільне надбання (public domain), фото SRK — [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/), FM81 — CC0. Схеми намальовано для курсу."
     },
     {
      "ul": [
+      "[Cold Steel SRK](https://commons.wikimedia.org/wiki/File:Cold_Steel_SRK_%2834454360006%29.jpg) — James Case, CC BY 2.0",
+      "[SRK у піхвах](https://commons.wikimedia.org/wiki/File:Cold_Steel_SRK_in_Sheath_%2834110149650%29.jpg) — James Case, CC BY 2.0",
+      "[Glock FM81](https://commons.wikimedia.org/wiki/File:Feldmesser81_BK.JPG) — Wolfdale45, CC0",
+      "[Клінч у бронежилеті](https://commons.wikimedia.org/wiki/File:MCMAP_-_clinch_fighting_-_110324-M-0000B-005%282%29.jpg) — КМП США",
+      "[Утримання зброї](https://commons.wikimedia.org/wiki/File:Lt._Villagomez,_1st_Battalion,_40th_Cavalry_Regiment,_2nd_Brigade,_11th_Airborne_Division,_participates_in_weapon_retention_drills_and_combatives_with_other_soldiers_from_the_9th_Assam_Regiment,_Indian_Army,_and_1-40th_Cav.jpg) — армія США",
       "[Ka-Bar USMC](https://commons.wikimedia.org/wiki/File:KA-BAR.jpg) — N. von Kospoth",
       "[Укол тренувальними ножами](https://commons.wikimedia.org/wiki/File:Marine_Corps_Martial_Arts_Program_course_131022-N-IY633-211.jpg) — ВМС США",
       "[Удар по подушці](https://commons.wikimedia.org/wiki/File:CARAT_Brunei_2024_MCMAP_SMEE_%288765094%29.jpg) — КМП США",
@@ -422,6 +427,16 @@
      "p": "**SRK** ([сторінка виробника](https://www.coldsteel.com/srk-sk-5/)) — найкраще співвідношення ціни й надійності. **ESEE 5** ([виробник](https://www.eseeknives.com/product/esee-5-3d-handle)) — «брухт», але важкий. **Fallkniven A1** — найміцніший і нержавкий, але дорогий. **Ka-Bar** — класика, брати з синтетичним руків'ям. **Glock FM81** ([виробник](https://eu.glock.com/en/Products/GLOCK-Field-knives)) — 202 г, дешевий, руків'я порожнисте: не для важеля."
     },
     {
+     "img": "img/02-srk.jpg",
+     "alt": "Ніж Cold Steel SRK на дерев'яній дошці: чорний клинок з покриттям, невелика гарда, гумове руків'я з насічкою й отвором для темляка.",
+     "caption": "Cold Steel SRK — основний вибір за розумні гроші. Фото: James Case, CC BY 2.0, Wikimedia Commons"
+    },
+    {
+     "img": "img/02-fm81.jpg",
+     "alt": "Польовий ніж Glock FM81 з пилкою на обуху і пластиковою гардою, поруч пластикові піхви з кліпсою.",
+     "caption": "Glock FM81 — легкий і дешевий запасний; руків'я порожнисте. Фото: Wolfdale45, CC0, Wikimedia Commons"
+    },
+    {
      "img": "img/02-kabar.jpg",
      "alt": "Класичний ніж Ka-Bar USMC: чорний клинок з долом, руків'я з наборної шкіри з металевим навершям, поруч шкіряні піхви з емблемою морської піхоти США.",
      "caption": "Класичний Ka-Bar: шкіряне руків'я і шкіряні піхви гниють у вологих умовах — бери синтетику й кайдекс. Фото: N. von Kospoth, суспільне надбання, Wikimedia Commons"
@@ -662,6 +677,11 @@
     },
     {
      "h": "Фіксація"
+    },
+    {
+     "img": "img/03-srk-sheath.jpg",
+     "alt": "Ніж SRK у жорстких пластикових піхвах Secure-Ex: по краю ряд отворів для кріплення до MOLLE чи поясу, на руків'ї ремінець-фіксатор на кнопці.",
+     "caption": "Жорсткі піхви з отворами під кріплення і ремінцем-фіксатором. Фото: James Case, CC BY 2.0, Wikimedia Commons"
     },
     {
      "p": "Кайдекс тримає ніж тертям і клацанням. Перевірка: перевернись, пострибай, проповзи — ніж має лишитися в піхвах. Але витягти його мусиш однією рукою без ривка."
@@ -1996,6 +2016,11 @@
      "p": "**Клінч** — бій упритул, коли противники тримають один одного. Для військового найчастіший варіант — противник учепився у твою зброю. Тут вирішують рівновага, позиція й рішучість, а не красиві прийоми."
     },
     {
+     "img": "img/09-clinch-vest.jpg",
+     "alt": "Двоє морських піхотинців у клінчі на траві: один у бронежилеті, другий притискається головою до його корпусу й тримає руки, обидва в низькій стійці.",
+     "caption": "Клінч у бронежилеті — низька стійка, голова й руки працюють на контроль. Фото: КМП США, суспільне надбання, Wikimedia Commons"
+    },
+    {
      "h": "Утримання автомата"
     },
     {
@@ -2005,6 +2030,11 @@
       "Рухайся по колу, а не тягни по прямій — так противник втрачає рівновагу.",
       "Ремінь зброї тримає її на тобі — без ременя зброю в клінчі легше втратити."
      ]
+    },
+    {
+     "img": "img/09-retention.jpg",
+     "alt": "Військовий на тренуванні з утримання зброї: глибоко присів у широкій стійці, розвертається корпусом і тримає тренувальний пістолет обома руками біля тіла; позаду так само працюють інші.",
+     "caption": "Утримання зброї: біля корпусу, центр ваги внизу, розворот корпусом. Фото: армія США, суспільне надбання, Wikimedia Commons"
     },
     {
      "h": "Перехід на іншу зброю"
