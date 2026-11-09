@@ -2,7 +2,7 @@
  "format": "bukvoid-course",
  "v": 1,
  "id": "knife-combat",
- "version": 5,
+ "version": 6,
  "title": "Ножовий бій для військового",
  "short": "Ножовий бій",
  "subtitle": "Теорія до живих тренувань: вибір і носіння ножа, вилучення, удари й анатомія цілей, захист від ножа, клінч, партер і безпечні тренування.",
@@ -139,7 +139,7 @@
      "ul": [
       "[Хвати A–D](https://www.personaldefensenetwork.com/post/conventional-and-unconventional-knife-grips) — Personal Defense Network",
       "[Зворотний хват у стійці](https://www.recoilweb.com/knife-hands-avoid-these-common-grip-mistakes-to-sharpen-your-edge-weapon-skills-153220.html) — RECOIL",
-      "[Вилучення SOC-P](https://soldiersystems.net/2011/09/13/soc-p-knife-getting-it-into-action/) — Benchmade / Soldier Systems Daily",
+      "[Вилучення SOC-P і ніж на плитоносці](https://soldiersystems.net/2011/09/13/soc-p-knife-getting-it-into-action/) — Benchmade / Soldier Systems Daily",
       "[Cold Steel SRK](https://commons.wikimedia.org/wiki/File:Cold_Steel_SRK_%2834454360006%29.jpg) — James Case, CC BY 2.0",
       "[SRK у піхвах](https://commons.wikimedia.org/wiki/File:Cold_Steel_SRK_in_Sheath_%2834110149650%29.jpg) — James Case, CC BY 2.0",
       "[Glock FM81](https://commons.wikimedia.org/wiki/File:Feldmesser81_BK.JPG) — Wolfdale45, CC0",
@@ -671,9 +671,39 @@
     {
      "ul": [
       "**Горизонтально на поясі** через MOLLE — доступно стоячи й лежачи.",
-      "**Вертикально на грудях плитоноски руків'ям донизу** — ніж тримає клацання піхов.",
+      "**Вертикально на грудях плитоноски** — руків'ям донизу або догори (нижче, що обрати).",
       "Сторона — така, щоб ніж **діставався будь-якою рукою**. Часто — на боці слабкої руки: сильна лишається на зброї."
      ]
+    },
+    {
+     "h": "Руків'ям донизу чи догори"
+    },
+    {
+     "img": "img/03-chest-carry.jpg",
+     "alt": "Плитоноска спереду: на стропах MOLLE на грудях, трохи збоку від центру, вертикально закріплено ніж у піхвах, руків'ям з кільцем догори; збоку на поясі — кобура з пістолетом.",
+     "caption": "Ніж вертикально на грудях, руків'ям догори. Фото: Benchmade / Soldier Systems Daily"
+    },
+    {
+     "table": [
+      [
+       "Руків'я",
+       "Хват після вилучення",
+       "Що перевіряти"
+      ],
+      [
+       "донизу",
+       "прямий",
+       "клацання піхов"
+      ],
+      [
+       "догори",
+       "зворотний",
+       "чи не заважає зброя"
+      ]
+     ]
+    },
+    {
+     "p": "Те, як ніж висить, визначає, яким хватом він вийде: руків'ям донизу рука тягне вниз і отримує **прямий** хват, руків'ям догори — тягне вгору й отримує **зворотний**. Руків'ям донизу ніж тримає лише клацання кайдексу — тому фіксацію перевіряють перед кожним виходом. Обери хват, який тренуєш, і повісь ніж під нього."
     },
     {
      "warn": "❌ Ніж на спині або глибоко під бронежилетом → ✅ місце, яке рука знаходить наосліп стоячи, лежачи й у клінчі."
@@ -836,6 +866,18 @@
      "why": "Однакове місце — швидкий доступ; шнур — щоб не загубити."
     },
     {
+     "type": "choice",
+     "q": "Ніж висить на грудях руків'ям догори. Яким хватом він вийде з піхов?",
+     "options": [
+      "Зворотним, клинок біля мізинця",
+      "Прямим, клинок біля великого пальця",
+      "Залежить лише від довжини клинка",
+      "Хват доведеться міняти двома руками"
+     ],
+     "a": 0,
+     "why": "Руків'ям догори рука тягне ніж угору — клинок опиняється знизу, біля мізинця."
+    },
+    {
      "type": "gap",
      "q": "Сильна рука лишається на зброї, тому ніж часто носять на боці ◻ руки.",
      "a": [
@@ -855,6 +897,19 @@
     "Знайди на своєму спорядженні місце для ножа, де дістаєш його обома руками стоячи і лежачи на спині.",
     "Зроби перевірку фіксації: перевороти, стрибки, повзання. Ніж лишився на місці?",
     "Вимий піхви й перевір кромку свого ножа."
+   ],
+   "media": [
+    {
+     "title": "Knife placement on a plate carrier or chest rig — John Tubiolo",
+     "url": "https://www.youtube.com/watch?v=FTQLs5oALDM",
+     "note": "Де розмістити ніж на плитоносці й чому.",
+     "main": true
+    },
+    {
+     "title": "Want a Knife on your Plate Carrier? — Surgical",
+     "url": "https://www.youtube.com/watch?v=FWY3lMAY6Rg",
+     "note": "Ще один погляд на ніж на плитоносці."
+    }
    ]
   },
   {
@@ -1310,6 +1365,14 @@
     "Щодня 5 хвилин: 25 вилучень сильною рукою, 25 слабкою, з тренувальним ножем.",
     "Раз на тиждень — вилучення лежачи на спині, на животі й на колінах у повному спорядженні.",
     "Зроби 20 віджимань і одразу 10 вилучень — так перевіряється навик під навантаженням."
+   ],
+   "media": [
+    {
+     "title": "How To Tactically Draw An EDC Fixed Blade — Nashville North RC",
+     "url": "https://www.youtube.com/watch?v=1xwJ58YApMo",
+     "note": "Вилучення фіксованого ножа: хват у піхвах, ніж біля тіла.",
+     "main": true
+    }
    ]
   },
   {
@@ -1534,15 +1597,15 @@
    ],
    "media": [
     {
-     "title": "Відео: кути атаки у філіппінських системах (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=kali+escrima+angles+of+attack+knife",
-     "note": "Подивитися, як нумерують кути в різних школах.",
+     "title": "12 Basic Angles of Attack with a Knife — Maximum Martial Arts University",
+     "url": "https://www.youtube.com/watch?v=x88FrbagrBY",
+     "note": "Кути атаки ножем по черзі — порівняти з нумерацією в темі.",
      "main": true
     },
     {
-     "title": "Відео: defanging the snake (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=defanging+the+snake+kali+knife",
-     "note": "Принцип ураження озброєної руки."
+     "title": "What is Defanging the Snake? — FMA Pulse",
+     "url": "https://www.youtube.com/watch?v=H_k3Idvpy5M",
+     "note": "Принцип ураження озброєної руки з розбором."
     },
     {
      "title": "Арніс / ескріма / калі (Вікіпедія, англ.)",
@@ -1777,15 +1840,20 @@
    ],
    "media": [
     {
-     "title": "Відео: турнікет і тампонування, тактична медицина (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=%D1%82%D0%B0%D0%BA%D1%82%D0%B8%D1%87%D0%BD%D0%B0+%D0%BC%D0%B5%D0%B4%D0%B8%D1%86%D0%B8%D0%BD%D0%B0+%D1%82%D1%83%D1%80%D0%BD%D1%96%D0%BA%D0%B5%D1%82+%D1%82%D0%B0%D0%BC%D0%BF%D0%BE%D0%BD%D1%83%D0%B2%D0%B0%D0%BD%D0%BD%D1%8F",
-     "note": "Тактична медицина українською.",
+     "title": "Тампонування рани — TESIMED — Center for Medical Simulation",
+     "url": "https://www.youtube.com/watch?v=fbW6kKosEOY",
+     "note": "Тампонування проникаючої рани українською.",
      "main": true
     },
     {
-     "title": "Відео: junctional hemorrhage wound packing (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=junctional+hemorrhage+wound+packing+TCCC",
-     "note": "Тампонування ран шиї, пахви, паху."
+     "title": "Правила накладання турнікета — Суспільне Тернопіль",
+     "url": "https://www.youtube.com/watch?v=N09VDIVsVmY",
+     "note": "Турнікет на кінцівку."
+    },
+    {
+     "title": "Basics of Wound Packing for Junctional Bleeding — Six Echo",
+     "url": "https://www.youtube.com/watch?v=yUH7jpdHZRU",
+     "note": "Тампонування в зонах шиї, пахви, паху."
     }
    ]
   },
@@ -2014,9 +2082,14 @@
      "main": true
     },
     {
-     "title": "Відео: захист від ножа, combatives (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=army+combatives+knife+defense",
-     "note": "Порівняти з принципом: сход з лінії і контроль руки двома руками."
+     "title": "You Can't Outdraw a Knife at 21 Feet — TriggerSmart",
+     "url": "https://www.youtube.com/watch?v=_2zfw_4DYdQ",
+     "note": "Tueller Drill наживо: ніж проти пістолета з кобури."
+    },
+    {
+     "title": "Bussey Combatives: Knife Defense #1 — AllCombatDotNet",
+     "url": "https://www.youtube.com/watch?v=-1nyV_ZtHQ0",
+     "note": "Захист від ножа — порівняти з принципом: сход з лінії, контроль руки двома руками."
     }
    ]
   },
@@ -2235,10 +2308,15 @@
    ],
    "media": [
     {
-     "title": "Відео: weapon retention, rifle (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=rifle+weapon+retention+clinch+drill",
-     "note": "Утримання автомата в клінчі: до корпусу, по колу.",
+     "title": "Weapon Retention — Shotgun and Rifle — The Self Defense Co",
+     "url": "https://www.youtube.com/watch?v=c9cEY_FE3dA",
+     "note": "Утримання довгоствольної зброї, коли за неї вхопились.",
      "main": true
+    },
+    {
+     "title": "Don't Commit 2 Hands to Weapon Retention — EFCombatives",
+     "url": "https://www.youtube.com/watch?v=JcL_I3K1SYs",
+     "note": "Чому одна рука має лишатися вільною — для пістолета чи ножа."
     }
    ]
   },
@@ -2464,14 +2542,14 @@
    ],
    "media": [
     {
-     "title": "Відео: technical stand up (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=technical+stand+up+self+defense",
-     "note": "Як піднятися, не відкриваючись.",
+     "title": "BJJ Basics: Technical Stand Up — Deborah Gracie",
+     "url": "https://www.youtube.com/watch?v=zEuzrvoTjes",
+     "note": "Як піднятися з землі, не відкриваючись.",
      "main": true
     },
     {
-     "title": "Відео: hip escape / shrimp (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=hip+escape+shrimp+drill+bjj",
+     "title": "Shrimping Basics — True Jiu-Jitsu",
+     "url": "https://www.youtube.com/watch?v=SNbcXhX3vWU",
      "note": "Креветка — базовий рух знизу."
     }
    ]
@@ -2712,15 +2790,15 @@
    ],
    "media": [
     {
-     "title": "Відео: knife sparring з маркерними ножами (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=marker+knife+sparring+drill",
-     "note": "Як виглядає стрес-спаринг і що показують маркери.",
+     "title": "Shocknife Knife Sparring — Burton Richardson's JKD Unlimited",
+     "url": "https://www.youtube.com/watch?v=iw4ft1L5a3U",
+     "note": "Спаринг шоковими ножами: що показує «чесний» ніж.",
      "main": true
     },
     {
-     "title": "Відео: knife fighting drills, калі (пошук YouTube)",
-     "url": "https://www.youtube.com/results?search_query=kali+knife+partner+drills+beginner",
-     "note": "Парні вправи для початківців."
+     "title": "Knife Techniques Drill for Kali Beginners — Kali Center",
+     "url": "https://www.youtube.com/watch?v=c82vQJ99m1c",
+     "note": "Парна вправа для початківців."
     }
    ]
   }
