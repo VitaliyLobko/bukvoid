@@ -103,6 +103,15 @@
    "units": 11,
    "icon": "book",
    "dir": "knife-combat"
+  },
+  {
+   "id": "topography",
+   "version": 3,
+   "title": "Військова топографія",
+   "subtitle": "Карта, рельєф, координати MGRS, тисячні, азимути, рух за азимутом і орієнтування без GPS — із задачами на розрахунок",
+   "units": 11,
+   "icon": "globe",
+   "dir": "topography"
   }
  ]
 }

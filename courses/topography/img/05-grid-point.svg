@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 270" font-family="system-ui, sans-serif">
+  <rect width="400" height="270" fill="#ffffff"/>
+  <g stroke="#3b8fd9" stroke-width="2">
+    <line x1="60" y1="30" x2="60" y2="230"/>
+    <line x1="160" y1="30" x2="160" y2="230"/>
+    <line x1="260" y1="30" x2="260" y2="230"/>
+    <line x1="360" y1="30" x2="360" y2="230"/>
+    <line x1="60" y1="30" x2="360" y2="30"/>
+    <line x1="60" y1="130" x2="360" y2="130"/>
+    <line x1="60" y1="230" x2="360" y2="230"/>
+  </g>
+  <g font-size="20" fill="#1b5e9e" font-weight="700" text-anchor="middle">
+    <text x="60" y="256">44</text>
+    <text x="160" y="256">45</text>
+    <text x="260" y="256">46</text>
+    <text x="360" y="256">47</text>
+    <text x="26" y="232">78</text>
+    <text x="26" y="137">79</text>
+    <text x="26" y="37">80</text>
+  </g>
+  <g stroke="#d32f2f" stroke-width="2.5" stroke-dasharray="6 4">
+    <line x1="160" y1="170" x2="190" y2="170"/>
+    <line x1="190" y1="170" x2="190" y2="230"/>
+  </g>
+  <circle cx="190" cy="170" r="7" fill="#d32f2f"/>
+  <text x="200" y="164" font-size="22" font-weight="700" fill="#d32f2f">А</text>
+  <text x="175" y="160" font-size="15" fill="#d32f2f" text-anchor="middle">300</text>
+  <text x="222" y="212" font-size="15" fill="#d32f2f" text-anchor="middle">600</text>
+</svg>

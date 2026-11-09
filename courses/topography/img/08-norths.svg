@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" font-family="system-ui, sans-serif">
+  <rect width="400" height="240" fill="#ffffff"/>
+  <line x1="200" y1="225" x2="200" y2="45" stroke="#111" stroke-width="3"/>
+  <line x1="200" y1="225" x2="262" y2="56" stroke="#d32f2f" stroke-width="3"/>
+  <line x1="200" y1="225" x2="169" y2="48" stroke="#3b8fd9" stroke-width="3"/>
+  <line x1="200" y1="225" x2="369" y2="163" stroke="#2e7d32" stroke-width="3" stroke-dasharray="8 5"/>
+  <circle cx="200" cy="225" r="5" fill="#111"/>
+  <g font-size="18" font-weight="700">
+    <text x="200" y="34" text-anchor="middle" fill="#111">Істинна</text>
+    <text x="268" y="52" fill="#d32f2f">Магнітна</text>
+    <text x="160" y="40" text-anchor="end" fill="#1b5e9e">Сітка</text>
+    <text x="330" y="150" fill="#2e7d32">Ціль</text>
+    <text x="214" y="120" fill="#d32f2f">δ</text>
+    <text x="178" y="120" fill="#1b5e9e">γ</text>
+  </g>
+</svg>

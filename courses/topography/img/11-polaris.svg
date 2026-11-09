@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 290" font-family="system-ui, sans-serif">
+  <rect width="400" height="290" fill="#0f1b33"/>
+  <polyline points="140,205 150,240 200,250 205,215 140,205" fill="none" stroke="#8fa8d8" stroke-width="1.5"/>
+  <polyline points="205,215 245,205 280,198 322,212" fill="none" stroke="#8fa8d8" stroke-width="1.5"/>
+  <line x1="150" y1="240" x2="90" y2="30" stroke="#ffd54f" stroke-width="2" stroke-dasharray="7 5"/>
+  <line x1="90" y1="30" x2="90" y2="285" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="3 6"/>
+  <g fill="#ffffff">
+    <circle cx="140" cy="205" r="5"/>
+    <circle cx="150" cy="240" r="5"/>
+    <circle cx="200" cy="250" r="4.5"/>
+    <circle cx="205" cy="215" r="4"/>
+    <circle cx="245" cy="205" r="5"/>
+    <circle cx="280" cy="198" r="5"/>
+    <circle cx="322" cy="212" r="5"/>
+    <circle cx="90" cy="30" r="6"/>
+  </g>
+  <g font-size="18" font-weight="700">
+    <text x="104" y="36" fill="#ffd54f">Полярна</text>
+    <text x="235" y="270" fill="#8fa8d8">Великий Віз</text>
+    <text x="128" y="120" fill="#ffd54f">× 5</text>
+    <text x="100" y="282" fill="#ffffff">Північ</text>
+  </g>
+</svg>
