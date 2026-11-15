@@ -739,8 +739,11 @@ legend { font-weight: 650; margin-bottom: 6px; padding: 0; }
 @keyframes av-blink { 0%, 41%, 44.5%, 84%, 86.6%, 87%, 89.4%, 100% { transform: translateY(var(--o)); } 42.2%, 42.8%, 85.2%, 85.6%, 88.2%, 88.4% { transform: none; } }
 @keyframes av-blink-now { 0%, 100% { transform: translateY(var(--o)); } 28%, 40% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .about-avatar .av-lid { animation: none !important; } }
-/* налаштування: підпис групи над карткою, всередині — рядки «значок · назва · значення ›» */
-.card.set-list { padding: 0 16px; }
+/* налаштування, як в Арсеналі: група — рамка з назвою-плашкою на лінії (як в 1С), всередині — рядки «значок · назва · значення ›» */
+.set-group { min-width: 0; margin: 18px 0 4px; padding: 2px 16px 4px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.set-group > legend { margin-left: -6px; padding: 2px 10px 2px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+  font: 800 calc(12.5px * var(--fs))/1.3 var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.set-group .about { padding: 12px 0 10px; }
 .set-row + .set-row { border-top: 1px solid var(--line); }
 .set-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 0; border: 0; background: none;
   color: var(--text); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -787,6 +790,12 @@ legend { font-weight: 650; margin-bottom: 6px; padding: 0; }
   font-weight: 800;
 }
 .about a { color: var(--accent); }
+.about-head h3 { margin: 0 0 2px; font: 650 calc(18px * var(--fs))/1.3 var(--display); }
+.about > p { margin: 0; }
+/* посилання плашками, як в Арсеналі */
+.about-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.about .about-links a { padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: calc(13px * var(--fs)); text-decoration: none; }
+.about .about-links a:hover { border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .about-more > summary::before { transition: none; } }
 
 /* телефон боком: менше хрому, більше тексту вправи */

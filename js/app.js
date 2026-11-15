@@ -836,8 +836,8 @@ function setRow(key, ico, title, value, body, { danger = false } = {}) {
     </div>`;
 }
 
-/** Група: підпис над карткою, всередині — рядки через лінію. */
-const setGroup = (title, rows) => `<h2 class="section-title">${title}</h2><div class="card set-list">${rows.join('')}</div>`;
+/** Група налаштувань, як в Арсеналі: рамка з назвою на лінії (як в 1С), всередині — рядки через лінію. */
+const setGroup = (title, rows) => `<fieldset class="set-group"><legend>${title}</legend><div class="set-list">${rows.join('')}</div></fieldset>`;
 
 function mountRows() {
   view().querySelectorAll('.set-row').forEach((row) => {
@@ -934,7 +934,29 @@ function renderSettings(section) {
   const radio = (name, value, label, cur) => `<label class="opt"><input type="radio" name="${name}" value="${value}"${cur === value ? ' checked' : ''}> ${label}</label>`;
   const v = prefLabels(s);
   view().innerHTML = `
-    ${head('Налаштування', '')}
+    ${head('Налаштування', '', `версія ${esc(self.APP_VERSION || '')}`)}
+    ${setGroup('Про застосунок', [aboutHtml()])}
+    ${setGroup('Дані', [
+    setRow('server', 'server', 'Сервер бота', '', `
+        <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
+        <div id="server-status" class="drive-status" role="status"></div>
+        <div id="server-body" class="stack"></div>`),
+    setRow('drive', 'cloud', `Google Диск${Bot.active() ? ' · копія' : ''}`, '', `
+        <p class="muted">${Bot.active() ? 'Синхронізацію веде сервер, а Диск раз на день зберігає копію в файл bukvoid.json. Застосунок бачить лише свої файли.' : "Прогрес однаковий на комп'ютері й телефоні: копія лежить у файлі bukvoid.json на вашому Диску. Застосунок бачить лише свої файли. Увійшли в Google у Вазі чи Марнотраті — тут вхід уже є."}</p>
+        <div id="drive-status" class="drive-status" role="status"></div>
+        <div class="row" id="drive-actions"></div>`),
+    setRow('backup', 'save', 'Резервна копія', '', `
+        <p class="muted">Без синхронізації дані зберігаються лише в цьому браузері. Копія — файл, який можна перенести на інший пристрій.</p>
+        <div class="row">
+          <button type="button" class="btn" id="export">Зберегти копію</button>
+          <label class="btn">Відновити з файлу<input type="file" id="import" accept="application/json,.json" hidden></label>
+        </div>`),
+    // Стерти — останнім рядком і згорнуте: небезпечна дія не має бути найпомітнішою на екрані
+    setRow('reset', 'trash', 'Стерти весь прогрес', '', `
+        <p class="muted">Уроки, тести, фрази й статистика клавіш — на цьому пристрої${Sync.enabled() || Bot.active() ? ' й під час синхронізації на інших' : ''}.</p>
+        <div class="row"><button type="button" class="btn danger" id="reset">Стерти весь прогрес</button><span id="reset-confirm" hidden><button type="button" class="btn danger" id="reset-yes">Так, стерти</button> <button type="button" class="btn" id="reset-no">Ні</button></span></div>`,
+    { danger: true })])}
+    <p id="settings-msg" class="muted" role="status"></p>
     ${setGroup('Навчання', [
     setRow('courses', 'book', 'Курси', '', `
         <div id="courses-installed" class="stack"></div>
@@ -960,36 +982,14 @@ function renderSettings(section) {
         ${THEMES.filter(([val]) => SPECIAL_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
         <label class="night-level" id="night-level"${s.theme === 'night' ? '' : ' hidden'}><span>Яскравість червоного</span><input type="range" id="night-range" min="20" max="100" step="5" value="${nightLevel()}"></label>
         <p class="muted">Нічна — усе червоним, щоб не збивати нічний зір. Фосфор, Бурштин і Білий фосфор — як старі монітори-кінескопи.</p>`),
-    backdropRow()])}
-    ${setGroup('Синхронізація', [
-    setRow('server', 'server', 'Сервер бота', '', `
-        <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
-        <div id="server-status" class="drive-status" role="status"></div>
-        <div id="server-body" class="stack"></div>`),
-    setRow('drive', 'cloud', `Google Диск${Bot.active() ? ' · копія' : ''}`, '', `
-        <p class="muted">${Bot.active() ? 'Синхронізацію веде сервер, а Диск раз на день зберігає копію в файл bukvoid.json. Застосунок бачить лише свої файли.' : "Прогрес однаковий на комп'ютері й телефоні: копія лежить у файлі bukvoid.json на вашому Диску. Застосунок бачить лише свої файли. Увійшли в Google у Вазі чи Марнотраті — тут вхід уже є."}</p>
-        <div id="drive-status" class="drive-status" role="status"></div>
-        <div class="row" id="drive-actions"></div>`)])}
-    ${setGroup('Дані', [
-    setRow('backup', 'save', 'Резервна копія', '', `
-        <p class="muted">Без Google Диска дані зберігаються лише в цьому браузері. Копія — файл, який можна перенести на інший пристрій.</p>
-        <div class="row">
-          <button type="button" class="btn" id="export">Зберегти копію</button>
-          <label class="btn">Відновити з файлу<input type="file" id="import" accept="application/json,.json" hidden></label>
-        </div>`),
-    // Стерти — останнім рядком і згорнуте: небезпечна дія не має бути найпомітнішою на екрані
-    setRow('reset', 'trash', 'Стерти весь прогрес', '', `
-        <p class="muted">Уроки, тести, фрази й статистика клавіш — на цьому пристрої${Sync.enabled() || Bot.active() ? ' й під час синхронізації на інших' : ''}.</p>
-        <div class="row"><button type="button" class="btn danger" id="reset">Стерти весь прогрес</button><span id="reset-confirm" hidden><button type="button" class="btn danger" id="reset-yes">Так, стерти</button> <button type="button" class="btn" id="reset-no">Ні</button></span></div>`,
-    { danger: true })])}
-    <p id="settings-msg" class="muted" role="status"></p>
-    ${aboutHtml()}`;
+    backdropRow()])}`;
   mountRows();
   mountServer();
   mountDrive();
   mountCourses();
   mountBackdrop();
   view().querySelector('.about-avatar').onclick = avatarHi;
+  $('check-update').onclick = checkUpdate;
   if (section === 'courses') $('row-courses').scrollIntoView();
   // Кожен перемикач зберігає всі чотири, як раніше спільна форма, і одразу міняє значення в рядку
   const prefs = view().querySelectorAll('input[name="mode"], input[name="keyboard"], input[name="fontSize"], input[name="theme"]');
@@ -1244,12 +1244,14 @@ const CUP_SVG = '<svg viewBox="0 0 16 20" aria-hidden="true">'
 
 function aboutHtml() {
   return `
-    <section class="card stack about">
-      <h2>Про застосунок</h2>
+    <section class="stack about">
       <div class="about-head">
         <span class="about-avatar"><img src="./icons/author.jpg" alt="" width="64" height="64" loading="lazy"><span class="av-live">${AVATAR_SVG}</span></span>
-        <p class="muted">Буквоїд ${esc(self.APP_VERSION || '')}: курси з теорією, тестами, повторенням помилок і практичними завданнями, а також друк наосліп. Працює без інтернету, усе рахується на пристрої.</p>
+        <div><h3>Буквоїд</h3><p class="muted small">Версія ${esc(self.APP_VERSION || '')} · збірка ${esc(self.APP_BUILD || '—')}</p></div>
       </div>
+      <p class="muted small">Курси з теорією, тестами, повторенням помилок і практичними завданнями, а також друк наосліп. Працює без інтернету, усе рахується на пристрої.</p>
+      <div class="row"><button type="button" class="btn" id="check-update">Перевірити оновлення</button></div>
+      <p class="muted small" id="update-msg" role="status" hidden></p>
       <a class="donate-card" href="https://send.monobank.ua/jar/XJKDMyVfW" target="_blank" rel="noopener">
         <span class="donate-art">
           <span class="donate-cat"><img src="./icons/cat-portrait.png" alt="" width="50" height="50"><span class="donate-cup">${CUP_SVG}</span></span>
@@ -1263,22 +1265,22 @@ function aboutHtml() {
           <p>Прогрес лежить у браузері на цьому пристрої. Сервера в застосунку немає, автор не отримує ні даних, ні статистики.</p>
           <p>Синхронізація через сервер бота Хобі-плану — за бажанням, вашим ключем доступу. Боту для підсумків ідуть лише хвилини, швидкість, точність і назви пройдених уроків — без набраних текстів.</p>
           <p>Google Диск підключається за бажанням: копія лягає у файл bukvoid.json на вашому Диску, застосунок бачить лише свої файли.</p>
-          <p>Резервна копія у файл — кнопка «Зберегти копію» вище. Нею ж можна перенести прогрес на інший пристрій.</p>
+          <p>Резервна копія у файл — у групі «Дані» нижче: «Резервна копія» → «Зберегти копію». Нею ж можна перенести прогрес на інший пристрій.</p>
         </div>
       </details>
       <details class="about-more"><summary>З чого почати</summary>
         <ol class="about-steps">
-          <li>Оберіть курс на вкладці «Курси» або додайте з «Каталогу». Тема — теорія, приклади, тест; «Завдання» — те, що варто зробити руками.</li>
+          <li>Оберіть курс на вкладці «Курси» або додайте в розділі «Можна додати». Тема — теорія, приклади, тест; «Завдання» — те, що варто зробити руками.</li>
           <li>Тест зараховано від прохідного балу курсу (зазвичай 80%). Помилки повертаються в «Повторення» наступного дня — заходьте туди щодня, хоч на 5 хвилин.</li>
           <li>Друк наосліп — на комп'ютері: «Перш ніж почати» на сторінці курсу, далі уроки по черзі, 15–20 хвилин щодня; урок зараховано від 97% точності.</li>
           <li>Підключіть Google Диск, щоб прогрес був однаковий на комп'ютері й телефоні.</li>
         </ol>
       </details>
-      <p class="muted small">
-        <a href="https://github.com/VitaliyLobko/bukvoid" target="_blank" rel="noopener">Вихідний код</a>.
-        Правопис — за редакцією 2019 року (<a href="https://2019.pravopys.net/" target="_blank" rel="noopener">2019.pravopys.net</a>).
-        Шрифти Unbounded і JetBrains Mono — <a href="https://openfontlicense.org/" target="_blank" rel="noopener">SIL Open Font License</a>.
-      </p>
+      <nav class="about-links">
+        <a href="https://github.com/VitaliyLobko/bukvoid/issues/new" target="_blank" rel="noopener">Повідомити про помилку</a>
+        <a href="https://github.com/VitaliyLobko/bukvoid" target="_blank" rel="noopener">Код</a>
+      </nav>
+      <p class="muted small">Правопис — за редакцією 2019 року (<a href="https://2019.pravopys.net/" target="_blank" rel="noopener">2019.pravopys.net</a>). Шрифти Unbounded і JetBrains Mono — <a href="https://openfontlicense.org/" target="_blank" rel="noopener">SIL Open Font License</a>.</p>
     </section>`;
 }
 
@@ -1472,6 +1474,30 @@ function route() {
   $('settings-btn').classList.toggle('on', name === 'settings');
   fn(...args);
   window.scrollTo(0, 0);
+}
+
+/** «Перевірити оновлення» в «Про застосунок»: результат — рядком під кнопкою; нова версія — та сама плашка «Оновити», що й зазвичай. */
+async function checkUpdate() {
+  const btn = $('check-update');
+  const say = (text) => { const m = $('update-msg'); if (m) { m.hidden = false; m.textContent = text; } };
+  if (!('serviceWorker' in navigator)) { say('Оновлення працюють лише через https.'); return; }
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) { say('Застосунок ще не встановлено як офлайн-копію — він і так відкривається з сайту найновішим.'); return; }
+  // Без мережі reg.update() тихо завершується — інакше вийшло б «у вас найновіша версія»
+  if (!navigator.onLine) { say('Немає зв’язку із сервером.'); return; }
+  btn.disabled = true;
+  say('Перевіряю…');
+  try {
+    // Wi-Fi без інтернету браузер теж вважає «онлайн» — питаємо сам сервер; HEAD іде повз service worker
+    const res = await fetch('./version.js', { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(String(res.status));
+    await reg.update();
+    say(reg.installing || reg.waiting ? 'Є нова версія — натисніть «Оновити» вгорі.' : 'У вас найновіша версія.');
+  } catch {
+    say('Немає зв’язку із сервером.');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function registerWorker() {
