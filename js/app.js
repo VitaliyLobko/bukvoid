@@ -312,7 +312,7 @@ function welcomeHero() {
   return `<section class="card welcome">
       <div class="eyebrow">Як тут вчитися</div>
       <p>Кожна тема курсу — <b>теорія, приклади й тест</b>. Помилки тесту повертаються на <b>повторення</b> наступного дня, потім через 2, 4, 8 днів — так знання переходять у довгу пам'ять. Фрази мовних курсів збираються в колоду.</p>
-      <p>Відкрийте будь-який курс нижче або додайте новий з <button type="button" class="link" data-to-catalog>каталогу</button>. ${touchOnly() ? 'Друк наосліп тренують на клавіатурі комп’ютера.' : 'Друк наосліп — окремі курси з екранною клавіатурою.'}</p>
+      <p>Відкрийте будь-який курс нижче або додайте новий у розділі <button type="button" class="link" data-to-catalog>«Можна додати»</button>. ${touchOnly() ? 'Друк наосліп тренують на клавіатурі комп’ютера.' : 'Друк наосліп — окремі курси з екранною клавіатурою.'}</p>
       <p class="muted small">Щоб прогрес був однаковий на телефоні й комп'ютері — ⚙ → «Google Диск».</p>
     </section>`;
 }
@@ -409,6 +409,13 @@ function myCourseItems() {
 }
 
 const GROUPS_CLOSED_KEY = 'bukvoid:groups-closed';
+// 1 курс, 2–4 курси, 5–20 курсів, 21 курс…
+function coursesWord(n) {
+  const d = n % 10;
+  const dd = n % 100;
+  const w = d === 1 && dd !== 11 ? 'курс' : d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? 'курси' : 'курсів';
+  return `${n} ${w}`;
+}
 function closedGroups() {
   try { return new Set(JSON.parse(localStorage.getItem(GROUPS_CLOSED_KEY) || '[]')); } catch { return new Set(); }
 }
@@ -432,7 +439,8 @@ function groupedTiles(items, tile, scope) {
   return names.map((g) => {
     const key = `${scope}:${g}`;
     return `<details class="course-group" data-group="${esc(key)}"${closed.has(key) ? '' : ' open'}>
-      <summary><h3>${esc(g)}</h3><span class="muted">${by.get(g).length}</span></summary>
+      <summary><h3>${esc(g)}</h3><span class="muted">${coursesWord(by.get(g).length)}</span>
+        <span class="group-names muted">${esc(by.get(g).map((x) => x.title).join(', '))}</span></summary>
       <div class="tiles courses">${by.get(g).map(tile).join('')}</div></details>`;
   }).join('');
 }
@@ -460,8 +468,8 @@ function renderCourses() {
     ${srsHero()}
     <h2 class="section-title">Мої курси</h2>
     <div id="kursy-tiles"></div>
-    ${items.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте з каталогу.</p>'}
-    <section id="kursy-catalog" hidden><h2 class="section-title">Каталог <span class="muted">торкніться, щоб додати</span></h2>
+    ${items.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте в розділі «Можна додати».</p>'}
+    <section id="kursy-catalog" hidden><h2 class="section-title">Можна додати <span class="muted">торкніться, щоб додати</span></h2>
     <div id="catalog-tiles"></div></section>
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
   const sig = fillMyTiles($('kursy-tiles'), items);
@@ -930,7 +938,7 @@ function renderSettings(section) {
     ${setGroup('Навчання', [
     setRow('courses', 'book', 'Курси', '', `
         <div id="courses-installed" class="stack"></div>
-        <p class="muted small">Нові курси — у розділі «Каталог» на вкладці <a href="#kursy">«Курси»</a>: торкніться плитки — курс додано.</p>
+        <p class="muted small">Нові курси — у розділі «Можна додати» на вкладці <a href="#kursy">«Курси»</a>: торкніться плитки — курс додано.</p>
         <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
         <div id="courses-msg" class="muted" role="status"></div>
         <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>`)])}
@@ -1064,7 +1072,7 @@ function mountCourses() {
     $('courses-installed').innerHTML = `
       <h3 class="sub-title">На вкладці «Курси»</h3>
       <p class="muted small">Курси, які ви проходите: їхні помилки й фрази — у повторенні.</p>
-      ${on.length ? `<div class="course-list">${on.map(row).join('')}</div>` : '<p class="muted">Жодного — покажіть схований курс або додайте з каталогу.</p>'}
+      ${on.length ? `<div class="course-list">${on.map(row).join('')}</div>` : '<p class="muted">Жодного — покажіть схований курс або додайте в розділі «Можна додати».</p>'}
       ${off.length ? `<h3 class="sub-title">Сховані</h3>
       <p class="muted small">Лежать на пристрої, прогрес збережено. «Видалити» прибере курс із пристрою, прогрес лишиться й тоді.</p>
       <div class="course-list">${off.map(row).join('')}</div>` : ''}`;

@@ -325,7 +325,10 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 /* Де зупинились: останній відкритий курс обведено, у плитці — тема, на якій зупинились */
 .course-tile.current { border-color: var(--accent); }
 /* Групи курсів: заголовок-summary згортає групу (+ / −), згорнуті пам'ятає пристрій */
-.course-group > summary { display: flex; align-items: baseline; gap: 8px; padding: 10px 2px 8px; list-style: none; cursor: pointer; }
+.course-group > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 10px 2px 8px; list-style: none; cursor: pointer; }
+/* Згорнута група показує, що в ній: назви курсів рядком під заголовком (до двох рядків) */
+.course-group > summary .group-names { order: 1; flex-basis: 100%; font-size: calc(13px * var(--fs)); overflow: hidden; display: none; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.course-group:not([open]) > summary .group-names { display: -webkit-box; }
 .course-group > summary::-webkit-details-marker { display: none; }
 .course-group > summary h3 { margin: 0; font: 600 calc(15px * var(--fs))/1.3 var(--sans); color: var(--text); }
 .course-group > summary .muted { font-size: calc(13px * var(--fs)); }
