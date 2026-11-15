@@ -384,7 +384,7 @@ function courseTile({ id, href, icon, title, subtitle, done, started, total, wor
         <span class="course-ico">${iconSvg(icon)}</span>
         <b>${esc(title)}</b>
         <span class="muted">${esc(subtitle || '')}</span>
-        <span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>
+        ${done || started ? `<span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>` : ''}
         <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small>
         ${r?.started && !cur ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
 }
@@ -408,16 +408,24 @@ function myCourseItems() {
   return items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => x);
 }
 
+// Згорнуті групи «Моїх курсів» і розгорнуті групи «Можна додати»: типово мої відкриті, а каталог згорнутий
 const GROUPS_CLOSED_KEY = 'bukvoid:groups-closed';
-// 1 курс, 2–4 курси, 5–20 курсів, 21 курс…
-function coursesWord(n) {
+const GROUPS_OPEN_KEY = 'bukvoid:groups-open';
+const GROUP_DEFAULT_OPEN = { my: true, cat: false };
+
+/** 1 курс, 2–4 курси, 5–20 курсів, 21 курс…: forms — [один, кілька, багато]. */
+function plural(n, [one, few, many]) {
   const d = n % 10;
   const dd = n % 100;
-  const w = d === 1 && dd !== 11 ? 'курс' : d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? 'курси' : 'курсів';
-  return `${n} ${w}`;
+  return d === 1 && dd !== 11 ? one : d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? few : many;
 }
-function closedGroups() {
-  try { return new Set(JSON.parse(localStorage.getItem(GROUPS_CLOSED_KEY) || '[]')); } catch { return new Set(); }
+const coursesWord = (n) => `${n} ${plural(n, ['курс', 'курси', 'курсів'])}`;
+
+function groupSet(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch { return new Set(); }
+}
+function groupOpen(key) {
+  return GROUP_DEFAULT_OPEN[key.split(':')[0]] !== false ? !groupSet(GROUPS_CLOSED_KEY).has(key) : groupSet(GROUPS_OPEN_KEY).has(key);
 }
 
 /**
@@ -435,10 +443,9 @@ function groupedTiles(items, tile, scope) {
   const order = (g) => (g === Courses.OTHER_GROUP ? known + 1 : Courses.GROUPS.includes(g) ? Courses.GROUPS.indexOf(g) : known);
   const names = [...by.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b, 'uk'));
   if (names.length < 2) return `<div class="tiles courses">${items.map(tile).join('')}</div>`;
-  const closed = closedGroups();
   return names.map((g) => {
     const key = `${scope}:${g}`;
-    return `<details class="course-group" data-group="${esc(key)}"${closed.has(key) ? '' : ' open'}>
+    return `<details class="course-group" data-group="${esc(key)}"${groupOpen(key) ? ' open' : ''}>
       <summary><h3>${esc(g)}</h3><span class="muted">${coursesWord(by.get(g).length)}</span>
         <span class="group-names muted">${esc(by.get(g).map((x) => x.title).join(', '))}</span></summary>
       <div class="tiles courses">${by.get(g).map(tile).join('')}</div></details>`;
@@ -447,9 +454,14 @@ function groupedTiles(items, tile, scope) {
 
 function mountGroups(root) {
   root.querySelectorAll('details.course-group').forEach((d) => d.addEventListener('toggle', () => {
-    const closed = closedGroups();
-    if (d.open) closed.delete(d.dataset.group); else closed.add(d.dataset.group);
-    try { localStorage.setItem(GROUPS_CLOSED_KEY, JSON.stringify([...closed])); } catch { /* приватний режим */ }
+    const key = d.dataset.group;
+    const closed = groupSet(GROUPS_CLOSED_KEY);
+    const opened = groupSet(GROUPS_OPEN_KEY);
+    if (d.open) { closed.delete(key); opened.add(key); } else { closed.add(key); opened.delete(key); }
+    try {
+      localStorage.setItem(GROUPS_CLOSED_KEY, JSON.stringify([...closed]));
+      localStorage.setItem(GROUPS_OPEN_KEY, JSON.stringify([...opened]));
+    } catch { /* приватний режим */ }
   }));
 }
 
@@ -496,6 +508,7 @@ async function addCatalogTiles(grid, mySig) {
   if (fresh.length) grid.closest('section')?.removeAttribute('hidden');
   grid.innerHTML = groupedTiles(fresh, catalogTile, 'cat');
   mountGroups(grid);
+  retryScroll();
   grid.querySelectorAll('[data-course-add]').forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
@@ -606,6 +619,13 @@ function renderCourseUnit(cid, uid) {
       secs.forEach((d) => { d.open = open; });
       all.textContent = open ? 'Згорнути все' : 'Розгорнути все';
     };
+  }
+  // Зміст ширший за екран — справа затухання, поки є що прокрутити: видно, що вкладок більше
+  const tocBar = view().querySelector('.toc');
+  if (tocBar) {
+    const more = () => tocBar.classList.toggle('more', tocBar.scrollLeft + tocBar.clientWidth < tocBar.scrollWidth - 2);
+    tocBar.addEventListener('scroll', more, { passive: true });
+    new ResizeObserver(more).observe(tocBar);
   }
   view().querySelectorAll('.toc a:not([data-route])').forEach((a) => {
     a.onclick = (e) => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' }); };
@@ -757,9 +777,29 @@ function renderProgress() {
     const tasks = pack.units.flatMap((u) => (u.tasks ?? []).map((_, i) => S.taskKey(id, u.id, i)));
     const tdone = tasks.filter((k) => S.taskDone(k)).length;
     const m = SRS.mistakeCounts([{ id, pack }]);
-    const bits = [`тем ${topics}/${pack.units.length}`, tasks.length && `завдань ${tdone}/${tasks.length}`, m.total && `помилок ${m.due} на сьогодні з ${m.total}`].filter(Boolean);
+    const bits = [
+      `пройдено ${topics} з ${pack.units.length} тем`,
+      tasks.length && `завдання: ${tdone} з ${tasks.length}`,
+      m.due ? `${m.due} ${plural(m.due, ['помилка', 'помилки', 'помилок'])} на повторення сьогодні`
+        : m.total && `${m.total} ${plural(m.total, ['помилка', 'помилки', 'помилок'])} в повторенні`,
+    ].filter(Boolean);
     return `<a class="li" href="#kurs/${id}"><span>${esc(pack.title)}<small class="muted">${bits.join(' · ')}</small></span><b>${Math.round((topics / Math.max(1, pack.units.length)) * 100)}%</b></a>`;
   };
+  // Ще нічого не робили — замість стіни нулів одна підказка з дією
+  const studied = days.some((d) => d.min > 0) || tot.sessions > 0 || packs.some(({ id }) => Object.keys(s.courses[id] ?? {}).length);
+  if (!studied) {
+    const last = lastCourse();
+    const go = last && courseExists(last) ? `<a class="btn primary" href="#kurs/${esc(last)}">Продовжити курс</a>` : '<a class="btn primary" href="#kursy">Обрати курс</a>';
+    view().innerHTML = `
+    ${head('Прогрес', '')}
+    <section class="card welcome">
+      <h2>Тут з'явиться ваш прогрес</h2>
+      <p>Хвилини навчання по днях, пройдені теми й завдання, помилки на повторення, а для друку наосліп — швидкість і слабкі клавіші.</p>
+      <p class="muted">Пройдіть першу тему будь-якого курсу — і цифри оживуть.</p>
+      <div class="row">${go}</div>
+    </section>`;
+    return;
+  }
   view().innerHTML = `
     ${head('Прогрес', '')}
     <div class="stat-grid">
@@ -775,7 +815,9 @@ function renderProgress() {
       ${packs.map(courseRow).join('') || '<p class="muted">Додайте курс у «Курсах» — тут з’явиться, скільки тем і завдань пройдено.</p>'}
       ${c.total ? `<div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>` : ''}
     </div>
-    ${typing ? `<h2 class="section-title">Друк наосліп</h2>
+    ${typing && !tot.sessions ? `<h2 class="section-title">Друк наосліп</h2>
+    <p class="muted">Ще жодної вправи. ${typingLangs.length ? `Почніть з <a href="#kurs/druk-${typingLangs[0]}">першого уроку</a> — тут з'являться швидкість, точність і слабкі клавіші.` : ''}</p>` : ''}
+    ${typing && tot.sessions ? `<h2 class="section-title">Друк наосліп</h2>
     <div class="stat-grid">
       <div class="stat"><b>${tot.chars.toLocaleString('uk')}</b><span>букв з'їдено</span></div>
       <div class="stat"><b>${Math.round(tot.ms / 60000)}</b><span>хвилин друку</span></div>
@@ -1452,7 +1494,28 @@ function drawCurrentTab() {
   a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(typing ? `Друк · ${LANG_NAMES[typing.lang]}` : shortTitle(pack))}</span>`;
 }
 
+// Повернулись на сторінку — на те саме місце: прокрутку пам'ятаємо за адресою (лише в цьому відкритті застосунку)
+const scrollAt = new Map();
+let shownRoute = null;
+let pendingScroll = null;
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+/** Прокрутити до y; сторінка ще коротка (каталог підвантажується) — дотягнути, коли виросте, але не пізніше ніж за 2 с. */
+function restoreScroll(y) {
+  pendingScroll = null;
+  window.scrollTo(0, y);
+  if (y > 0 && window.scrollY < y - 2) pendingScroll = { y, until: Date.now() + 2000 };
+}
+function retryScroll() {
+  if (!pendingScroll || Date.now() > pendingScroll.until) { pendingScroll = null; return; }
+  const { y } = pendingScroll;
+  window.scrollTo(0, y);
+  if (window.scrollY >= y - 2) pendingScroll = null;
+}
+
 function route() {
+  if (shownRoute !== null) scrollAt.set(shownRoute, window.scrollY);
+  shownRoute = location.hash || '#kursy';
   const [name, ...args] = (location.hash.slice(1) || 'kursy').split('/');
   const cid = routeCourse(name, args);
   if (cid && courseExists(cid)) { try { localStorage.setItem(CURRENT_KEY, cid); } catch { /* приватний режим */ } }
@@ -1473,7 +1536,7 @@ function route() {
   });
   $('settings-btn').classList.toggle('on', name === 'settings');
   fn(...args);
-  window.scrollTo(0, 0);
+  restoreScroll(scrollAt.get(shownRoute) ?? 0);
 }
 
 /** «Перевірити оновлення» в «Про застосунок»: результат — рядком під кнопкою; нова версія — та сама плашка «Оновити», що й зазвичай. */
