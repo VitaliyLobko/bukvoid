@@ -389,51 +389,105 @@ function courseTile({ id, href, icon, title, subtitle, done, started, total, wor
         ${r?.started && !cur ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
 }
 
-function renderCourses() {
-  const list = Courses.enabled();
-  const typing = typingOn();
+/** Плитки «Моїх курсів»: курс, де зупинились, далі розпочаті, далі нерозпочаті — у порядку з налаштувань. */
+function myCourseItems() {
   const items = [
-    ...typing.map(({ id, lang }) => {
+    ...typingOn().map(({ id, lang }) => {
       const ls = lessons(lang);
       return { id, href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
-        done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' };
+        group: Courses.GROUPS[0], done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' };
     }),
-    ...list.map(({ id, pack }) => {
+    ...Courses.enabled().map(({ id, pack }) => {
       const p = courseProgress(id);
-      return { id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
+      return { id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle, group: Courses.groupOf(id, pack),
         done: pack.units.filter((u) => unitDone(p[u.id], pack)).length, started: pack.units.filter((u) => p[u.id]).length, total: pack.units.length, word: 'тем' };
     }),
   ];
-  // Спершу курс, де зупинились, далі розпочаті (менше лишилось — вище), далі нерозпочаті — у порядку з налаштувань
   const cur = lastCourse();
   const rank = (x) => (x.id === cur ? 0 : x.done >= x.total ? 2 : x.done || x.started ? 1 : 3);
-  const tiles = items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => courseTile(x));
+  return items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => x);
+}
+
+const GROUPS_CLOSED_KEY = 'bukvoid:groups-closed';
+function closedGroups() {
+  try { return new Set(JSON.parse(localStorage.getItem(GROUPS_CLOSED_KEY) || '[]')); } catch { return new Set(); }
+}
+
+/**
+ * Плитки по групах: відомі — у порядку Courses.GROUPS, свої — за абеткою, «Інше» — останньою.
+ * Група згортається, згорнуті пам'ятає цей пристрій. Одна група — проста сітка без заголовків.
+ */
+function groupedTiles(items, tile, scope) {
+  const by = new Map();
+  for (const x of items) {
+    const g = x.group || Courses.OTHER_GROUP;
+    if (!by.has(g)) by.set(g, []);
+    by.get(g).push(x);
+  }
+  const known = Courses.GROUPS.length;
+  const order = (g) => (g === Courses.OTHER_GROUP ? known + 1 : Courses.GROUPS.includes(g) ? Courses.GROUPS.indexOf(g) : known);
+  const names = [...by.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b, 'uk'));
+  if (names.length < 2) return `<div class="tiles courses">${items.map(tile).join('')}</div>`;
+  const closed = closedGroups();
+  return names.map((g) => {
+    const key = `${scope}:${g}`;
+    return `<details class="course-group" data-group="${esc(key)}"${closed.has(key) ? '' : ' open'}>
+      <summary><h3>${esc(g)}</h3><span class="muted">${by.get(g).length}</span></summary>
+      <div class="tiles courses">${by.get(g).map(tile).join('')}</div></details>`;
+  }).join('');
+}
+
+function mountGroups(root) {
+  root.querySelectorAll('details.course-group').forEach((d) => d.addEventListener('toggle', () => {
+    const closed = closedGroups();
+    if (d.open) closed.delete(d.dataset.group); else closed.add(d.dataset.group);
+    try { localStorage.setItem(GROUPS_CLOSED_KEY, JSON.stringify([...closed])); } catch { /* приватний режим */ }
+  }));
+}
+
+/** Перемалювати «Мої курси»; повертає відбиток груп, щоб після каталогу перемалювати лише за потреби. */
+function fillMyTiles(box, items = myCourseItems()) {
+  box.innerHTML = groupedTiles(items, courseTile, 'my');
+  mountGroups(box);
+  return items.map((x) => `${x.id}:${x.group}`).join('|');
+}
+
+function renderCourses() {
+  const items = myCourseItems();
   view().innerHTML = `
     ${head('Курси', '', 'Теорія, тест, повторення помилок і практика — тема за темою')}
     ${resumeHero() || welcomeHero()}
     ${srsHero()}
     <h2 class="section-title">Мої курси</h2>
-    <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
-    ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте з каталогу.</p>'}
+    <div id="kursy-tiles"></div>
+    ${items.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте з каталогу.</p>'}
     <section id="kursy-catalog" hidden><h2 class="section-title">Каталог <span class="muted">торкніться, щоб додати</span></h2>
-    <div class="tiles courses" id="catalog-tiles"></div></section>
+    <div id="catalog-tiles"></div></section>
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
-  addCatalogTiles($('catalog-tiles'));
+  const sig = fillMyTiles($('kursy-tiles'), items);
+  addCatalogTiles($('catalog-tiles'), sig);
   view().querySelector('[data-to-catalog]')?.addEventListener('click', () => $('kursy-catalog')?.scrollIntoView({ behavior: 'smooth' }));
 }
 
-/** Курси каталогу, яких ще немає на пристрої, — блідими плитками в тій самій сітці; торкнулись — курс додається. */
-async function addCatalogTiles(grid) {
-  const cat = await Courses.catalog();
-  if (!grid.isConnected || !cat) return;
-  const fresh = cat.filter((c) => !Courses.get(c.id));
-  if (fresh.length) grid.closest('section')?.removeAttribute('hidden');
-  grid.insertAdjacentHTML('beforeend', fresh.map((c) => `<button type="button" class="tile course-tile add" data-course-add="${esc(c.id)}">
+const catalogTile = (c) => `<button type="button" class="tile course-tile add" data-course-add="${esc(c.id)}">
       <span class="course-ico">${iconSvg(c.icon)}</span>
       <b>${esc(c.title)}</b>
       <span class="muted">${esc(c.subtitle || '')}</span>
       <small class="add-label">${c.units ? `${c.units} тем · ` : ''}<span>Додати</span></small>
-    </button>`).join(''));
+    </button>`;
+
+/** Курси каталогу, яких ще немає на пристрої, — блідими плитками по тих самих групах; торкнулись — курс додається. */
+async function addCatalogTiles(grid, mySig) {
+  const cat = await Courses.catalog();
+  if (!grid.isConnected || !cat) return;
+  // Каталог приніс групи, яких ще не знав пристрій, — «Мої курси» перекладаємо по групах
+  const mine = $('kursy-tiles');
+  const items = myCourseItems();
+  if (mine && items.map((x) => `${x.id}:${x.group}`).join('|') !== mySig) fillMyTiles(mine, items);
+  const fresh = cat.filter((c) => !Courses.get(c.id)).map((c) => ({ ...c, group: typeof c.group === 'string' && c.group.trim() ? c.group.trim() : Courses.OTHER_GROUP }));
+  if (fresh.length) grid.closest('section')?.removeAttribute('hidden');
+  grid.innerHTML = groupedTiles(fresh, catalogTile, 'cat');
+  mountGroups(grid);
   grid.querySelectorAll('[data-course-add]').forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;

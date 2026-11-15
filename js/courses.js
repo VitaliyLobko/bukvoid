@@ -4,6 +4,7 @@
 // Курс із картинками — пакет: у каталозі папка (course.json + img/…), файлом — .zip з тим самим.
 // Картинки зберігаються разом із курсом в IndexedDB — курс працює без мережі.
 
+import { CODE_LANGS } from './code.js';
 import { ICONS } from './icons.js';
 import { unzip } from './zip.js';
 
@@ -24,9 +25,14 @@ const HEX_RE = /^#[0-9a-f]{6}$/i;
 const mimeOf = (path) => MIME[path.split('.').pop().toLowerCase()];
 export const isAsset = (path) => ASSET_RE.test(path);
 
+// Групи курсів у порядку показу. Свою групу курс може назвати будь-як — вона стане після цих; без групи — «Інше».
+export const GROUPS = ['Мови й друк', 'Програмування й дизайн', 'Наука', 'Військова справа', 'Побут і хобі'];
+export const OTHER_GROUP = 'Інше';
+const GROUPS_KEY = 'bukvoid:catalog-groups';
+
 export const FORMAT = 'bukvoid-course';
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
-const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'note', 'recall', 'table', 'img', 'swatches', 'contrast'];
+const BLOCKS = ['h', 'p', 'ul', 'tip', 'warn', 'note', 'recall', 'table', 'img', 'code', 'swatches', 'contrast'];
 const MAX_TASKS = 20;  // практичні завдання теми
 const MAX_REFS = 20;   // сторінки довідника курсу
 const TYPES = ['choice', 'gap', 'fix', 'translate', 'number', 'order', 'spot'];
@@ -62,6 +68,7 @@ export function validate(pack, files = new Set()) {
   if (pack.short !== undefined && !(str(pack.short) && pack.short.length <= 24)) err.push('short — коротка назва для нижньої панелі, до 24 знаків (напр. «FPV-дрон»).');
   if (pack.lang && !['uk', 'en'].includes(pack.lang)) err.push('lang — uk або en (мова друку в курсі).');
   if (pack.icon !== undefined && !ICONS.includes(pack.icon)) err.push(`icon — один зі значків: ${ICONS.join(', ')}.`);
+  if (pack.group !== undefined && !(str(pack.group) && pack.group.length <= 40)) err.push('group — назва групи курсів, до 40 знаків (напр. «Наука»).');
   if (pack.pass !== undefined && !(typeof pack.pass === 'number' && pack.pass > 0 && pack.pass <= 1)) err.push('pass — частка правильних для «пройдено», від 0 до 1 (напр. 0.8).');
   if (!Array.isArray(pack.units) || !pack.units.length) err.push('Немає юнітів (units).');
   else if (pack.units.length > MAX_UNITS) err.push(`Забагато юнітів: ${pack.units.length}, можна до ${MAX_UNITS}.`);
@@ -119,16 +126,29 @@ export function validate(pack, files = new Set()) {
         err.push(`${at}, теорія ${k + 1}: swatches — до 12 кольорів {hex: "#1e88e5", name, note}.`);
       } else if (key === 'contrast' && !(Array.isArray(b.contrast) && b.contrast.length && b.contrast.length <= 8 && b.contrast.every((c) => c && HEX_RE.test(c.fg ?? '') && HEX_RE.test(c.bg ?? '')))) {
         err.push(`${at}, теорія ${k + 1}: contrast — до 8 пар {fg: "#000000", bg: "#ffffff", text}.`);
+      } else if (key === 'code') {
+        if (!str(b.code)) err.push(`${at}, теорія ${k + 1}: code — непорожній текст коду.`);
+        checkCode(b, `${at}, теорія ${k + 1}`);
       } else if (key === 'recall' && !(str(b.recall) && str(b.a))) {
         err.push(`${at}, теорія ${k + 1}: recall — питання й відповідь {recall: "…", a: "…"}.`);
       } else if (!['ul', 'table', 'img', 'swatches', 'contrast'].includes(key) && !str(b[key])) err.push(`${at}, теорія ${k + 1}: порожній текст.`);
     });
   }
 
+  function checkCode(b, at) {
+    if (b.lang !== undefined && !CODE_LANGS.includes(b.lang)) err.push(`${at}: lang — ${CODE_LANGS.join(', ')}.`);
+    if (b.title !== undefined && !str(b.title)) err.push(`${at}: title — назва файла над кодом, рядок.`);
+    if (b.hl !== undefined && !(Array.isArray(b.hl) && b.hl.every((n) => Number.isInteger(n) && n > 0))) err.push(`${at}: hl — номери рядків від 1, що підсвічуються.`);
+  }
+
   function checkExercise(e, ex) {
     if (!e || !TYPES.includes(e.type)) { err.push(`${ex}: type — ${TYPES.join(', ')}.`); return; }
     if (!str(e.q)) err.push(`${ex}: немає питання (q).`);
     if (e.img !== undefined && !(ASSET_RE.test(e.img) && str(e.alt))) err.push(`${ex}: img — шлях до картинки в курсі, і обов'язково alt.`);
+    if (e.code !== undefined) {
+      if (!str(e.code)) err.push(`${ex}: code — непорожній текст коду над питанням.`);
+      checkCode(e, ex);
+    }
     if (e.type === 'choice') {
       if (!(Array.isArray(e.options) && e.options.length >= 2 && e.options.every(str))) err.push(`${ex}: options — щонайменше 2 варіанти.`);
       else if (!(Number.isInteger(e.a) && e.a >= 0 && e.a < e.options.length)) err.push(`${ex}: a — номер правильного варіанта від 0.`);
@@ -243,8 +263,23 @@ export async function catalog() {
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
     catalogCache = Array.isArray(data?.courses) ? data.courses : [];
+    rememberGroups(catalogCache);
   } catch { /* офлайн — що вже знаємо */ }
   return catalogCache;
+}
+
+/** Групи з каталогу запам'ятовуємо: встановлений курс старішої версії може не мати group, а «Мої курси» малюються без мережі. */
+function rememberGroups(list) {
+  const map = Object.fromEntries(list.filter((c) => typeof c?.group === 'string' && c.group.trim()).map((c) => [c.id, c.group.trim()]));
+  try { localStorage.setItem(GROUPS_KEY, JSON.stringify(map)); } catch { /* приватний режим */ }
+}
+
+/** Група курсу: з самого курсу, інакше з каталогу, інакше «Інше». */
+export function groupOf(id, pack) {
+  if (typeof pack?.group === 'string' && pack.group.trim()) return pack.group.trim();
+  let map = {};
+  try { map = JSON.parse(localStorage.getItem(GROUPS_KEY) || '{}') || {}; } catch { /* приватний режим */ }
+  return typeof map[id] === 'string' ? map[id] : OTHER_GROUP;
 }
 
 /** Курс каталогу: файл .json або папка з course.json і картинками — їх беремо всі одразу, щоб курс працював без мережі. */

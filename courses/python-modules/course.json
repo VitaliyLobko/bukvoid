@@ -2,13 +2,14 @@
  "format": "bukvoid-course",
  "v": 1,
  "id": "python-modules",
- "version": 1,
+ "version": 2,
  "title": "Модульність на Python",
  "short": "Модульність Python",
  "subtitle": "Як розкласти програму на модулі: пакети, шари, роз'єми, збирання, події й плагіни — на прикладі маленького «Списку справ»",
  "lang": "uk",
  "pass": 0.8,
  "icon": "code",
+ "group": "Програмування й дизайн",
  "author": "Буквоїд",
  "source": {
   "title": "Документація Python: Модулі (офіційний підручник)",
@@ -97,9 +98,12 @@
    "title": "Шпаргалка: структура й правила",
    "theory": [
     {
-     "img": "img/07-tree.svg",
-     "alt": "Дерево папок готової програми: app з main.py і пакетом todo; у todo — __init__.py, events.py, пакет export (__init__.py, md.py, txt.py) і пакет tasks (__init__.py, models.py, repo.py, memory_repo.py, json_repo.py, service.py).",
-     "caption": "«Список справ» наприкінці курсу"
+     "code": "app/\n├── main.py\n└── todo/\n    ├── __init__.py\n    ├── events.py\n    ├── export/\n    │   ├── __init__.py\n    │   ├── md.py\n    │   └── txt.py\n    └── tasks/\n        ├── __init__.py\n        ├── models.py\n        ├── repo.py\n        ├── memory_repo.py\n        ├── json_repo.py\n        └── service.py",
+     "lang": "text",
+     "title": "уся програма"
+    },
+    {
+     "p": "«Список справ» наприкінці курсу."
     },
     {
      "h": "Сім правил"
@@ -167,13 +171,24 @@
      "p": "Перша версія — один файл. Вона працює:"
     },
     {
-     "img": "img/01-one-file.svg",
-     "alt": "Файл todo_one.py: глобальний список tasks; функція add додає словник зі справою, відкриває tasks.json, записує туди весь список і друкує «Додано»; функція done позначає справу виконаною, знову записує файл і друкує «Виконано». Рядки запису у файл і друку підсвічено — вони повторюються в обох функціях.",
-     "caption": "Жовтим — те, що повторюється"
+     "code": "import json\n\ntasks = []\n\n\ndef add(title):\n    tasks.append({\"title\": title,\n                  \"done\": False})\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Додано:\", title)\n\n\ndef done(n):\n    tasks[n][\"done\"] = True\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Виконано:\", tasks[n][\"title\"])\n\n\nadd(\"Купити хліб\")\nadd(\"Полити квіти\")\ndone(0)",
+     "lang": "python",
+     "title": "todo_one.py",
+     "hl": [
+      9,
+      10,
+      11,
+      16,
+      17,
+      18
+     ]
     },
     {
-     "img": "img/01-one-file-out.svg",
-     "alt": "Термінал: py todo_one.py друкує «Додано: Купити хліб», «Додано: Полити квіти», «Виконано: Купити хліб»."
+     "p": "Підсвічено те, що повторюється."
+    },
+    {
+     "code": "$ py todo_one.py\nДодано: Купити хліб\nДодано: Полити квіти\nВиконано: Купити хліб",
+     "lang": "console"
     },
     {
      "h": "Що тут болить"
@@ -316,8 +331,8 @@
      ],
      "a": 0,
      "why": "Коли збереження вшите в кожну функцію, міняти доводиться кожну.",
-     "img": "img/01-one-file.svg",
-     "alt": "Файл todo_one.py: функція add додає справу в список, записує весь список у tasks.json і друкує «Додано»; функція done позначає справу, знову записує tasks.json і друкує «Виконано»."
+     "code": "import json\n\ntasks = []\n\n\ndef add(title):\n    tasks.append({\"title\": title,\n                  \"done\": False})\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Додано:\", title)\n\n\ndef done(n):\n    tasks[n][\"done\"] = True\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Виконано:\", tasks[n][\"title\"])\n\n\nadd(\"Купити хліб\")\nadd(\"Полити квіти\")\ndone(0)",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -350,8 +365,8 @@
      "tol": 0,
      "unit": " раз(и)",
      "why": "Запис є і в add, і в done — це дублювання.",
-     "img": "img/01-one-file.svg",
-     "alt": "Файл todo_one.py: функція add додає справу в список, записує весь список у tasks.json і друкує «Додано»; функція done позначає справу, знову записує tasks.json і друкує «Виконано»."
+     "code": "import json\n\ntasks = []\n\n\ndef add(title):\n    tasks.append({\"title\": title,\n                  \"done\": False})\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Додано:\", title)\n\n\ndef done(n):\n    tasks[n][\"done\"] = True\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Виконано:\", tasks[n][\"title\"])\n\n\nadd(\"Купити хліб\")\nadd(\"Полити квіти\")\ndone(0)",
+     "lang": "python"
     },
     {
      "type": "order",
@@ -362,8 +377,8 @@
       "Надрукувати «Додано»"
      ],
      "why": "Одна функція робить три різні речі — ось і злиплі задачі.",
-     "img": "img/01-one-file.svg",
-     "alt": "Файл todo_one.py: функція add додає справу в список, записує весь список у tasks.json і друкує «Додано»; функція done позначає справу, знову записує tasks.json і друкує «Виконано»."
+     "code": "import json\n\ntasks = []\n\n\ndef add(title):\n    tasks.append({\"title\": title,\n                  \"done\": False})\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Додано:\", title)\n\n\ndef done(n):\n    tasks[n][\"done\"] = True\n    with open(\"tasks.json\", \"w\") as f:\n        json.dump(tasks, f)\n    print(\"Виконано:\", tasks[n][\"title\"])\n\n\nadd(\"Купити хліб\")\nadd(\"Полити квіти\")\ndone(0)",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -425,9 +440,12 @@
      "p": "**Пакет** — папка з модулями, у якій лежить файл `__init__.py`. Пакет може містити інші пакети: `todo.tasks` — пакет `tasks` усередині пакета `todo`."
     },
     {
-     "img": "img/02-tree.svg",
-     "alt": "Дерево папок: app містить main.py і папку todo; у todo — __init__.py і папка tasks; у tasks — __init__.py, models.py, memory_repo.py, service.py.",
-     "caption": "«Список справ», розкладений по папках"
+     "code": "app/\n├── main.py\n└── todo/\n    ├── __init__.py\n    └── tasks/\n        ├── __init__.py\n        ├── models.py\n        ├── memory_repo.py\n        └── service.py",
+     "lang": "text",
+     "title": "структура папок"
+    },
+    {
+     "p": "«Список справ», розкладений по папках."
     },
     {
      "p": "Дані справи — у `models.py`, зберігання — у `memory_repo.py`, правила — у `service.py`. Про кожен файл — наступні теми."
@@ -459,13 +477,19 @@
      "p": "Крапка на початку — **відносний імпорт**: «шукай поруч зі мною». Він працює лише всередині пакета ([підручник](https://docs.python.org/3/tutorial/modules.html#packages))."
     },
     {
-     "img": "img/02-main.svg",
-     "alt": "Файл app/main.py: перший рядок from todo.tasks import TaskService; далі створюється сервіс, додаються дві справи, перша позначається виконаною, і в циклі друкуються невиконані.",
-     "caption": "main.py імпортує пакет ззовні"
+     "code": "from todo.tasks import TaskService\n\ntasks = TaskService()\ntasks.add(\"Купити хліб\")\ntasks.add(\"Полити квіти\")\ntasks.done(1)\nfor t in tasks.pending():\n    print(\"☐\", t.title)",
+     "lang": "python",
+     "title": "app/main.py",
+     "hl": [
+      1
+     ]
     },
     {
-     "img": "img/02-main-out.svg",
-     "alt": "Термінал: cd app, py main.py, результат — «☐ Полити квіти»."
+     "p": "main.py імпортує пакет ззовні."
+    },
+    {
+     "code": "$ cd app\n$ py main.py\n☐ Полити квіти",
+     "lang": "console"
     },
     {
      "note": "Без `__init__.py` папка теж імпортується — це «простір імен» (namespace package). Для своєї програми файл кладуть: так видно, що це пакет."
@@ -673,8 +697,9 @@
      "p": "`__init__.py` виконується, коли пакет імпортують уперше. Тому його роблять **вітриною**: імпортують сюди все, що пакет пропонує назовні."
     },
     {
-     "img": "img/03-init.svg",
-     "alt": "Файл todo/tasks/__init__.py: from .models import Task, from .service import TaskService і список __all__ з іменами Task і TaskService."
+     "code": "from .models import Task\nfrom .service import TaskService\n\n__all__ = [\"Task\", \"TaskService\"]",
+     "lang": "python",
+     "title": "todo/tasks/__init__.py"
     },
     {
      "p": "Тепер `main.py` пише коротко — `from todo.tasks import TaskService` — і не знає, у якому файлі цей клас лежить насправді."
@@ -692,8 +717,12 @@
      "h": "Внутрішнє — з підкресленням"
     },
     {
-     "img": "img/03-memory.svg",
-     "alt": "Файл memory_repo.py: клас MemoryRepo; у конструкторі self._items = {} (рядок підсвічено); методи all повертає список значень, save кладе справу за її id."
+     "code": "class MemoryRepo:\n    def __init__(self):\n        self._items = {}\n\n    def all(self):\n        return list(self._items.values())\n\n    def save(self, task):\n        self._items[task.id] = task",
+     "lang": "python",
+     "title": "todo/tasks/memory_repo.py",
+     "hl": [
+      3
+     ]
     },
     {
      "p": "`self._items` починається з `_`. Це домовленість: **«внутрішнє, ззовні не чіпати»** ([PEP 8](https://peps.python.org/pep-0008/#public-and-internal-interfaces)). Python не заборонить, але лінтер і колеги підкажуть."
@@ -870,8 +899,8 @@
       "Ім'я Task з'являється у вашому файлі"
      ],
      "why": "Спершу пакет зовні, потім вкладений, потім його вітрина тягне модулі.",
-     "img": "img/03-init.svg",
-     "alt": "todo/tasks/__init__.py: from .models import Task, from .service import TaskService, __all__ = [\"Task\", \"TaskService\"]."
+     "code": "from .models import Task\nfrom .service import TaskService\n\n__all__ = [\"Task\", \"TaskService\"]",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -954,8 +983,9 @@
      "h": "Модель — лише дані"
     },
     {
-     "img": "img/04-models.svg",
-     "alt": "Файл models.py: from dataclasses import dataclass; клас Task з декоратором @dataclass і полями id: int, title: str, done: bool = False."
+     "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass Task:\n    id: int\n    title: str\n    done: bool = False",
+     "lang": "python",
+     "title": "todo/tasks/models.py"
     },
     {
      "p": "`@dataclass` сам пише конструктор, порівняння і гарний друк об'єкта ([документація](https://docs.python.org/3/library/dataclasses.html)). У моделі немає ні файлів, ні `print` — лише поля."
@@ -970,8 +1000,9 @@
      "h": "Сервіс — лише правила"
     },
     {
-     "img": "img/04-service.svg",
-     "alt": "Файл service.py: клас TaskService; у конструкторі self._repo = MemoryRepo(); метод add рахує новий номер як кількість справ плюс один, створює Task, зберігає й повертає; метод done шукає справу за номером, ставить done = True, зберігає й повертає, а якщо не знайшов — піднімає KeyError; метод pending повертає невиконані справи."
+     "code": "from .memory_repo import MemoryRepo\nfrom .models import Task\n\n\nclass TaskService:\n    def __init__(self):\n        self._repo = MemoryRepo()\n\n    def add(self, title):\n        new_id = len(self._repo.all()) + 1\n        task = Task(new_id, title)\n        self._repo.save(task)\n        return task\n\n    def done(self, task_id):\n        for task in self._repo.all():\n            if task.id == task_id:\n                task.done = True\n                self._repo.save(task)\n                return task\n        raise KeyError(task_id)\n\n    def pending(self):\n        return [t for t in self._repo.all()\n                if not t.done]",
+     "lang": "python",
+     "title": "todo/tasks/service.py"
     },
     {
      "p": "Сервіс знає правила: нова справа отримує наступний номер; позначити можна лише наявну справу, інакше `KeyError`. Як справи зберігаються, йому байдуже — він кличе `all()` і `save()`. На рядок `self._repo = MemoryRepo()` поки не зважайте — це тема наступного кроку."
@@ -1106,8 +1137,8 @@
      ],
      "a": 0,
      "why": "Цикл не знайшов справу — сервіс піднімає KeyError(task_id).",
-     "img": "img/04-service.svg",
-     "alt": "service.py: add рахує new_id = len(self._repo.all()) + 1, створює Task, зберігає й повертає; done шукає справу за id, ставить done = True, зберігає й повертає, а якщо не знайшов — raise KeyError(task_id)."
+     "code": "from .memory_repo import MemoryRepo\nfrom .models import Task\n\n\nclass TaskService:\n    def __init__(self):\n        self._repo = MemoryRepo()\n\n    def add(self, title):\n        new_id = len(self._repo.all()) + 1\n        task = Task(new_id, title)\n        self._repo.save(task)\n        return task\n\n    def done(self, task_id):\n        for task in self._repo.all():\n            if task.id == task_id:\n                task.done = True\n                self._repo.save(task)\n                return task\n        raise KeyError(task_id)\n\n    def pending(self):\n        return [t for t in self._repo.all()\n                if not t.done]",
+     "lang": "python"
     },
     {
      "type": "order",
@@ -1120,8 +1151,8 @@
       "Повертає справу"
      ],
      "why": "Так написано в service.py: all → номер → Task → save → return.",
-     "img": "img/04-service.svg",
-     "alt": "service.py: add рахує new_id = len(self._repo.all()) + 1, створює Task, зберігає й повертає; done шукає справу за id, ставить done = True, зберігає й повертає, а якщо не знайшов — raise KeyError(task_id)."
+     "code": "from .memory_repo import MemoryRepo\nfrom .models import Task\n\n\nclass TaskService:\n    def __init__(self):\n        self._repo = MemoryRepo()\n\n    def add(self, title):\n        new_id = len(self._repo.all()) + 1\n        task = Task(new_id, title)\n        self._repo.save(task)\n        return task\n\n    def done(self, task_id):\n        for task in self._repo.all():\n            if task.id == task_id:\n                task.done = True\n                self._repo.save(task)\n                return task\n        raise KeyError(task_id)\n\n    def pending(self):\n        return [t for t in self._repo.all()\n                if not t.done]",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -1180,8 +1211,13 @@
      "p": "Зараз сервіс **сам створює** собі сховище:"
     },
     {
-     "img": "img/05-before.svg",
-     "alt": "Початок service.py до змін: from .memory_repo import MemoryRepo; конструктор без параметрів пише self._repo = MemoryRepo(). Підсвічено імпорт і цей рядок."
+     "code": "from .memory_repo import MemoryRepo\nfrom .models import Task\n\n\nclass TaskService:\n    def __init__(self):\n        self._repo = MemoryRepo()",
+     "lang": "python",
+     "title": "service.py — було",
+     "hl": [
+      1,
+      7
+     ]
     },
     {
      "p": "Хочемо зберігати справи у файл. Доведеться правити `service.py`, хоч він мав би знати лише правила. І тест сервісу завжди працюватиме з тим сховищем, яке сервіс вибрав сам."
@@ -1190,8 +1226,13 @@
      "h": "Рішення — отримати ззовні"
     },
     {
-     "img": "img/05-after.svg",
-     "alt": "Початок service.py після змін: імпорт TaskRepo замість MemoryRepo; конструктор def __init__(self, repo: TaskRepo) пише self._repo = repo. Підсвічено конструктор."
+     "code": "from .models import Task\nfrom .repo import TaskRepo\n\n\nclass TaskService:\n    def __init__(self, repo: TaskRepo):\n        self._repo = repo",
+     "lang": "python",
+     "title": "service.py — стало",
+     "hl": [
+      6,
+      7
+     ]
     },
     {
      "p": "Сервіс більше не імпортує `MemoryRepo`. Він **отримує** сховище в конструкторі: хто створює сервіс, той і вирішує, яке сховище дати. Це й є **впровадження залежностей** (dependency injection, DI) — звучить грізно, а насправді це параметр конструктора. Позначку `: TaskRepo` розберемо в наступній темі."
@@ -1216,8 +1257,12 @@
      "h": "Бонус — тест"
     },
     {
-     "img": "img/05-test.svg",
-     "alt": "Файл test_service.py: функція test_done створює TaskService(MemoryRepo()), додає справу, позначає її виконаною і перевіряє assert tasks.pending() == []; потім друкує «OK: тест пройшов»."
+     "code": "from todo.tasks import MemoryRepo, TaskService\n\n\ndef test_done():\n    tasks = TaskService(MemoryRepo())\n    tasks.add(\"Хліб\")\n    tasks.done(1)\n    assert tasks.pending() == []\n\n\ntest_done()\nprint(\"OK: тест пройшов\")",
+     "lang": "python",
+     "title": "test_service.py",
+     "hl": [
+      5
+     ]
     },
     {
      "p": "У тесті даємо сховище в пам'яті: швидко, без файлів на диску, щоразу з чистого аркуша. Детально про прийом — у [статті Мартіна Фаулера](https://martinfowler.com/articles/injection.html)."
@@ -1357,8 +1402,8 @@
       "Перевірити, що невиконаних немає"
      ],
      "why": "Так написано test_service.py.",
-     "img": "img/05-test.svg",
-     "alt": "test_service.py: tasks = TaskService(MemoryRepo()); tasks.add(\"Хліб\"); tasks.done(1); assert tasks.pending() == []."
+     "code": "from todo.tasks import MemoryRepo, TaskService\n\n\ndef test_done():\n    tasks = TaskService(MemoryRepo())\n    tasks.add(\"Хліб\")\n    tasks.done(1)\n    assert tasks.pending() == []\n\n\ntest_done()\nprint(\"OK: тест пройшов\")",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -1417,8 +1462,9 @@
      "p": "Сервіс приймає «якесь сховище». Яке саме годиться? Відповідь записують **роз'ємом** — класом `Protocol` з модуля `typing`:"
     },
     {
-     "img": "img/06-protocol.svg",
-     "alt": "Файл repo.py: from typing import Protocol; клас TaskRepo(Protocol) з двома методами без тіла — all повертає list[Task], save приймає task: Task і повертає None; замість тіла три крапки."
+     "code": "from typing import Protocol\n\nfrom .models import Task\n\n\nclass TaskRepo(Protocol):\n    def all(self) -> list[Task]: ...\n\n    def save(self, task: Task) -> None: ...",
+     "lang": "python",
+     "title": "todo/tasks/repo.py"
     },
     {
      "p": "Читається так: «сховище — це будь-що з методами `all()` і `save(task)`». Три крапки замість тіла означають «тут лише опис». Тепер сервіс пише `repo: TaskRepo` — і читач, і редактор коду бачать, що йому потрібно."
@@ -1427,8 +1473,9 @@
      "h": "Друга реалізація"
     },
     {
-     "img": "img/06-json.svg",
-     "alt": "Файл json_repo.py: клас JsonRepo з шляхом до файла; all читає JSON і повертає список Task, а якщо файла ще немає — порожній список; save збирає словник справ за id разом із новою і записує через внутрішній метод _write, який робить json.dump у файл."
+     "code": "import json\n\nfrom .models import Task\n\n\nclass JsonRepo:\n    def __init__(self, path):\n        self._path = path\n\n    def all(self):\n        try:\n            with open(self._path) as f:\n                rows = json.load(f)\n        except FileNotFoundError:\n            return []\n        return [Task(**r) for r in rows]\n\n    def save(self, task):\n        rows = {}\n        for t in self.all() + [task]:\n            rows[t.id] = vars(t)\n        self._write(list(rows.values()))\n\n    def _write(self, rows):\n        with open(self._path, \"w\") as f:\n            json.dump(rows, f)",
+     "lang": "python",
+     "title": "todo/tasks/json_repo.py"
     },
     {
      "p": "`JsonRepo` не успадковує `TaskRepo` і навіть не імпортує його. Він просто має ті самі методи — і цього досить. Таку перевірку «за формою» називають **структурною типізацією**, або «качиною»: якщо крякає, як качка, — це качка ([документація typing](https://docs.python.org/3/library/typing.html#typing.Protocol))."
@@ -1598,8 +1645,8 @@
      ],
      "a": 0,
      "why": "except FileNotFoundError: return [].",
-     "img": "img/06-json.svg",
-     "alt": "json_repo.py: all відкриває файл і читає JSON; except FileNotFoundError: return []; інакше повертає список Task. save збирає справи за id і записує файл."
+     "code": "import json\n\nfrom .models import Task\n\n\nclass JsonRepo:\n    def __init__(self, path):\n        self._path = path\n\n    def all(self):\n        try:\n            with open(self._path) as f:\n                rows = json.load(f)\n        except FileNotFoundError:\n            return []\n        return [Task(**r) for r in rows]\n\n    def save(self, task):\n        rows = {}\n        for t in self.all() + [task]:\n            rows[t.id] = vars(t)\n        self._write(list(rows.values()))\n\n    def _write(self, rows):\n        with open(self._path, \"w\") as f:\n            json.dump(rows, f)",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -1673,11 +1720,15 @@
      "p": "Хтось усе ж має сказати «беремо `JsonRepo` і даємо його сервісу». Це робить **точка збирання** (composition root) — одне місце, яке знає всі конкретні класи."
     },
     {
-     "img": "img/07-main.svg",
-     "alt": "Файл main.py: імпорт JsonRepo і TaskService; функція build створює repo = JsonRepo(\"tasks.json\") (рядок підсвічено) і повертає TaskService(repo); функція run бере сервіс з build, додає дві справи, позначає першу і друкує невиконані; внизу if __name__ == \"__main__\": run()."
+     "code": "from todo.tasks import JsonRepo, TaskService\n\n\ndef build():\n    repo = JsonRepo(\"tasks.json\")\n    return TaskService(repo)\n\n\ndef run():\n    tasks = build()\n    tasks.add(\"Купити хліб\")\n    tasks.add(\"Полити квіти\")\n    tasks.done(1)\n    for t in tasks.pending():\n        print(\"☐\", t.title)\n\n\nif __name__ == \"__main__\":\n    run()",
+     "lang": "python",
+     "title": "app/main.py",
+     "hl": [
+      5
+     ]
     },
     {
-     "p": "Функція `build()` створює частини й з'єднує їх. Хочете справи в пам'яті замість файла — міняєте **лише жовтий рядок** на `repo = MemoryRepo()` (і додаєте його в імпорт)."
+     "p": "Функція `build()` створює частини й з'єднує їх. Хочете справи в пам'яті замість файла — міняєте **лише підсвічений рядок** на `repo = MemoryRepo()` (і додаєте його в імпорт)."
     },
     {
      "p": "`if __name__ == \"__main__\":` означає: «виконуй `run()`, лише коли файл запустили командою `py main.py`, а не імпортували» ([підручник](https://docs.python.org/3/tutorial/modules.html#executing-modules-as-scripts)). Тест може імпортувати `build()` — і програма сама не стартує."
@@ -1706,9 +1757,12 @@
      ]
     },
     {
-     "img": "img/07-tree.svg",
-     "alt": "Дерево папок готової програми: app з main.py і пакетом todo; у todo — __init__.py, events.py, пакет export (__init__.py, md.py, txt.py) і пакет tasks (__init__.py, models.py, repo.py, memory_repo.py, json_repo.py, service.py).",
-     "caption": "Так програма виглядатиме наприкінці курсу"
+     "code": "app/\n├── main.py\n└── todo/\n    ├── __init__.py\n    ├── events.py\n    ├── export/\n    │   ├── __init__.py\n    │   ├── md.py\n    │   └── txt.py\n    └── tasks/\n        ├── __init__.py\n        ├── models.py\n        ├── repo.py\n        ├── memory_repo.py\n        ├── json_repo.py\n        └── service.py",
+     "lang": "text",
+     "title": "уся програма"
+    },
+    {
+     "p": "Так програма виглядатиме наприкінці курсу."
     },
     {
      "tip": "Точка збирання — єдине місце з назвами конкретних реалізацій. Шукаєте, яке сховище зараз працює, — дивіться сюди."
@@ -1821,8 +1875,8 @@
       "Повертає готовий сервіс"
      ],
      "why": "Спершу залежність, потім той, кому вона потрібна.",
-     "img": "img/07-main.svg",
-     "alt": "main.py: build() пише repo = JsonRepo(\"tasks.json\") і return TaskService(repo); run() бере сервіс з build(), додає справи й друкує невиконані."
+     "code": "from todo.tasks import JsonRepo, TaskService\n\n\ndef build():\n    repo = JsonRepo(\"tasks.json\")\n    return TaskService(repo)\n\n\ndef run():\n    tasks = build()\n    tasks.add(\"Купити хліб\")\n    tasks.add(\"Полити квіти\")\n    tasks.done(1)\n    for t in tasks.pending():\n        print(\"☐\", t.title)\n\n\nif __name__ == \"__main__\":\n    run()",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -1867,8 +1921,8 @@
      "tol": 0,
      "unit": " рядок",
      "why": "Лише repo = MemoryRepo() — усе інше отримує готове.",
-     "img": "img/07-main.svg",
-     "alt": "main.py: build() пише repo = JsonRepo(\"tasks.json\") і return TaskService(repo); run() бере сервіс з build(), додає справи й друкує невиконані."
+     "code": "from todo.tasks import JsonRepo, TaskService\n\n\ndef build():\n    repo = JsonRepo(\"tasks.json\")\n    return TaskService(repo)\n\n\ndef run():\n    tasks = build()\n    tasks.add(\"Купити хліб\")\n    tasks.add(\"Полити квіти\")\n    tasks.done(1)\n    for t in tasks.pending():\n        print(\"☐\", t.title)\n\n\nif __name__ == \"__main__\":\n    run()",
+     "lang": "python"
     }
    ],
    "typing": [
@@ -1913,16 +1967,30 @@
      "p": "Хочемо, щоб при створенні справи друкувалось повідомлення. `tasks.py` імпортує `say` з `notify.py`, а `notify.py` імпортує `Task` для підказки типу:"
     },
     {
-     "img": "img/08-tasks.svg",
-     "alt": "Файл todo/tasks.py: перший рядок from .notify import say (підсвічено); клас Task у конструкторі зберігає title і кличе say(self)."
+     "code": "from .notify import say\n\n\nclass Task:\n    def __init__(self, title):\n        self.title = title\n        say(self)",
+     "lang": "python",
+     "title": "todo/tasks.py",
+     "hl": [
+      1
+     ]
     },
     {
-     "img": "img/08-notify.svg",
-     "alt": "Файл todo/notify.py: перший рядок from .tasks import Task (підсвічено); функція say(task: Task) друкує «Нова справа» і назву."
+     "code": "from .tasks import Task\n\n\ndef say(task: Task):\n    print(\"Нова справа:\", task.title)",
+     "lang": "python",
+     "title": "todo/notify.py",
+     "hl": [
+      1
+     ]
     },
     {
-     "img": "img/08-error.svg",
-     "alt": "Термінал: py main.py падає з ImportError: cannot import name 'Task' from partially initialized module 'todo.tasks' (most likely due to a circular import)."
+     "code": "$ py main.py\nTraceback (most recent call last):\n  ...\n  File \"todo/notify.py\", line 1\n    from .tasks import Task\nImportError: cannot import name\n'Task' from partially initialized\nmodule 'todo.tasks' (most likely\ndue to a circular import)",
+     "lang": "console",
+     "hl": [
+      6,
+      7,
+      8,
+      9
+     ]
     },
     {
      "p": "Що сталося: Python почав виконувати `tasks.py`, на першому рядку пішов у `notify.py`, а той попросив `Task` з `tasks.py`, який ще не дочитано. Звідси слова **partially initialized** — «частково ініціалізований»."
@@ -1938,8 +2006,9 @@
      ]
     },
     {
-     "img": "img/08-fix.svg",
-     "alt": "Виправлений todo/notify.py: без імпортів, лише функція say(task), що друкує «Нова справа» і назву."
+     "code": "def say(task):\n    print(\"Нова справа:\", task.title)",
+     "lang": "python",
+     "title": "todo/notify.py — виправлено"
     },
     {
      "tip": "Напрям імпортів перевіряє утиліта [import-linter](https://import-linter.readthedocs.io/en/stable/): описуєте правило, наприклад «`events` не імпортує `tasks`», і перевірка падає, щойно хтось його порушить."
@@ -2148,26 +2217,37 @@
      "h": "Шина — десять рядків"
     },
     {
-     "img": "img/09-bus.svg",
-     "alt": "Файл events.py: клас EventBus; у конструкторі self._subs = defaultdict(list); subscribe(name, handler) додає обробник до списку події; publish(name, **data) кличе кожен обробник цієї події з даними."
+     "code": "from collections import defaultdict\n\n\nclass EventBus:\n    def __init__(self):\n        self._subs = defaultdict(list)\n\n    def subscribe(self, name, handler):\n        self._subs[name].append(handler)\n\n    def publish(self, name, **data):\n        for handler in self._subs[name]:\n            handler(**data)",
+     "lang": "python",
+     "title": "todo/events.py"
     },
     {
      "p": "`subscribe` додає обробник у список за назвою події. `publish` кличе всі обробники з цього списку й передає їм дані. `defaultdict(list)` сам створює порожній список для нової назви."
     },
     {
-     "img": "img/09-publish.svg",
-     "alt": "Метод done у service.py: знайшовши справу, ставить done = True, зберігає її і кличе self._bus.publish(\"done\", task=task) (підсвічено), потім повертає справу."
+     "code": "    def done(self, task_id: int) -> Task:\n        for task in self._repo.all():\n            if task.id == task_id:\n                task.done = True\n                self._repo.save(task)\n                self._bus.publish(\n                    \"done\", task=task)\n                return task\n        raise KeyError(task_id)",
+     "lang": "python",
+     "title": "service.py — метод done",
+     "hl": [
+      6,
+      7
+     ]
     },
     {
      "h": "Хто підписується"
     },
     {
-     "img": "img/09-main.svg",
-     "alt": "Файл main.py: створює EventBus і DoneCounter, підписує на подію done функцію notify.on_done і метод counter.on_done (підсвічено), створює TaskService(MemoryRepo(), bus), додає дві справи, виконує обидві й друкує кількість виконаних."
+     "code": "from todo import notify\nfrom todo.events import EventBus\nfrom todo.stats import DoneCounter\nfrom todo.tasks import MemoryRepo, TaskService\n\n\ndef run():\n    bus = EventBus()\n    counter = DoneCounter()\n    bus.subscribe(\"done\", notify.on_done)\n    bus.subscribe(\"done\", counter.on_done)\n\n    tasks = TaskService(MemoryRepo(), bus)\n    tasks.add(\"Купити хліб\")\n    tasks.add(\"Полити квіти\")\n    tasks.done(1)\n    tasks.done(2)\n    print(\"Усього виконано:\", counter.count)",
+     "lang": "python",
+     "title": "app/main.py",
+     "hl": [
+      10,
+      11
+     ]
     },
     {
-     "img": "img/09-out.svg",
-     "alt": "Термінал: «✔ Виконано: Купити хліб», «✔ Виконано: Полити квіти», «Усього виконано: 2»."
+     "code": "$ py main.py\n✔ Виконано: Купити хліб\n✔ Виконано: Полити квіти\nУсього виконано: 2",
+     "lang": "console"
     },
     {
      "p": "Підписки — у точці збирання. Нова реакція (Telegram, журнал) — новий `subscribe` у main.py; сервіс не змінюється."
@@ -2281,8 +2361,8 @@
      ],
      "a": 0,
      "why": "Звернення до нової назви одразу дає порожній список, без перевірок.",
-     "img": "img/09-bus.svg",
-     "alt": "events.py: self._subs = defaultdict(list); subscribe(name, handler) робить self._subs[name].append(handler); publish(name, **data) для кожного handler у self._subs[name] кличе handler(**data)."
+     "code": "from collections import defaultdict\n\n\nclass EventBus:\n    def __init__(self):\n        self._subs = defaultdict(list)\n\n    def subscribe(self, name, handler):\n        self._subs[name].append(handler)\n\n    def publish(self, name, **data):\n        for handler in self._subs[name]:\n            handler(**data)",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -2316,8 +2396,8 @@
       "notify друкує повідомлення"
      ],
      "why": "Спершу зміни й збереження, потім новина для всіх охочих.",
-     "img": "img/09-publish.svg",
-     "alt": "Метод done: task.done = True; self._repo.save(task); self._bus.publish(\"done\", task=task); return task."
+     "code": "    def done(self, task_id: int) -> Task:\n        for task in self._repo.all():\n            if task.id == task_id:\n                task.done = True\n                self._repo.save(task)\n                self._bus.publish(\n                    \"done\", task=task)\n                return task\n        raise KeyError(task_id)",
+     "lang": "python"
     },
     {
      "type": "choice",
@@ -2330,8 +2410,8 @@
      ],
      "a": 0,
      "why": "publish кличе handler(**data), тобто handler(task=task).",
-     "img": "img/09-bus.svg",
-     "alt": "events.py: self._subs = defaultdict(list); subscribe(name, handler) робить self._subs[name].append(handler); publish(name, **data) для кожного handler у self._subs[name] кличе handler(**data)."
+     "code": "from collections import defaultdict\n\n\nclass EventBus:\n    def __init__(self):\n        self._subs = defaultdict(list)\n\n    def subscribe(self, name, handler):\n        self._subs[name].append(handler)\n\n    def publish(self, name, **data):\n        for handler in self._subs[name]:\n            handler(**data)",
+     "lang": "python"
     }
    ],
    "typing": [
@@ -2366,8 +2446,9 @@
      "p": "Хочемо вивантажувати список у різні формати: текст, Markdown, завтра CSV. І хочемо так: **поклав файл у папку — формат з'явився**. Це і є плагіни."
     },
     {
-     "img": "img/10-registry.svg",
-     "alt": "Файл export/__init__.py: словник EXPORTERS; декоратор exporter(name), що записує функцію в EXPORTERS під цією назвою; функція load_all, що перебирає pkgutil.iter_modules(__path__) і імпортує кожен модуль через importlib.import_module."
+     "code": "import importlib\nimport pkgutil\n\nEXPORTERS = {}\n\n\ndef exporter(name):\n    def wrap(func):\n        EXPORTERS[name] = func\n        return func\n    return wrap\n\n\ndef load_all():\n    for m in pkgutil.iter_modules(__path__):\n        importlib.import_module(\n            f\"{__name__}.{m.name}\")",
+     "lang": "python",
+     "title": "todo/export/__init__.py"
     },
     {
      "p": "Три частини: словник **`EXPORTERS`** — реєстр (хто є); декоратор **`exporter(\"назва\")`** — записує функцію в реєстр; **`load_all()`** — знаходить усі модулі в папці пакета ([pkgutil](https://docs.python.org/3/library/pkgutil.html)) і імпортує їх."
@@ -2376,19 +2457,24 @@
      "h": "Плагін — один файл"
     },
     {
-     "img": "img/10-md.svg",
-     "alt": "Файл export/md.py: from . import exporter; функція to_md під декоратором @exporter(\"md\") (підсвічено) будує рядки «- [x] назва» для виконаних і «- [ ] назва» для решти й з'єднує їх."
+     "code": "from . import exporter\n\n\n@exporter(\"md\")\ndef to_md(tasks):\n    lines = []\n    for t in tasks:\n        mark = \"x\" if t.done else \" \"\n        lines.append(f\"- [{mark}] {t.title}\")\n    return \"\\n\".join(lines)",
+     "lang": "python",
+     "title": "todo/export/md.py",
+     "hl": [
+      4
+     ]
     },
     {
      "p": "Під час імпорту `md.py` спрацьовує декоратор, і функція потрапляє в реєстр під назвою `\"md\"`. Ядро про `md.py` нічого не знає."
     },
     {
-     "img": "img/10-main.svg",
-     "alt": "Фрагмент main.py: export.load_all(), друк sorted(export.EXPORTERS), to_md = export.EXPORTERS[\"md\"], друк to_md(repo.all())."
+     "code": "    export.load_all()\n    print(sorted(export.EXPORTERS))\n    to_md = export.EXPORTERS[\"md\"]\n    print(to_md(repo.all()))",
+     "lang": "python",
+     "title": "app/main.py — фрагмент"
     },
     {
-     "img": "img/10-out.svg",
-     "alt": "Термінал: ['md', 'txt'], далі «- [x] Купити хліб» і «- [ ] Полити квіти»."
+     "code": "$ py main.py\n['md', 'txt']\n- [x] Купити хліб\n- [ ] Полити квіти",
+     "lang": "console"
     },
     {
      "h": "Плагіни з інших пакетів"
@@ -2521,8 +2607,8 @@
       "Функція повертає Markdown"
      ],
      "why": "Знайти → імпортувати → зареєструвати → взяти → викликати.",
-     "img": "img/10-registry.svg",
-     "alt": "export/__init__.py: EXPORTERS = {}; декоратор exporter(name) записує функцію в EXPORTERS[name]; load_all() перебирає pkgutil.iter_modules(__path__) і імпортує кожен модуль через importlib.import_module."
+     "code": "import importlib\nimport pkgutil\n\nEXPORTERS = {}\n\n\ndef exporter(name):\n    def wrap(func):\n        EXPORTERS[name] = func\n        return func\n    return wrap\n\n\ndef load_all():\n    for m in pkgutil.iter_modules(__path__):\n        importlib.import_module(\n            f\"{__name__}.{m.name}\")",
+     "lang": "python"
     },
     {
      "type": "choice",

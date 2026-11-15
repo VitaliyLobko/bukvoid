@@ -1,0 +1,2606 @@
+{
+ "format": "bukvoid-course",
+ "v": 1,
+ "id": "python-oop",
+ "version": 1,
+ "title": "ООП на Python",
+ "subtitle": "Класи й об'єкти простою мовою: атрибути, методи, інкапсуляція, спеціальні методи, успадкування, поліморфізм, композиція й абстрактні класи — на прикладі маленького «Складу спорядження»",
+ "lang": "uk",
+ "pass": 0.8,
+ "icon": "code",
+ "group": "Програмування й дизайн",
+ "author": "Буквоїд",
+ "source": {
+  "title": "Підручник Python: Класи (офіційна документація)",
+  "url": "https://docs.python.org/3/tutorial/classes.html"
+ },
+ "reference": [
+  {
+   "id": "glossary",
+   "title": "Словник",
+   "theory": [
+    {
+     "p": "Терміни курсу. У кожній темі вони вживаються саме в цьому значенні."
+    },
+    {
+     "table": [
+      [
+       "Термін",
+       "Що це"
+      ],
+      [
+       "клас",
+       "креслення: які дані й дії"
+      ],
+      [
+       "об'єкт",
+       "виріб за кресленням"
+      ],
+      [
+       "атрибут",
+       "дане об'єкта: `self.qty`"
+      ],
+      [
+       "метод",
+       "функція всередині класу"
+      ],
+      [
+       "`self`",
+       "об'єкт, з яким працює метод"
+      ],
+      [
+       "`__init__`",
+       "наповнює новий об'єкт"
+      ],
+      [
+       "інкапсуляція",
+       "дані змінюють лише методи"
+      ],
+      [
+       "властивість",
+       "`@property`: метод як атрибут"
+      ],
+      [
+       "спецметод",
+       "`__str__`, `__eq__`, `__len__`…"
+      ],
+      [
+       "атрибут класу",
+       "один на всі об'єкти"
+      ],
+      [
+       "`@classmethod`",
+       "метод класу: фабрики"
+      ],
+      [
+       "успадкування",
+       "нащадок «є» предком"
+      ],
+      [
+       "`super()`",
+       "виклик версії предка"
+      ],
+      [
+       "поліморфізм",
+       "один виклик — різна поведінка"
+      ],
+      [
+       "композиція",
+       "об'єкт «має» інші об'єкти"
+      ],
+      [
+       "абстрактний клас",
+       "шаблон, якого не створити"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cheatsheet",
+   "title": "Шпаргалка: клас на одному екрані",
+   "theory": [
+    {
+     "code": "from abc import ABC, abstractmethod\n\n\nclass Thing(ABC):\n    unit = \"шт.\"  # атрибут класу\n\n    def __init__(self, name, qty=0):\n        self.name = name  # публічне\n        self._qty = qty  # внутрішнє\n\n    @property\n    def qty(self):  # лише читати\n        return self._qty\n\n    @abstractmethod\n    def describe(self): ...\n\n    @classmethod\n    def from_row(cls, row):  # фабрика\n        name, qty = row.split(\";\")\n        return cls(name, int(qty))\n\n\nclass Item(Thing):  # успадкування\n    def describe(self):  # своя версія\n        return f\"{self.name}: {self.qty}\"\n\n    def __str__(self):\n        return self.describe()\n\n\nprint(Item.from_row(\"Шолом;5\"))",
+     "lang": "python",
+     "title": "шпаргалка.py"
+    },
+    {
+     "code": "$ py cheat.py\nШолом: 5",
+     "lang": "console"
+    },
+    {
+     "h": "Коли що брати"
+    },
+    {
+     "table": [
+      [
+       "Задача",
+       "Інструмент"
+      ],
+      [
+       "дані + дії",
+       "клас"
+      ],
+      [
+       "захистити поле",
+       "`_поле` + `@property`"
+      ],
+      [
+       "гарний друк",
+       "`__str__`, `__repr__`"
+      ],
+      [
+       "створити з рядка",
+       "`@classmethod`"
+      ],
+      [
+       "«X — різновид Y»",
+       "успадкування"
+      ],
+      [
+       "«X має Y»",
+       "композиція"
+      ],
+      [
+       "обов'язковий метод",
+       "`ABC` + `@abstractmethod`"
+      ],
+      [
+       "лише дані",
+       "`@dataclass`"
+      ]
+     ]
+    }
+   ]
+  }
+ ],
+ "units": [
+  {
+   "id": "objects",
+   "title": "Клас і об'єкт",
+   "topic": "Креслення і вироби",
+   "goal": "Пояснити, чим клас відрізняється від об'єкта, і створити перший клас",
+   "theory": [
+    {
+     "p": "Курс тримається на одній маленькій програмі — **«Складі спорядження»**: шоломи, рації, аптечки; прийняти, видати, порахувати, надрукувати звіт. Від теми до теми ми її добудовуємо."
+    },
+    {
+     "p": "Почнімо без класів — зі словників:"
+    },
+    {
+     "code": "helmet = {\"name\": \"Шолом\", \"qty\": 5}\nvest = {\"nmae\": \"Плитоноска\", \"qty\": 2}\n\nprint(helmet[\"name\"], helmet[\"qty\"])\nprint(vest[\"name\"], vest[\"qty\"])",
+     "lang": "python",
+     "title": "dicts.py",
+     "hl": [
+      2
+     ]
+    },
+    {
+     "code": "$ py dicts.py\nШолом 5\nTraceback (most recent call last):\n  ...\nKeyError: 'name'",
+     "lang": "console"
+    },
+    {
+     "p": "Одна описка в ключі — і програма падає вже під час роботи. Словник не знає, які поля в шолома мають бути, а які ні. Інструмент для цього — **клас**."
+    },
+    {
+     "h": "Клас і об'єкт"
+    },
+    {
+     "p": "**Клас** — креслення: які дані й дії має річ. **Об'єкт** (екземпляр) — конкретний виріб за кресленням. Клас `Item` — один, шоломів і рацій за ним — скільки завгодно ([підручник](https://docs.python.org/3/tutorial/classes.html#a-first-look-at-classes))."
+    },
+    {
+     "code": "class Item:\n    pass\n\n\nhelmet = Item()\nhelmet.name = \"Шолом\"\nhelmet.qty = 5\n\nprint(type(helmet).__name__, helmet.name)\nprint(isinstance(helmet, Item))",
+     "lang": "python",
+     "title": "item.py"
+    },
+    {
+     "code": "$ py item.py\nItem Шолом\nTrue",
+     "lang": "console"
+    },
+    {
+     "table": [
+      [
+       "Слово",
+       "Приклад"
+      ],
+      [
+       "клас",
+       "`Item`"
+      ],
+      [
+       "об'єкт",
+       "`helmet = Item()`"
+      ],
+      [
+       "атрибут",
+       "`helmet.name`"
+      ]
+     ]
+    },
+    {
+     "tip": "Назви класів — `ВеликимиЛітерамиРазом` (`Item`, `TextReport`), об'єктів і функцій — `малими_через_підкреслення` (`helmet`, `issue_item`)."
+    },
+    {
+     "warn": "❌ Атрибути «приліплювати» до об'єкта ззовні, як тут → ✅ описувати їх у класі — це наступна тема."
+    },
+    {
+     "recall": "Пригадайте: чим клас відрізняється від об'єкта?",
+     "a": "Клас — креслення, об'єкт — конкретний виріб, створений за ним: helmet = Item()."
+    }
+   ],
+   "examples": [
+    {
+     "w": "class Item:",
+     "note": "оголошення класу"
+    },
+    {
+     "w": "helmet = Item()",
+     "note": "створення об'єкта"
+    },
+    {
+     "w": "helmet.name = \"Шолом\"",
+     "note": "атрибут об'єкта"
+    },
+    {
+     "w": "isinstance(helmet, Item)",
+     "note": "чи це виріб за кресленням Item"
+    },
+    {
+     "w": "type(helmet).__name__",
+     "note": "назва класу об'єкта"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що таке клас?",
+     "options": [
+      "Креслення: які дані й дії має річ",
+      "Конкретна річ на складі",
+      "Змінна зі списком речей",
+      "Файл із розширенням .py"
+     ],
+     "a": 0,
+     "why": "Клас описує; об'єкт — створений за описом виріб."
+    },
+    {
+     "type": "choice",
+     "q": "Що таке об'єкт?",
+     "options": [
+      "Конкретний виріб, створений за класом",
+      "Опис полів і методів",
+      "Будь-яка функція Python",
+      "Назва класу з великої літери"
+     ],
+     "a": 0,
+     "why": "helmet = Item() — об'єкт класу Item."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "False",
+      "True",
+      "None",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Кожен виклик Item() створює новий окремий об'єкт.",
+     "code": "class Item:\n    pass\n\n\na = Item()\nb = Item()\nprint(a is b)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "False",
+      "True",
+      "Шолом",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Атрибут приліпили лише до a; у b його немає — так класи не пишуть.",
+     "code": "class Item:\n    pass\n\n\na = Item()\na.name = \"Шолом\"\nb = Item()\nprint(hasattr(b, \"name\"))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "Item",
+      "object",
+      "type",
+      "None"
+     ],
+     "a": 0,
+     "why": "type(об'єкт) — його клас; __name__ — назва класу.",
+     "code": "class Item:\n    pass\n\n\nprint(type(Item()).__name__)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Чому словники для речей складу незручні?",
+     "options": [
+      "Описка в ключі виявляється лише під час роботи",
+      "Словники не вміють зберігати числа",
+      "Словники працюють повільніше за класи",
+      "У словнику не може бути кирилиці"
+     ],
+     "a": 0,
+     "why": "Словник не знає, які ключі мають бути; клас описує це в одному місці."
+    },
+    {
+     "type": "gap",
+     "q": "Створити об'єкт класу Item: helmet = ◻()",
+     "a": [
+      "Item"
+     ],
+     "why": "Клас викликають, як функцію, — і отримують новий об'єкт."
+    },
+    {
+     "type": "choice",
+     "q": "Як правильно назвати клас за PEP 8?",
+     "options": [
+      "TextReport",
+      "text_report",
+      "textreport",
+      "TEXT_REPORT"
+     ],
+     "a": 0,
+     "why": "Класи — CapWords: кожне слово з великої, без підкреслень."
+    },
+    {
+     "type": "choice",
+     "q": "Скільки об'єктів можна створити з одного класу?",
+     "options": [
+      "Скільки завгодно",
+      "Лише один",
+      "Не більше десяти",
+      "Стільки, скільки в ньому атрибутів"
+     ],
+     "a": 0,
+     "why": "За одним кресленням — будь-яка кількість виробів."
+    },
+    {
+     "type": "choice",
+     "q": "Що перевіряє isinstance(helmet, Item)?",
+     "options": [
+      "Чи створено helmet за класом Item",
+      "Чи однакові назви",
+      "Чи є в helmet атрибут Item",
+      "Чи Item — це рядок"
+     ],
+     "a": 0,
+     "why": "isinstance відповідає: «цей об'єкт — виріб цього класу?»"
+    },
+    {
+     "type": "order",
+     "q": "Від загального до конкретного",
+     "items": [
+      "клас Item",
+      "об'єкт helmet",
+      "атрибут helmet.name",
+      "значення «Шолом»"
+     ],
+     "why": "Клас → його об'єкт → дане об'єкта → значення цього даного."
+    }
+   ],
+   "typing": [
+    "Клас — це креслення, об'єкт — виріб за ним.",
+    "З одного класу можна створити скільки завгодно об'єктів.",
+    "Назви класів пишуть з великої літери.",
+    "Атрибут — це дане конкретного об'єкта."
+   ],
+   "tasks": [
+    "Створіть файл item.py з класом Item, зробіть два об'єкти — шолом і аптечку — і надрукуйте їхні назви. Перевірте isinstance для обох."
+   ],
+   "media": [
+    {
+     "title": "Підручник Python: Класи",
+     "url": "https://docs.python.org/3/tutorial/classes.html",
+     "note": "офіційний розділ 9, на якому стоїть курс",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "init",
+   "title": "__init__ і атрибути",
+   "topic": "Як новий об'єкт отримує свої дані",
+   "goal": "Описати атрибути в __init__ і створювати об'єкти з параметрами",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим клас відрізняється від об'єкта?",
+     "a": "Клас — креслення, об'єкт — виріб за ним."
+    },
+    {
+     "p": "Щоб кожна річ одразу мала назву й кількість, їх описують у методі **`__init__`**. Python викликає його сам, щойно створює об'єкт:"
+    },
+    {
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n\nhelmet = Item(\"Шолом\", 5)\nvest = Item(\"Плитоноска\")\n\nprint(helmet.name, helmet.qty)\nprint(vest.name, vest.qty)",
+     "lang": "python",
+     "title": "item.py",
+     "hl": [
+      2,
+      3,
+      4
+     ]
+    },
+    {
+     "code": "$ py item.py\nШолом 5\nПлитоноска 0",
+     "lang": "console"
+    },
+    {
+     "h": "Що тут відбувається"
+    },
+    {
+     "ul": [
+      "`Item(\"Шолом\", 5)` створює порожній об'єкт і передає його в `__init__` першим параметром — **`self`**.",
+      "`self.name = name` — записати в **цей** об'єкт атрибут `name`.",
+      "`qty=0` — значення за замовчуванням: плитоноска створилась без кількості й отримала 0."
+     ]
+    },
+    {
+     "p": "`__init__` нічого не повертає — він лише **наповнює** готовий об'єкт. Тому його часто називають ініціалізатором, а не конструктором."
+    },
+    {
+     "table": [
+      [
+       "Запис",
+       "Що означає"
+      ],
+      [
+       "`name`",
+       "параметр, живе до кінця `__init__`"
+      ],
+      [
+       "`self.name`",
+       "атрибут, живе з об'єктом"
+      ]
+     ]
+    },
+    {
+     "warn": "❌ `name = name` у `__init__` → ✅ `self.name = name`: без `self.` значення зникне разом із викликом."
+    },
+    {
+     "tip": "Усі атрибути об'єкта — в `__init__`. Відкрили клас — одразу бачите, з чого складається річ."
+    },
+    {
+     "recall": "Пригадайте: навіщо `self.` перед назвою атрибута?",
+     "a": "Щоб записати значення в сам об'єкт; без self. це звичайна змінна, що зникне після __init__."
+    }
+   ],
+   "examples": [
+    {
+     "w": "def __init__(self, name, qty=0):",
+     "note": "наповнює новий об'єкт"
+    },
+    {
+     "w": "self.name = name",
+     "note": "атрибут об'єкта"
+    },
+    {
+     "w": "Item(\"Шолом\", 5)",
+     "note": "аргументи йдуть у __init__"
+    },
+    {
+     "w": "Item(\"Плитоноска\")",
+     "note": "qty візьметься за замовчуванням: 0"
+    },
+    {
+     "w": "vest.qty",
+     "note": "прочитати атрибут"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Коли Python викликає __init__?",
+     "options": [
+      "Щойно створено новий об'єкт",
+      "Коли програма завершується",
+      "Перед кожним методом",
+      "Лише якщо викликати його вручну"
+     ],
+     "a": 0,
+     "why": "Item(...) створює об'єкт і одразу кличе для нього __init__."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "0",
+      "None",
+      "Бинт",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "qty не передали — взялося значення за замовчуванням 0.",
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n\nx = Item(\"Бинт\")\nprint(x.qty)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "Помилку AttributeError",
+      "Бинт",
+      "None",
+      "Порожній рядок"
+     ],
+     "a": 0,
+     "why": "name = name без self. — локальна змінна; атрибута name в об'єкта немає.",
+     "code": "class Item:\n    def __init__(self, name):\n        name = name\n\n\nx = Item(\"Бинт\")\nprint(x.name)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "TypeError: забагато аргументів",
+      "Створиться річ із qty = 1",
+      "Створиться річ із qty = 2",
+      "Число 2 тихо відкинеться"
+     ],
+     "a": 0,
+     "why": "__init__ приймає self, name і qty — четвертому аргументу місця немає.",
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n\nx = Item(\"Бинт\", 1, 2)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "4",
+      "1",
+      "5",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "a і b — різні об'єкти; зміна b.qty не чіпає a.",
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n\na = Item(\"Бинт\", 4)\nb = Item(\"Бинт\", 4)\nb.qty = 1\nprint(a.qty)",
+     "lang": "python"
+    },
+    {
+     "type": "gap",
+     "q": "Перший параметр будь-якого методу, зокрема __init__, за домовленістю називають ◻",
+     "a": [
+      "self"
+     ],
+     "why": "У self Python передає сам об'єкт."
+    },
+    {
+     "type": "choice",
+     "q": "Що повертає __init__?",
+     "options": [
+      "Нічого: він лише наповнює об'єкт",
+      "Новий об'єкт",
+      "Клас",
+      "Перший атрибут"
+     ],
+     "a": 0,
+     "why": "Об'єкт уже створено; __init__ записує в нього атрибути."
+    },
+    {
+     "type": "choice",
+     "q": "Чим self.name відрізняється від name у __init__?",
+     "options": [
+      "self.name живе з об'єктом, name — лише під час виклику",
+      "Нічим, це одне й те саме",
+      "self.name — константа",
+      "name доступний ззовні, а self.name — ні"
+     ],
+     "a": 0,
+     "why": "Параметр зникає після __init__, атрибут лишається в об'єкті."
+    },
+    {
+     "type": "number",
+     "q": "class Item: def __init__(self, name, qty=0). Скільки аргументів мінімум треба передати у виклик Item(...)?",
+     "a": 1,
+     "tol": 0,
+     "why": "self Python передає сам, qty має замовчування — лишається name."
+    },
+    {
+     "type": "choice",
+     "q": "Де краще описувати атрибути об'єкта?",
+     "options": [
+      "У __init__",
+      "Ззовні, після створення",
+      "У будь-якому методі, коли знадобиться",
+      "У глобальних змінних"
+     ],
+     "a": 0,
+     "why": "Тоді склад речі видно в одному місці й він однаковий для всіх об'єктів."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається при Item(\"Шолом\", 5)",
+     "items": [
+      "Python створює порожній об'єкт",
+      "Викликає __init__ і передає об'єкт як self",
+      "__init__ записує self.name і self.qty",
+      "Вираз повертає готовий об'єкт"
+     ],
+     "why": "Створити → наповнити → віддати."
+    }
+   ],
+   "typing": [
+    "Ініціалізатор наповнює новий об'єкт даними.",
+    "Без слова «селф» значення не потрапить в об'єкт.",
+    "Значення за замовчуванням робить параметр необов'язковим.",
+    "Усі атрибути описують в одному місці."
+   ],
+   "tasks": [
+    "Додайте в Item третій атрибут — одиницю виміру з замовчуванням «шт.». Створіть шолом і пальне в літрах і надрукуйте обидва."
+   ],
+   "media": [
+    {
+     "title": "Підручник Python: Об'єкти класу й __init__",
+     "url": "https://docs.python.org/3/tutorial/classes.html#class-objects",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "methods",
+   "title": "Методи і self",
+   "topic": "Дії, що живуть поруч із даними",
+   "goal": "Додати в клас методи й пояснити, що таке self",
+   "theory": [
+    {
+     "recall": "Пригадайте: що робить __init__?",
+     "a": "Наповнює щойно створений об'єкт атрибутами: self.name = name."
+    },
+    {
+     "p": "Річ на складі приймають і видають. Ці дії записують **методами** — функціями всередині класу. Тепер правило «не видати більше, ніж є» живе поруч із кількістю:"
+    },
+    {
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n    def receive(self, n):\n        self.qty += n\n\n    def issue(self, n):\n        if n > self.qty:\n            raise ValueError(\"Не вистачає\")\n        self.qty -= n\n\n\nhelmet = Item(\"Шолом\", 5)\nhelmet.receive(3)\nhelmet.issue(2)\nprint(helmet.qty)\n\nItem.issue(helmet, 1)\nprint(helmet.qty)\n\nhelmet.issue(100)",
+     "lang": "python",
+     "title": "item.py",
+     "hl": [
+      6,
+      7,
+      9,
+      10,
+      11,
+      12
+     ]
+    },
+    {
+     "code": "$ py item.py\n6\n5\nTraceback (most recent call last):\n  ...\nValueError: Не вистачає",
+     "lang": "console"
+    },
+    {
+     "h": "Що таке self"
+    },
+    {
+     "p": "`helmet.issue(2)` — це скорочення для `Item.issue(helmet, 2)`. Python сам підставляє об'єкт перед крапкою в перший параметр — **`self`**. Так метод знає, з яким саме шоломом працює ([підручник](https://docs.python.org/3/tutorial/classes.html#method-objects))."
+    },
+    {
+     "table": [
+      [
+       "Виклик",
+       "Що отримує self"
+      ],
+      [
+       "`helmet.issue(2)`",
+       "`helmet`"
+      ],
+      [
+       "`vest.issue(2)`",
+       "`vest`"
+      ],
+      [
+       "`Item.issue(helmet, 2)`",
+       "`helmet`"
+      ]
+     ]
+    },
+    {
+     "p": "Метод `issue` піднімає `ValueError`, коли просять забагато. Помилка зупиняє неправильну дію ще до того, як кількість стала від'ємною."
+    },
+    {
+     "warn": "❌ `def hello():` у класі → ✅ `def hello(self):` — без `self` виклик через об'єкт впаде з TypeError."
+    },
+    {
+     "tip": "Метод, що змінює об'єкт, зазвичай нічого не повертає (`None`). Хочете результат — повертайте його явно через `return`."
+    },
+    {
+     "recall": "Пригадайте: що Python підставляє в self при виклику helmet.issue(2)?",
+     "a": "Сам об'єкт helmet — той, що стоїть перед крапкою."
+    }
+   ],
+   "examples": [
+    {
+     "w": "def receive(self, n):",
+     "note": "метод: перший параметр — self"
+    },
+    {
+     "w": "self.qty += n",
+     "note": "змінити дане свого об'єкта"
+    },
+    {
+     "w": "helmet.issue(2)",
+     "note": "виклик методу"
+    },
+    {
+     "w": "Item.issue(helmet, 2)",
+     "note": "те саме, розписано"
+    },
+    {
+     "w": "raise ValueError(\"Не вистачає\")",
+     "note": "зупинити неправильну дію"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 5,
+     "tol": 0,
+     "why": "10 − 3 − 2 = 5: кожен виклик змінює той самий об'єкт.",
+     "code": "class Item:\n    def __init__(self, qty):\n        self.qty = qty\n\n    def issue(self, n):\n        self.qty -= n\n\n\na = Item(10)\na.issue(3)\na.issue(2)\nprint(a.qty)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "TypeError: зайвий аргумент",
+      "Надрукується «Привіт»",
+      "Надрукується None",
+      "AttributeError: немає методу"
+     ],
+     "a": 0,
+     "why": "Python передає об'єкт у перший параметр, а hello не приймає жодного.",
+     "code": "class Item:\n    def hello():\n        return \"Привіт\"\n\n\nprint(Item().hello())",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "None",
+      "3",
+      "2",
+      "1"
+     ],
+     "a": 0,
+     "why": "receive нічого не повертає — результат виклику None, хоч qty стала 3.",
+     "code": "class Item:\n    def __init__(self, qty):\n        self.qty = qty\n\n    def receive(self, n):\n        self.qty += n\n\n\na = Item(1)\nprint(a.receive(2))",
+     "lang": "python"
+    },
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 5,
+     "tol": 0,
+     "why": "Item.receive(a, 4) — те саме, що a.receive(4): 1 + 4 = 5.",
+     "code": "class Item:\n    def __init__(self, qty):\n        self.qty = qty\n\n    def receive(self, n):\n        self.qty += n\n\n\na = Item(1)\nItem.receive(a, 4)\nprint(a.qty)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що таке метод?",
+     "options": [
+      "Функція всередині класу",
+      "Атрибут із числом",
+      "Окремий файл модуля",
+      "Назва об'єкта"
+     ],
+     "a": 0,
+     "why": "Метод — дія об'єкта; перший параметр отримує сам об'єкт."
+    },
+    {
+     "type": "choice",
+     "q": "Чому правило «не видати більше, ніж є» краще тримати в методі issue?",
+     "options": [
+      "Його не обійти: кожна видача проходить через метод",
+      "Так програма працює швидше",
+      "Python забороняє if поза класами",
+      "Так менше рядків у файлі"
+     ],
+     "a": 0,
+     "why": "Дані й правила разом — правило не забудуть перевірити в іншому місці."
+    },
+    {
+     "type": "gap",
+     "q": "helmet.issue(2) — скорочення для Item.issue(◻, 2)",
+     "a": [
+      "helmet"
+     ],
+     "why": "Об'єкт перед крапкою стає першим аргументом."
+    },
+    {
+     "type": "choice",
+     "q": "Що зробить raise ValueError(...) у методі issue?",
+     "options": [
+      "Зупинить виконання й повідомить про помилку",
+      "Поверне False",
+      "Надрукує попередження й продовжить",
+      "Обнулить кількість"
+     ],
+     "a": 0,
+     "why": "Виняток перериває дію, поки його не перехопить try/except."
+    },
+    {
+     "type": "choice",
+     "q": "Метод змінює self.qty. Чи зміниться qty інших об'єктів класу?",
+     "options": [
+      "Ні, лише в об'єкта self",
+      "Так, у всіх об'єктів",
+      "Так, але лише в нових",
+      "Залежить від назви методу"
+     ],
+     "a": 0,
+     "why": "self — один конкретний об'єкт; в інших свої атрибути."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається при helmet.issue(2)",
+     "items": [
+      "Python знаходить метод issue у класі Item",
+      "Передає helmet як self, а 2 — як n",
+      "Метод перевіряє, чи вистачає",
+      "Метод зменшує self.qty"
+     ],
+     "why": "Знайти метод → підставити об'єкт → перевірити → змінити."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне метод без return?",
+     "options": [
+      "None",
+      "self",
+      "0",
+      "Останнє обчислене значення"
+     ],
+     "a": 0,
+     "why": "Функція без return у Python повертає None."
+    }
+   ],
+   "typing": [
+    "Метод — це функція всередині класу.",
+    "Перший параметр методу отримує сам об'єкт.",
+    "Правила роботи з даними живуть поруч із даними.",
+    "Неправильну дію зупиняє виняток."
+   ],
+   "tasks": [
+    "Додайте в Item метод is_empty(), що повертає True, коли кількість нуль. Видайте весь шолом і перевірте."
+   ],
+   "media": [
+    {
+     "title": "Підручник Python: Об'єкти методів",
+     "url": "https://docs.python.org/3/tutorial/classes.html#method-objects",
+     "note": "чому x.f() — те саме, що MyClass.f(x)",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "encapsulation",
+   "title": "Інкапсуляція",
+   "topic": "_поле і @property: дані змінюють лише методи",
+   "goal": "Захистити кількість від прямого запису й читати її через @property",
+   "theory": [
+    {
+     "recall": "Пригадайте: де живе правило «не видати більше, ніж є»?",
+     "a": "У методі issue класу Item."
+    },
+    {
+     "p": "Правило в `issue` нічого не варте, якщо хтось напише `helmet.qty = -100` напряму. **Інкапсуляція** — дані змінюються лише через методи, які знають правила."
+    },
+    {
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self._qty = 0\n        self.receive(qty)\n\n    @property\n    def qty(self):\n        return self._qty\n\n    def receive(self, n):\n        if n < 0:\n            raise ValueError(\"Мінус?\")\n        self._qty += n\n\n    def issue(self, n):\n        if n > self._qty:\n            raise ValueError(\"Не вистачає\")\n        self._qty -= n\n\n\nhelmet = Item(\"Шолом\", 5)\nprint(helmet.qty)\nhelmet.qty = 100",
+     "lang": "python",
+     "title": "item.py",
+     "hl": [
+      4,
+      7,
+      8,
+      9
+     ]
+    },
+    {
+     "code": "$ py item.py\n5\nTraceback (most recent call last):\n  ...\nAttributeError: property 'qty' of 'Item' object has no setter",
+     "lang": "console"
+    },
+    {
+     "h": "Як це працює"
+    },
+    {
+     "ul": [
+      "`self._qty` — **внутрішнє** поле: підкреслення каже «ззовні не чіпати».",
+      "`@property` робить метод `qty` схожим на атрибут: читаємо `helmet.qty` без дужок.",
+      "Запису немає: `helmet.qty = 100` — помилка. Змінити кількість можна лише через `receive` і `issue`."
+     ]
+    },
+    {
+     "p": "Якщо запис усе ж потрібен — з перевіркою — додають **setter**: `@qty.setter`. Тоді `item.qty = 2` піде через метод, і той відкине мінус ([документація property](https://docs.python.org/3/library/functions.html#property))."
+    },
+    {
+     "table": [
+      [
+       "Запис",
+       "Означає"
+      ],
+      [
+       "`qty`",
+       "публічне"
+      ],
+      [
+       "`_qty`",
+       "внутрішнє, домовленість"
+      ],
+      [
+       "`__qty`",
+       "перейменовується Python"
+      ]
+     ]
+    },
+    {
+     "note": "Два підкреслення Python перейменовує: `self.__code` у класі `Safe` стає `_Safe__code` ([підручник](https://docs.python.org/3/tutorial/classes.html#private-variables)). Це захист від випадкового збігу імен у нащадках, а не замок — дістати все одно можна."
+    },
+    {
+     "warn": "❌ Геттер і сеттер на кожне поле «про всяк випадок», як у Java → ✅ звичайний атрибут, а `@property` — лише коли є правило."
+    },
+    {
+     "recall": "Пригадайте: що дає @property без setter?",
+     "a": "Атрибут, який можна читати, але не можна записати напряму — лише через методи класу."
+    }
+   ],
+   "examples": [
+    {
+     "w": "self._qty = 0",
+     "note": "внутрішнє поле"
+    },
+    {
+     "w": "@property",
+     "note": "метод читається як атрибут"
+    },
+    {
+     "w": "helmet.qty",
+     "note": "читання без дужок"
+    },
+    {
+     "w": "@qty.setter",
+     "note": "запис через метод з перевіркою"
+    },
+    {
+     "w": "s._Safe__code",
+     "note": "так Python перейменовує __code"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "AttributeError: у властивості немає setter",
+      "qty стане 7",
+      "qty лишиться 5 без помилки",
+      "TypeError: неправильний тип"
+     ],
+     "a": 0,
+     "why": "@property без setter дозволяє лише читати.",
+     "code": "class Item:\n    def __init__(self, qty):\n        self._qty = qty\n\n    @property\n    def qty(self):\n        return self._qty\n\n\na = Item(5)\na.qty = 7",
+     "lang": "python"
+    },
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 2,
+     "tol": 0,
+     "why": "Запис a.qty = 2 пройшов через setter: 2 не менше нуля.",
+     "code": "class Item:\n    def __init__(self, qty):\n        self.qty = qty\n\n    @property\n    def qty(self):\n        return self._qty\n\n    @qty.setter\n    def qty(self, value):\n        if value < 0:\n            raise ValueError(\"Мінус\")\n        self._qty = value\n\n\na = Item(5)\na.qty = 2\nprint(a.qty)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "ValueError: Мінус",
+      "Створиться річ із qty = −1",
+      "Створиться річ із qty = 0",
+      "AttributeError"
+     ],
+     "a": 0,
+     "why": "self.qty = qty у __init__ теж іде через setter — і той відкидає мінус.",
+     "code": "class Item:\n    def __init__(self, qty):\n        self.qty = qty\n\n    @property\n    def qty(self):\n        return self._qty\n\n    @qty.setter\n    def qty(self, value):\n        if value < 0:\n            raise ValueError(\"Мінус\")\n        self._qty = value\n\n\nb = Item(-1)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "1234",
+      "Помилку AttributeError",
+      "None",
+      "_Safe__code"
+     ],
+     "a": 0,
+     "why": "__code перейменовано на _Safe__code — ім'я змінено, але доступ лишився.",
+     "code": "class Safe:\n    def __init__(self):\n        self.__code = 1234\n\n\ns = Safe()\nprint(s._Safe__code)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що таке інкапсуляція?",
+     "options": [
+      "Дані змінюються лише через методи з правилами",
+      "Усі атрибути зберігаються у файлі",
+      "Клас лежить в окремому модулі",
+      "Об'єкт копіюється перед зміною"
+     ],
+     "a": 0,
+     "why": "Правило не обійти, якщо зміна йде лише через метод."
+    },
+    {
+     "type": "choice",
+     "q": "Що означає одне підкреслення в self._qty?",
+     "options": [
+      "Внутрішнє, ззовні не чіпати",
+      "Python забороняє доступ",
+      "Значення не можна змінити",
+      "Атрибут спільний для всіх об'єктів"
+     ],
+     "a": 0,
+     "why": "Це домовленість для людей і лінтерів, а не заборона мови."
+    },
+    {
+     "type": "gap",
+     "q": "Декоратор, що дозволяє читати метод як атрибут, без дужок: @◻",
+     "a": [
+      "property"
+     ],
+     "why": "helmet.qty замість helmet.qty()."
+    },
+    {
+     "type": "choice",
+     "q": "Коли варто додавати @property?",
+     "options": [
+      "Коли для читання чи запису є правило",
+      "До кожного атрибута завжди",
+      "Лише для текстових атрибутів",
+      "Ніколи, це застарілий прийом"
+     ],
+     "a": 0,
+     "why": "Без правила звичайний атрибут простіший і зрозуміліший."
+    },
+    {
+     "type": "choice",
+     "q": "Як оголосити запис властивості qty з перевіркою?",
+     "options": [
+      "@qty.setter над методом qty(self, value)",
+      "@property.write над методом set_qty",
+      "@setter над методом qty",
+      "def set_qty без декоратора"
+     ],
+     "a": 0,
+     "why": "Setter оголошують через ім'я вже створеної властивості: @qty.setter."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається при a.qty = 2, якщо є setter",
+     "items": [
+      "Python бачить, що qty — властивість",
+      "Викликає метод-setter із value = 2",
+      "Setter перевіряє правило",
+      "Setter записує self._qty"
+     ],
+     "why": "Присвоєння перетворюється на виклик методу."
+    },
+    {
+     "type": "choice",
+     "q": "Атрибут __code у класі Safe. Під яким ім'ям він насправді лежить?",
+     "options": [
+      "_Safe__code",
+      "__code",
+      "Safe.code",
+      "_code"
+     ],
+     "a": 0,
+     "why": "Name mangling: до імені додається _ і назва класу."
+    }
+   ],
+   "typing": [
+    "Інкапсуляція — дані змінюють лише методи з правилами.",
+    "Одне підкреслення означає «внутрішнє».",
+    "Властивість читається, як звичайний атрибут.",
+    "Перевірку запису робить сеттер."
+   ],
+   "tasks": [
+    "Додайте в Item властивість name із setter, що не дає записати порожню назву. Перевірте: Item(\"\", 1) має впасти з ValueError."
+   ],
+   "media": [
+    {
+     "title": "Документація Python: property",
+     "url": "https://docs.python.org/3/library/functions.html#property",
+     "note": "getter, setter, deleter з прикладом",
+     "main": true
+    },
+    {
+     "title": "Підручник Python: «приватні» змінні",
+     "url": "https://docs.python.org/3/tutorial/classes.html#private-variables"
+    }
+   ]
+  },
+  {
+   "id": "dunder",
+   "title": "Спеціальні методи",
+   "topic": "__str__, __repr__, __eq__, __len__ і @dataclass",
+   "goal": "Навчити об'єкт гарно друкуватися, порівнюватися й мати довжину",
+   "theory": [
+    {
+     "recall": "Пригадайте: що робить @property?",
+     "a": "Дозволяє читати метод як атрибут, без дужок; без setter запис заборонено."
+    },
+    {
+     "p": "Звичайний об'єкт друкується незрозуміло, а два однакові шоломи «не рівні»:"
+    },
+    {
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n\na = Item(\"Шолом\", 5)\nprint(a)\nprint(a == Item(\"Шолом\", 5))",
+     "lang": "python",
+     "title": "plain.py"
+    },
+    {
+     "code": "$ py plain.py\n<__main__.Item object at 0x…>\nFalse",
+     "lang": "console"
+    },
+    {
+     "p": "Python питає в об'єкта, як його друкувати й порівнювати, через **спеціальні методи** — імена з двома підкресленнями з обох боків («dunder», від double underscore)."
+    },
+    {
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n    def __str__(self):\n        return f\"{self.name}: {self.qty} шт.\"\n\n    def __repr__(self):\n        return f\"Item({self.name!r}, {self.qty})\"\n\n    def __eq__(self, other):\n        if not isinstance(other, Item):\n            return NotImplemented\n        return (self.name, self.qty) == (\n            other.name, other.qty)\n\n\na = Item(\"Шолом\", 5)\nprint(a)\nprint([a])\nprint(a == Item(\"Шолом\", 5))",
+     "lang": "python",
+     "title": "item.py",
+     "hl": [
+      6,
+      9,
+      12
+     ]
+    },
+    {
+     "code": "$ py item.py\nШолом: 5 шт.\n[Item('Шолом', 5)]\nTrue",
+     "lang": "console"
+    },
+    {
+     "table": [
+      [
+       "Метод",
+       "Коли кличе Python"
+      ],
+      [
+       "`__str__`",
+       "`print(x)`, `str(x)`"
+      ],
+      [
+       "`__repr__`",
+       "у списку, в консолі"
+      ],
+      [
+       "`__eq__`",
+       "`x == y`"
+      ],
+      [
+       "`__len__`",
+       "`len(x)`"
+      ]
+     ]
+    },
+    {
+     "p": "`__str__` — для людей, `__repr__` — для розробника: в ідеалі з нього видно, як відтворити об'єкт. `return NotImplemented` у `__eq__` каже Python: «з таким типом я не порівнюю» ([документація](https://docs.python.org/3/reference/datamodel.html#special-method-names))."
+    },
+    {
+     "h": "Коли клас — лише дані"
+    },
+    {
+     "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass Item:\n    name: str\n    qty: int = 0\n\n\na = Item(\"Шолом\", 5)\nprint(a)\nprint(a == Item(\"Шолом\", 5))",
+     "lang": "python",
+     "title": "dc.py"
+    },
+    {
+     "code": "$ py dc.py\nItem(name='Шолом', qty=5)\nTrue",
+     "lang": "console"
+    },
+    {
+     "p": "`@dataclass` сам пише `__init__`, `__repr__` і `__eq__` з описаних полів ([dataclasses](https://docs.python.org/3/library/dataclasses.html)). Для класу-«носія даних» — найкоротший шлях."
+    },
+    {
+     "recall": "Пригадайте: який метод кличе print(x), а який — показ x у списку?",
+     "a": "print — __str__; у списку й консолі — __repr__."
+    }
+   ],
+   "examples": [
+    {
+     "w": "def __str__(self):",
+     "note": "текст для людей"
+    },
+    {
+     "w": "def __repr__(self):",
+     "note": "текст для розробника"
+    },
+    {
+     "w": "def __eq__(self, other):",
+     "note": "порівняння =="
+    },
+    {
+     "w": "return NotImplemented",
+     "note": "«з таким типом не порівнюю»"
+    },
+    {
+     "w": "def __len__(self):",
+     "note": "відповідь на len(x)"
+    },
+    {
+     "w": "@dataclass",
+     "note": "__init__, __repr__, __eq__ — автоматично"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код (два рядки)?",
+     "options": [
+      "Річ Шолом, потім [Item('Шолом')]",
+      "Item('Шолом'), потім [Річ Шолом]",
+      "Річ Шолом, потім [Річ Шолом]",
+      "Item('Шолом'), потім [Item('Шолом')]"
+     ],
+     "a": 0,
+     "why": "print кличе __str__, а список показує елементи через __repr__.",
+     "code": "class Item:\n    def __init__(self, name):\n        self.name = name\n\n    def __str__(self):\n        return f\"Річ {self.name}\"\n\n    def __repr__(self):\n        return f\"Item({self.name!r})\"\n\n\na = Item(\"Шолом\")\nprint(a)\nprint([a])",
+     "lang": "python"
+    },
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 3,
+     "tol": 0,
+     "why": "len(k) кличе k.__len__(), а той повертає довжину списку parts.",
+     "code": "class Kit:\n    def __init__(self, parts):\n        self.parts = parts\n\n    def __len__(self):\n        return len(self.parts)\n\n\nk = Kit([\"джгут\", \"бинт\", \"ножиці\"])\nprint(len(k))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "False",
+      "True",
+      "None",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Без __eq__ == порівнює, чи це той самий об'єкт, а тут два різні.",
+     "code": "class Item:\n    def __init__(self, name):\n        self.name = name\n\n\nprint(Item(\"A\") == Item(\"A\"))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "True",
+      "False",
+      "None",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "@dataclass генерує __eq__, що порівнює поля.",
+     "code": "from dataclasses import dataclass\n\n\n@dataclass\nclass Item:\n    name: str\n\n\nprint(Item(\"A\") == Item(\"A\"))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Як називають методи на кшталт __str__ і __len__?",
+     "options": [
+      "Спеціальні (dunder) методи",
+      "Приватні методи",
+      "Статичні методи",
+      "Абстрактні методи"
+     ],
+     "a": 0,
+     "why": "Double underscore — подвійне підкреслення з обох боків."
+    },
+    {
+     "type": "choice",
+     "q": "Для кого __repr__?",
+     "options": [
+      "Для розробника: видно, як відтворити об'єкт",
+      "Для кінцевого користувача",
+      "Для бази даних",
+      "Для порівняння об'єктів"
+     ],
+     "a": 0,
+     "why": "__str__ — людям, __repr__ — розробнику й консолі."
+    },
+    {
+     "type": "gap",
+     "q": "Порівняння x == y Python перетворює на виклик x.◻(y)",
+     "a": [
+      "__eq__"
+     ],
+     "why": "eq — від equal, «рівний»."
+    },
+    {
+     "type": "choice",
+     "q": "Що повертає __eq__, коли другий об'єкт іншого типу?",
+     "options": [
+      "NotImplemented",
+      "False",
+      "None",
+      "Виняток TypeError"
+     ],
+     "a": 0,
+     "why": "NotImplemented дає Python шанс спитати другий об'єкт."
+    },
+    {
+     "type": "choice",
+     "q": "Що НЕ генерує @dataclass за замовчуванням?",
+     "options": [
+      "__len__",
+      "__init__",
+      "__repr__",
+      "__eq__"
+     ],
+     "a": 0,
+     "why": "dataclass робить __init__, __repr__ і __eq__; довжини в даних немає."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує print(x), якщо в класі є лише __repr__?",
+     "options": [
+      "Результат __repr__",
+      "<__main__.Item object at …>",
+      "Порожній рядок",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Без __str__ Python бере __repr__."
+    },
+    {
+     "type": "choice",
+     "q": "Коли брати @dataclass замість звичайного класу?",
+     "options": [
+      "Коли клас передусім зберігає дані",
+      "Коли в класі багато складної логіки",
+      "Лише для класів без полів",
+      "Ніколи в серйозному коді"
+     ],
+     "a": 0,
+     "why": "Для носіїв даних dataclass прибирає шаблонний код."
+    }
+   ],
+   "typing": [
+    "Спеціальні методи кличе сам Пайтон.",
+    "Метод рядка — для людей, метод представлення — для розробника.",
+    "Без методу рівності однакові об'єкти не рівні.",
+    "Клас даних сам пише ініціалізатор і порівняння."
+   ],
+   "tasks": [
+    "Перепишіть Item з теми 2 на @dataclass і перевірте print, == і список із двох речей."
+   ],
+   "media": [
+    {
+     "title": "Документація Python: спеціальні методи",
+     "url": "https://docs.python.org/3/reference/datamodel.html#special-method-names",
+     "note": "повний перелік, розділ 3.3",
+     "main": true
+    },
+    {
+     "title": "Документація Python: dataclasses",
+     "url": "https://docs.python.org/3/library/dataclasses.html"
+    }
+   ]
+  },
+  {
+   "id": "class-level",
+   "title": "Атрибути й методи класу",
+   "topic": "Спільне для всіх: атрибути класу, @classmethod, @staticmethod",
+   "goal": "Відрізнити атрибут класу від атрибута об'єкта й написати фабричний метод",
+   "theory": [
+    {
+     "recall": "Пригадайте: який метод кличе print(x), а який — показ у списку?",
+     "a": "print — __str__, список і консоль — __repr__."
+    },
+    {
+     "p": "Не все належить окремому шолому. Одиниця виміру «шт.» чи лічильник створених речей — спільні. Їх пишуть **у тілі класу**, поза `__init__`:"
+    },
+    {
+     "code": "class Item:\n    unit = \"шт.\"\n    count = 0\n\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n        Item.count += 1\n\n    @classmethod\n    def from_row(cls, row):\n        name, qty = row.split(\";\")\n        return cls(name, int(qty))\n\n    @staticmethod\n    def is_valid_qty(n):\n        return isinstance(n, int) and n >= 0\n\n\na = Item.from_row(\"Шолом;5\")\nb = Item(\"Аптечка\", 3)\nprint(a.name, a.qty, a.unit)\nprint(Item.count)\nprint(Item.is_valid_qty(-1))",
+     "lang": "python",
+     "title": "item.py",
+     "hl": [
+      2,
+      3,
+      10,
+      15
+     ]
+    },
+    {
+     "code": "$ py item.py\nШолом 5 шт.\n2\nFalse",
+     "lang": "console"
+    },
+    {
+     "h": "Три види методів"
+    },
+    {
+     "table": [
+      [
+       "Вид",
+       "Перший параметр"
+      ],
+      [
+       "звичайний",
+       "`self` — об'єкт"
+      ],
+      [
+       "`@classmethod`",
+       "`cls` — клас"
+      ],
+      [
+       "`@staticmethod`",
+       "немає"
+      ]
+     ]
+    },
+    {
+     "p": "**`@classmethod`** отримує клас і зазвичай створює об'єкти іншим способом — це «фабрика»: `Item.from_row(\"Шолом;5\")`. Бо в ньому `cls`, а не `Item`, нащадок отримає об'єкт свого класу. **`@staticmethod`** — звичайна функція, яку поклали в клас, бо вона про нього ([документація](https://docs.python.org/3/library/functions.html#classmethod))."
+    },
+    {
+     "h": "Пастка: спільний список"
+    },
+    {
+     "code": "class Box:\n    items = []\n\n    def add(self, x):\n        self.items.append(x)\n\n\na = Box()\nb = Box()\na.add(\"шолом\")\nprint(b.items)",
+     "lang": "python",
+     "title": "trap.py",
+     "hl": [
+      2
+     ]
+    },
+    {
+     "code": "$ py trap.py\n['шолом']",
+     "lang": "console"
+    },
+    {
+     "p": "`items = []` у тілі класу — **один** список на всі коробки: поклали в `a`, з'явилось у `b`. Змінні дані кожного об'єкта — лише в `__init__` ([підручник](https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables))."
+    },
+    {
+     "code": "class Box:\n    def __init__(self):\n        self.items = []\n\n    def add(self, x):\n        self.items.append(x)\n\n\na = Box()\nb = Box()\na.add(\"шолом\")\nprint(b.items)",
+     "lang": "python",
+     "title": "fixed.py — виправлено",
+     "hl": [
+      2,
+      3
+     ]
+    },
+    {
+     "recall": "Пригадайте: чому items = [] у тілі класу — пастка?",
+     "a": "Це один список на всі об'єкти класу; власний список кожному створюють у __init__."
+    }
+   ],
+   "examples": [
+    {
+     "w": "unit = \"шт.\"",
+     "note": "атрибут класу: один на всіх"
+    },
+    {
+     "w": "Item.count += 1",
+     "note": "змінити спільний лічильник"
+    },
+    {
+     "w": "@classmethod",
+     "note": "метод отримує клас cls"
+    },
+    {
+     "w": "return cls(name, int(qty))",
+     "note": "фабрика створює об'єкт"
+    },
+    {
+     "w": "@staticmethod",
+     "note": "функція без self і cls"
+    },
+    {
+     "w": "self.items = []",
+     "note": "свій список кожному об'єкту"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 3,
+     "tol": 0,
+     "why": "Кожен Item() додає 1 до спільного Item.count.",
+     "code": "class Item:\n    count = 0\n\n    def __init__(self):\n        Item.count += 1\n\n\nItem()\nItem()\nItem()\nprint(Item.count)",
+     "lang": "python"
+    },
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 2,
+     "tol": 0,
+     "why": "items — один список класу; a і b кладуть у той самий.",
+     "code": "class Box:\n    items = []\n\n    def add(self, x):\n        self.items.append(x)\n\n\na = Box()\nb = Box()\na.add(1)\nb.add(2)\nprint(len(a.items))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "шт.",
+      "кг",
+      "None",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "a.unit = «кг» створює атрибут лише в a; b читає атрибут класу.",
+     "code": "class Item:\n    unit = \"шт.\"\n\n\na = Item()\nb = Item()\na.unit = \"кг\"\nprint(b.unit)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "Tool",
+      "Item",
+      "type",
+      "classmethod"
+     ],
+     "a": 0,
+     "why": "make викликали через Tool — cls дорівнює Tool, і cls(name) створює Tool.",
+     "code": "class Item:\n    def __init__(self, name):\n        self.name = name\n\n    @classmethod\n    def make(cls, name):\n        return cls(name)\n\n\nclass Tool(Item):\n    pass\n\n\nprint(type(Tool.make(\"Ніж\")).__name__)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "True False",
+      "False True",
+      "True True",
+      "Помилку: немає self"
+     ],
+     "a": 0,
+     "why": "staticmethod можна кликати і через клас, і через об'єкт; self йому не передається.",
+     "code": "class Item:\n    @staticmethod\n    def ok(n):\n        return n >= 0\n\n\nprint(Item.ok(3), Item().ok(-3))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Де оголошують атрибут класу?",
+     "options": [
+      "У тілі класу, поза методами",
+      "У __init__ через self",
+      "У будь-якому методі",
+      "Ззовні класу"
+     ],
+     "a": 0,
+     "why": "Те, що в тілі класу, належить класу й спільне для всіх об'єктів."
+    },
+    {
+     "type": "gap",
+     "q": "Перший параметр @classmethod за домовленістю називають ◻",
+     "a": [
+      "cls"
+     ],
+     "why": "У cls Python передає клас, через який викликали метод."
+    },
+    {
+     "type": "choice",
+     "q": "Для чого найчастіше використовують @classmethod?",
+     "options": [
+      "Як фабрику: інший спосіб створити об'єкт",
+      "Щоб приховати атрибути",
+      "Щоб пришвидшити метод",
+      "Щоб метод не можна було перевизначити"
+     ],
+     "a": 0,
+     "why": "Item.from_row(...), datetime.fromisoformat(...) — фабрики."
+    },
+    {
+     "type": "choice",
+     "q": "Чим @staticmethod відрізняється від звичайного методу?",
+     "options": [
+      "Не отримує ні self, ні cls",
+      "Викликається лише один раз",
+      "Не може мати параметрів",
+      "Працює лише в нащадках"
+     ],
+     "a": 0,
+     "why": "Це звичайна функція, що лежить у класі за змістом."
+    },
+    {
+     "type": "choice",
+     "q": "Як дати кожній коробці свій список?",
+     "options": [
+      "self.items = [] у __init__",
+      "items = [] у тілі класу",
+      "Box.items = [] після класу",
+      "global items у методі"
+     ],
+     "a": 0,
+     "why": "Те, що в __init__ через self, створюється для кожного об'єкта окремо."
+    },
+    {
+     "type": "choice",
+     "q": "Чому у фабриці пишуть cls(...), а не Item(...)?",
+     "options": [
+      "Щоб нащадок отримав об'єкт свого класу",
+      "Бо Item ще не визначено",
+      "Бо так коротше",
+      "Бо Item(...) заборонено в методах"
+     ],
+     "a": 0,
+     "why": "Tool.from_row(...) поверне Tool, а не Item."
+    }
+   ],
+   "typing": [
+    "Атрибут класу спільний для всіх об'єктів.",
+    "Змінні дані кожного об'єкта створюють в ініціалізаторі.",
+    "Метод класу отримує сам клас.",
+    "Фабрика — інший спосіб створити об'єкт."
+   ],
+   "tasks": [
+    "Додайте в Item фабрику from_dict(cls, data), що створює річ зі словника {\"name\": …, \"qty\": …}, і перевірте її на двох словниках."
+   ],
+   "media": [
+    {
+     "title": "Підручник Python: змінні класу й екземпляра",
+     "url": "https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables",
+     "note": "там саме ця пастка зі списком",
+     "main": true
+    },
+    {
+     "title": "Документація: classmethod",
+     "url": "https://docs.python.org/3/library/functions.html#classmethod"
+    }
+   ]
+  },
+  {
+   "id": "inheritance",
+   "title": "Успадкування",
+   "topic": "Нащадок, super() і порядок пошуку методів",
+   "goal": "Створити клас-нащадок і правильно викликати версію предка через super()",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим @classmethod відрізняється від звичайного методу?",
+     "a": "Отримує не об'єкт self, а клас cls; зазвичай це фабрика."
+    },
+    {
+     "p": "Рація — теж річ складу, але з серійним номером, і вона завжди одна. Писати клас з нуля — дублювати `Item`. Замість цього **успадковуємо**: `Equipment(Item)` отримує все від `Item` і додає своє."
+    },
+    {
+     "code": "class Item:\n    def __init__(self, name, qty=0):\n        self.name = name\n        self.qty = qty\n\n    def describe(self):\n        return f\"{self.name}: {self.qty} шт.\"\n\n\nclass Equipment(Item):\n    def __init__(self, name, serial):\n        super().__init__(name, qty=1)\n        self.serial = serial\n\n    def describe(self):\n        base = super().describe()\n        return f\"{base}, с/н {self.serial}\"\n\n\nradio = Equipment(\"Рація\", \"R-0042\")\nprint(radio.describe())\nprint(isinstance(radio, Item))\nprint(Equipment.__mro__[1].__name__)",
+     "lang": "python",
+     "title": "items.py",
+     "hl": [
+      10,
+      12,
+      16
+     ]
+    },
+    {
+     "code": "$ py items.py\nРація: 1 шт., с/н R-0042\nTrue\nItem",
+     "lang": "console"
+    },
+    {
+     "h": "super() — версія предка"
+    },
+    {
+     "p": "`super().__init__(name, qty=1)` кличе `__init__` класу `Item`: той запише назву й кількість, а `Equipment` додасть `serial`. У `describe` нащадок бере текст предка й дописує своє ([документація super](https://docs.python.org/3/library/functions.html#super))."
+    },
+    {
+     "p": "Метод шукається знизу вгору: спершу в класі об'єкта, потім у предка. Цей ланцюжок — **MRO** (method resolution order), його видно в `Equipment.__mro__`."
+    },
+    {
+     "table": [
+      [
+       "Запис",
+       "Що дає"
+      ],
+      [
+       "`class B(A):`",
+       "B — нащадок A"
+      ],
+      [
+       "`super().f()`",
+       "версія f з предка"
+      ],
+      [
+       "`isinstance(b, A)`",
+       "True: B «є» A"
+      ]
+     ]
+    },
+    {
+     "tip": "Перевірка «є»: рація **є** річчю складу — успадкування доречне. Склад **не є** річчю — йому успадкування не годиться (тема 9)."
+    },
+    {
+     "warn": "❌ Свій `__init__` у нащадку без `super().__init__(...)` → ✅ спершу виклик предка: інакше атрибутів предка не буде."
+    },
+    {
+     "recall": "Пригадайте: що станеться, якщо в __init__ нащадка забути super().__init__?",
+     "a": "Атрибутів, які записує предок (name, qty), в об'єкті не буде — AttributeError при зверненні."
+    }
+   ],
+   "examples": [
+    {
+     "w": "class Equipment(Item):",
+     "note": "нащадок Item"
+    },
+    {
+     "w": "super().__init__(name, qty=1)",
+     "note": "наповнити частину предка"
+    },
+    {
+     "w": "super().describe()",
+     "note": "текст предка"
+    },
+    {
+     "w": "isinstance(radio, Item)",
+     "note": "True: рація — теж річ"
+    },
+    {
+     "w": "Equipment.__mro__",
+     "note": "порядок пошуку методів"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "AttributeError: немає name",
+      "Надрукується Ключ",
+      "Надрукується None",
+      "TypeError у __init__"
+     ],
+     "a": 0,
+     "why": "__init__ Tool не викликав __init__ предка — name ніхто не записав.",
+     "code": "class Item:\n    def __init__(self, name):\n        self.name = name\n\n\nclass Tool(Item):\n    def __init__(self, name, size):\n        self.size = size\n\n\nt = Tool(\"Ключ\", 10)\nprint(t.name)",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "річ",
+      "Помилку AttributeError",
+      "None",
+      "Tool"
+     ],
+     "a": 0,
+     "why": "У Tool немає kind — метод знайдено в предка Item.",
+     "code": "class Item:\n    def kind(self):\n        return \"річ\"\n\n\nclass Tool(Item):\n    pass\n\n\nprint(Tool().kind())",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "False",
+      "True",
+      "None",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Tool — нащадок Item, а не навпаки.",
+     "code": "class Item:\n    pass\n\n\nclass Tool(Item):\n    pass\n\n\nprint(issubclass(Item, Tool))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "ключ/річ",
+      "річ",
+      "ключ/",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "super().label() повертає «річ», і нащадок дописує її до «ключ/».",
+     "code": "class Item:\n    def label(self):\n        return \"річ\"\n\n\nclass Tool(Item):\n    def label(self):\n        return \"ключ/\" + super().label()\n\n\nprint(Tool().label())",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що дає запис class Equipment(Item)?",
+     "options": [
+      "Equipment отримує атрибути й методи Item",
+      "Item отримує методи Equipment",
+      "Створюється копія класу Item",
+      "Equipment стає атрибутом Item"
+     ],
+     "a": 0,
+     "why": "Нащадок успадковує все від предка й може додати чи змінити своє."
+    },
+    {
+     "type": "gap",
+     "q": "Викликати версію методу з предка: ◻().describe()",
+     "a": [
+      "super"
+     ],
+     "why": "super() дає доступ до наступного класу в MRO."
+    },
+    {
+     "type": "choice",
+     "q": "Що таке MRO?",
+     "options": [
+      "Порядок, у якому Python шукає метод у класах",
+      "Список усіх об'єктів класу",
+      "Модуль для роботи з класами",
+      "Помилка успадкування"
+     ],
+     "a": 0,
+     "why": "Method resolution order: від класу об'єкта до предків."
+    },
+    {
+     "type": "choice",
+     "q": "Коли успадкування доречне?",
+     "options": [
+      "Коли нащадок «є» різновидом предка",
+      "Коли треба використати один метод іншого класу",
+      "Коли класи лежать в одному файлі",
+      "Завжди, коли є спільний код"
+     ],
+     "a": 0,
+     "why": "Рація є річчю складу; склад — не річ."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне isinstance(radio, Item), якщо radio = Equipment(...)?",
+     "options": [
+      "True",
+      "False",
+      "None",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Об'єкт нащадка — одночасно й об'єкт предка."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається при Equipment(\"Рація\", \"R-0042\")",
+     "items": [
+      "Python кличе __init__ класу Equipment",
+      "super().__init__ записує name і qty",
+      "Equipment записує serial",
+      "Вираз повертає готову рацію"
+     ],
+     "why": "Спершу частина предка, потім своя."
+    },
+    {
+     "type": "choice",
+     "q": "Нащадок перевизначив describe. Яку версію викличе radio.describe()?",
+     "options": [
+      "Версію нащадка",
+      "Версію предка",
+      "Обидві по черзі",
+      "Ту, що оголошено першою у файлі"
+     ],
+     "a": 0,
+     "why": "Пошук іде знизу: метод нащадка знайдено першим."
+    }
+   ],
+   "typing": [
+    "Нащадок отримує все від предка й додає своє.",
+    "Супер дає доступ до версії методу предка.",
+    "Метод шукається від класу об'єкта до предків.",
+    "Успадковують лише тоді, коли нащадок є різновидом предка."
+   ],
+   "tasks": [
+    "Створіть нащадка Consumable(Item) з атрибутом expires (рядок дати) і своїм describe, що дописує «до …». Перевірте isinstance і describe."
+   ],
+   "media": [
+    {
+     "title": "Підручник Python: Успадкування",
+     "url": "https://docs.python.org/3/tutorial/classes.html#inheritance",
+     "main": true
+    },
+    {
+     "title": "Документація: super",
+     "url": "https://docs.python.org/3/library/functions.html#super"
+    }
+   ]
+  },
+  {
+   "id": "polymorphism",
+   "title": "Поліморфізм",
+   "topic": "Один виклик — різна поведінка",
+   "goal": "Обробити різні об'єкти одним циклом без перевірок типу",
+   "theory": [
+    {
+     "recall": "Пригадайте: що робить super().describe() у нащадку?",
+     "a": "Кличе версію describe з предка, щоб дописати до неї своє."
+    },
+    {
+     "p": "На складі лежать звичайні речі, рації й аптечки-набори. Хочемо надрукувати опис кожної. Головне: цикл **не перевіряє тип** — просто кличе `describe()`, а кожен клас відповідає по-своєму. Це **поліморфізм** («багато форм»)."
+    },
+    {
+     "code": "class Kit:\n    def __init__(self, name, parts):\n        self.name = name\n        self.parts = parts\n\n    def describe(self):\n        n = len(self.parts)\n        return f\"{self.name} ({n} предм.)\"\n\n\nstock = [\n    Item(\"Шолом\", 5),\n    Equipment(\"Рація\", \"R-0042\"),\n    Kit(\"Аптечка\", [\"джгут\", \"бинт\"]),\n]\nfor thing in stock:\n    print(thing.describe())",
+     "lang": "python",
+     "title": "poly.py — кінець файла",
+     "hl": [
+      6,
+      16,
+      17
+     ]
+    },
+    {
+     "code": "$ py poly.py\nШолом: 5 шт.\nРація, с/н R-0042\nАптечка (2 предм.)",
+     "lang": "console"
+    },
+    {
+     "p": "`Kit` навіть не успадковує `Item`. Йому досить мати метод `describe` — і цикл з ним працює. У Python це звуть **«качиною типізацією»**: якщо крякає, як качка, — це качка."
+    },
+    {
+     "table": [
+      [
+       "Клас",
+       "describe() каже"
+      ],
+      [
+       "`Item`",
+       "назва й кількість"
+      ],
+      [
+       "`Equipment`",
+       "назва й с/н"
+      ],
+      [
+       "`Kit`",
+       "назва й склад"
+      ]
+     ]
+    },
+    {
+     "p": "Вбудовані типи живуть так само: `len()` однаково питає довжину в рядка, списку й словника — кожен рахує по-своєму."
+    },
+    {
+     "warn": "❌ `if isinstance(x, Equipment): … elif isinstance(x, Kit): …` у кожному місці → ✅ метод з однаковою назвою в кожному класі: новий тип не вимагає правити цикли."
+    },
+    {
+     "tip": "З курсу «Модульність»: `Protocol` записує цю домовленість явно — «підходить будь-що з методом `describe`»."
+    },
+    {
+     "recall": "Пригадайте: що потрібно об'єкту, щоб цикл з describe() з ним працював?",
+     "a": "Лише мати метод describe — успадковувати Item не обов'язково."
+    }
+   ],
+   "examples": [
+    {
+     "w": "for thing in stock: thing.describe()",
+     "note": "один виклик для всіх"
+    },
+    {
+     "w": "class Kit:",
+     "note": "не нащадок, але має describe"
+    },
+    {
+     "w": "len(\"шолом\"), len([1, 2])",
+     "note": "поліморфізм вбудованих типів"
+    },
+    {
+     "w": "isinstance(x, Kit)",
+     "note": "в циклі — ознака, що поліморфізм не використано"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "TIK",
+      "IIK",
+      "TII",
+      "Помилку: Kit не нащадок"
+     ],
+     "a": 0,
+     "why": "Кожен об'єкт відповідає своїм tag; Kit підходить, бо має метод tag.",
+     "code": "class Item:\n    def tag(self):\n        return \"I\"\n\n\nclass Tool(Item):\n    def tag(self):\n        return \"T\"\n\n\nclass Kit:\n    def tag(self):\n        return \"K\"\n\n\nthings = [Tool(), Item(), Kit()]\nprint(\"\".join(x.tag() for x in things))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "AttributeError: немає describe",
+      "Надрукується None",
+      "Надрукується Kit",
+      "Нічого: помилку пропущено"
+     ],
+     "a": 0,
+     "why": "Качина типізація вимагає, щоб метод справді був.",
+     "code": "class Kit:\n    pass\n\n\nfor x in [Kit()]:\n    print(x.describe())",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "[5, 3, 1]",
+      "[1, 1, 1]",
+      "[5, 3, 2]",
+      "Помилку: різні типи"
+     ],
+     "a": 0,
+     "why": "len() питає довжину кожного об'єкта: 5 літер, 3 елементи, 1 ключ.",
+     "code": "things = [\"шолом\", [1, 2, 3], {\"a\": 1}]\nprint([len(x) for x in things])",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що таке поліморфізм?",
+     "options": [
+      "Один виклик дає різну поведінку для різних об'єктів",
+      "Клас має багато атрибутів",
+      "Об'єкт змінює свій клас",
+      "Метод викликається кілька разів"
+     ],
+     "a": 0,
+     "why": "describe() один, а відповіді в кожного класу свої."
+    },
+    {
+     "type": "choice",
+     "q": "Що таке качина типізація?",
+     "options": [
+      "Об'єкт підходить, якщо має потрібні методи",
+      "Об'єкт підходить, лише якщо успадковує потрібний клас",
+      "Перевірка типу через type()",
+      "Перетворення об'єкта в рядок"
+     ],
+     "a": 0,
+     "why": "Важливо, що об'єкт уміє, а не від кого він походить."
+    },
+    {
+     "type": "choice",
+     "q": "Додали клас Drone з методом describe. Що треба змінити в циклі друку?",
+     "options": [
+      "Нічого",
+      "Додати elif isinstance(x, Drone)",
+      "Успадкувати Drone від Kit",
+      "Додати Drone у __init__ Item"
+     ],
+     "a": 0,
+     "why": "Цикл кличе describe і не знає про типи."
+    },
+    {
+     "type": "choice",
+     "q": "Ознака, що поліморфізм не використано:",
+     "options": [
+      "Ланцюжки if isinstance(...) для кожного типу",
+      "Метод з однаковою назвою в кількох класах",
+      "Цикл по списку об'єктів",
+      "Клас без предка"
+     ],
+     "a": 0,
+     "why": "Кожен новий тип змусить правити всі такі ланцюжки."
+    },
+    {
+     "type": "gap",
+     "q": "Kit не успадковує Item, але працює в циклі, бо має метод ◻",
+     "a": [
+      "describe"
+     ],
+     "why": "Циклу потрібен лише describe()."
+    },
+    {
+     "type": "choice",
+     "q": "Як Protocol пов'язаний із поліморфізмом?",
+     "options": [
+      "Явно записує, які методи потрібні",
+      "Забороняє різну поведінку",
+      "Змушує успадковувати один клас",
+      "Ніяк не пов'язаний"
+     ],
+     "a": 0,
+     "why": "Protocol — опис «качки» для редактора й перевірки типів."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається в циклі при thing.describe() для рації",
+     "items": [
+      "Python бере об'єкт рації",
+      "Шукає describe у класі Equipment",
+      "Знаходить версію нащадка",
+      "Повертає текст із серійним номером"
+     ],
+     "why": "Метод шукається в класі конкретного об'єкта."
+    }
+   ],
+   "typing": [
+    "Поліморфізм — один виклик, різна поведінка.",
+    "Цикл не перевіряє типи, а кличе метод.",
+    "Об'єкт підходить, якщо має потрібні методи.",
+    "Новий клас не вимагає правити старі цикли."
+   ],
+   "tasks": [
+    "Додайте клас Drone з методом describe, що повертає назву й номер борту. Покладіть дрон у stock і переконайтесь, що цикл не змінився."
+   ],
+   "media": [
+    {
+     "title": "Підручник Python: Класи — успадкування й перевизначення",
+     "url": "https://docs.python.org/3/tutorial/classes.html#inheritance",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "composition",
+   "title": "Композиція",
+   "topic": "«Має», а не «є»: склад з речей",
+   "goal": "Зібрати клас із інших об'єктів і пояснити, чому тут не успадкування",
+   "theory": [
+    {
+     "recall": "Пригадайте: що таке качина типізація?",
+     "a": "Об'єкт підходить, якщо має потрібні методи, — успадковувати нічого не треба."
+    },
+    {
+     "p": "Склад — не річ, але він **має** речі. Тоді клас не успадковують, а **складають**: склад тримає речі всередині й доручає їм роботу. Це **композиція**."
+    },
+    {
+     "code": "class Warehouse:\n    def __init__(self):\n        self._items = {}\n\n    def add(self, item):\n        self._items[item.name] = item\n\n    def issue(self, name, n):\n        self._items[name].issue(n)\n\n    def total(self):\n        return sum(i.qty for i in\n                   self._items.values())\n\n    def __len__(self):\n        return len(self._items)",
+     "lang": "python",
+     "title": "warehouse.py",
+     "hl": [
+      3,
+      9
+     ]
+    },
+    {
+     "code": "from items import Item\nfrom warehouse import Warehouse\n\nstore = Warehouse()\nstore.add(Item(\"Шолом\", 5))\nstore.add(Item(\"Аптечка\", 3))\nstore.issue(\"Шолом\", 2)\nprint(len(store), store.total())",
+     "lang": "python",
+     "title": "main.py"
+    },
+    {
+     "code": "$ py main.py\n2 6",
+     "lang": "console"
+    },
+    {
+     "p": "`Warehouse.issue` не рахує кількість сам — доручає це речі: `self._items[name].issue(n)`. Правило «не видати більше» лишилось в одному місці — в `Item`."
+    },
+    {
+     "h": "Чому не успадкування"
+    },
+    {
+     "code": "class Warehouse(list):\n    def total(self):\n        return sum(i.qty for i in self)\n\n\nstore = Warehouse()\nstore.append(\"Шолом\")\nprint(store.total())",
+     "lang": "python",
+     "title": "bad.py",
+     "hl": [
+      1
+     ]
+    },
+    {
+     "code": "$ py bad.py\nTraceback (most recent call last):\n  ...\nAttributeError: 'str' object has no attribute 'qty'",
+     "lang": "console"
+    },
+    {
+     "p": "Склад-список успадкував **усі** методи списку: туди можна покласти рядок, а `clear()` стирає все без жодних правил. Нащадок обіцяє «я — список» — і мусить поводитися, як список."
+    },
+    {
+     "table": [
+      [
+       "Зв'язок",
+       "Інструмент"
+      ],
+      [
+       "рація **є** річчю",
+       "успадкування"
+      ],
+      [
+       "склад **має** речі",
+       "композиція"
+      ],
+      [
+       "авто **має** двигун",
+       "композиція"
+      ]
+     ]
+    },
+    {
+     "tip": "Сумніваєтесь — беріть композицію. Її легко замінити, а успадкування прив'язує назавжди. Це порада ще з книжки «Design Patterns» (1994): «віддавайте перевагу композиції»."
+    },
+    {
+     "recall": "Пригадайте: як вирішити, успадкування чи композиція?",
+     "a": "«X є Y» — успадкування; «X має Y» — композиція. Сумнів — композиція."
+    }
+   ],
+   "examples": [
+    {
+     "w": "self._items = {}",
+     "note": "склад має речі"
+    },
+    {
+     "w": "self._items[name].issue(n)",
+     "note": "доручити роботу речі"
+    },
+    {
+     "w": "class Warehouse(list):",
+     "note": "❌ склад — не список"
+    },
+    {
+     "w": "self.engine = Engine()",
+     "note": "авто має двигун"
+    },
+    {
+     "w": "len(store)",
+     "note": "свій __len__, а не весь список"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "двигун працює",
+      "None",
+      "Помилку AttributeError",
+      "Car"
+     ],
+     "a": 0,
+     "why": "Car.start доручає роботу своєму двигуну — це композиція.",
+     "code": "class Engine:\n    def start(self):\n        return \"двигун працює\"\n\n\nclass Car:\n    def __init__(self):\n        self.engine = Engine()\n\n    def start(self):\n        return self.engine.start()\n\n\nprint(Car().start())",
+     "lang": "python"
+    },
+    {
+     "type": "number",
+     "q": "Що надрукує цей код?",
+     "a": 0,
+     "tol": 0,
+     "why": "Склад-список успадкував clear() — і будь-хто може стерти все.",
+     "code": "class Warehouse(list):\n    pass\n\n\nw = Warehouse()\nw.append(\"шолом\")\nw.clear()\nprint(len(w))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що таке композиція?",
+     "options": [
+      "Об'єкт складається з інших об'єктів і доручає їм роботу",
+      "Клас успадковує кілька предків",
+      "Об'єкт копіює методи іншого класу",
+      "Злиття двох класів в один"
+     ],
+     "a": 0,
+     "why": "Склад має речі, авто має двигун."
+    },
+    {
+     "type": "choice",
+     "q": "Який зв'язок — для композиції?",
+     "options": [
+      "Склад має речі",
+      "Рація є річчю",
+      "Аптечка є набором",
+      "Шолом є спорядженням"
+     ],
+     "a": 0,
+     "why": "«Має» — композиція, «є» — успадкування."
+    },
+    {
+     "type": "choice",
+     "q": "Чому class Warehouse(list) — погана ідея?",
+     "options": [
+      "Склад отримує всі методи списку без правил",
+      "Списки не можна успадковувати",
+      "list повільніший за dict",
+      "Так не працює len()"
+     ],
+     "a": 0,
+     "why": "append рядка, clear() — усе проходить повз правила складу."
+    },
+    {
+     "type": "choice",
+     "q": "Де в композиції живе правило «не видати більше, ніж є»?",
+     "options": [
+      "В Item, а склад доручає йому видачу",
+      "У Warehouse, продубльоване",
+      "У main.py",
+      "У кожному звіті"
+     ],
+     "a": 0,
+     "why": "Кожне правило — в одному класі; інші доручають."
+    },
+    {
+     "type": "choice",
+     "q": "Сумнів: успадкування чи композиція. Що брати?",
+     "options": [
+      "Композицію",
+      "Успадкування",
+      "Обидва одразу",
+      "Глобальні змінні"
+     ],
+     "a": 0,
+     "why": "Композицію легше змінити; «віддавайте перевагу композиції»."
+    },
+    {
+     "type": "gap",
+     "q": "Склад ◻ речі — тому тут композиція, а не успадкування.",
+     "a": [
+      "має"
+     ],
+     "why": "Перевірка словом: «є» чи «має»."
+    },
+    {
+     "type": "number",
+     "q": "На складі шоломів 5 і аптечок 3, видали 2 шоломи. Що поверне store.total()?",
+     "a": 6,
+     "tol": 0,
+     "why": "total — сума кількостей: 3 + 3 = 6."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається при store.issue(\"Шолом\", 2)",
+     "items": [
+      "Склад знаходить річ за назвою",
+      "Склад кличе issue цієї речі",
+      "Річ перевіряє залишок",
+      "Річ зменшує кількість"
+     ],
+     "why": "Склад доручає, річ виконує за своїми правилами."
+    }
+   ],
+   "typing": [
+    "Композиція — об'єкт складається з інших об'єктів.",
+    "Склад має речі й доручає їм роботу.",
+    "Успадкування — лише для «є різновидом».",
+    "Сумніваєтесь — беріть композицію."
+   ],
+   "tasks": [
+    "Додайте в Warehouse метод report(), що повертає список описів усіх речей. Не успадковуйте нічого — лише доручайте речам."
+   ],
+   "media": [
+    {
+     "title": "Вікіпедія: Composition over inheritance",
+     "url": "https://en.wikipedia.org/wiki/Composition_over_inheritance",
+     "note": "звідки принцип і приклади (англ.)",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "abc",
+   "title": "Абстрактні класи",
+   "topic": "Шаблон, який нащадки мусять доповнити",
+   "goal": "Описати абстрактний клас звіту й два нащадки, які його реалізують",
+   "theory": [
+    {
+     "recall": "Пригадайте: «склад має речі» — це успадкування чи композиція?",
+     "a": "Композиція: склад тримає речі й доручає їм роботу."
+    },
+    {
+     "p": "Звіт про склад потрібен у тексті й у CSV. Загальний хід однаковий — пройти по речах і склеїти рядки. Різниться лише **один рядок**. Записуємо це **абстрактним класом**:"
+    },
+    {
+     "code": "from abc import ABC, abstractmethod\n\n\nclass Report(ABC):\n    def __init__(self, items):\n        self.items = items\n\n    @abstractmethod\n    def row(self, item): ...\n\n    def render(self):\n        return \"\\n\".join(\n            self.row(i) for i in self.items)\n\n\nclass TextReport(Report):\n    def row(self, item):\n        return f\"{item.name} — {item.qty}\"\n\n\nclass CsvReport(Report):\n    def row(self, item):\n        return f\"{item.name};{item.qty}\"",
+     "lang": "python",
+     "title": "reports.py",
+     "hl": [
+      4,
+      8,
+      9,
+      11,
+      12,
+      13
+     ]
+    },
+    {
+     "code": "from items import Item\nfrom reports import CsvReport, Report, TextReport\n\nitems = [Item(\"Шолом\", 5), Item(\"Аптечка\", 3)]\nprint(TextReport(items).render())\nprint(CsvReport(items).render())\nReport(items)",
+     "lang": "python",
+     "title": "main.py"
+    },
+    {
+     "code": "$ py main.py\nШолом — 5\nАптечка — 3\nШолом;5\nАптечка;3\nTraceback (most recent call last):\n  ...\nTypeError: Can't instantiate abstract class Report without an implementation for abstract method 'row'",
+     "lang": "console"
+    },
+    {
+     "h": "Як це працює"
+    },
+    {
+     "ul": [
+      "`Report(ABC)` — абстрактний клас: створити його самого не можна, лише нащадків.",
+      "`@abstractmethod row` — «кожен нащадок **мусить** мати `row`». Без нього нащадка теж не створити.",
+      "`render` спільний: він кличе `self.row(...)`, а кожен нащадок відповідає по-своєму."
+     ]
+    },
+    {
+     "p": "Такий прийом — спільний хід у предку, змінні кроки в нащадках — називають **«Шаблонний метод»** ([refactoring.guru](https://refactoring.guru/uk/design-patterns/template-method)). Помилку «забули метод» Python ловить одразу при створенні об'єкта, а не посеред роботи ([документація abc](https://docs.python.org/3/library/abc.html))."
+    },
+    {
+     "table": [
+      [
+       "Що",
+       "Хто"
+      ],
+      [
+       "хід звіту",
+       "`Report.render`"
+      ],
+      [
+       "один рядок",
+       "`row` нащадка"
+      ],
+      [
+       "перевірка",
+       "Python, при створенні"
+      ]
+     ]
+    },
+    {
+     "tip": "`ABC` вимагає успадкування, `Protocol` з курсу «Модульність» — ні. Свої класи з обов'язковою частиною — `ABC`; чужі об'єкти, яких ви не пишете, — `Protocol`."
+    },
+    {
+     "recall": "Пригадайте: коли Python перевіряє, що нащадок реалізував абстрактний метод?",
+     "a": "При створенні об'єкта: без методу — TypeError «Can't instantiate abstract class»."
+    }
+   ],
+   "examples": [
+    {
+     "w": "from abc import ABC, abstractmethod",
+     "note": "інструменти абстракції"
+    },
+    {
+     "w": "class Report(ABC):",
+     "note": "абстрактний клас"
+    },
+    {
+     "w": "@abstractmethod",
+     "note": "нащадок мусить реалізувати"
+    },
+    {
+     "w": "self.row(i)",
+     "note": "спільний код кличе змінний крок"
+    },
+    {
+     "w": "class CsvReport(Report):",
+     "note": "нащадок з власним row"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "TypeError: абстрактний клас не створити",
+      "Створиться порожній звіт",
+      "AttributeError: немає row",
+      "Нічого, помилка буде пізніше"
+     ],
+     "a": 0,
+     "why": "Абстрактний клас із нереалізованим методом створити не можна.",
+     "code": "from abc import ABC, abstractmethod\n\n\nclass Report(ABC):\n    @abstractmethod\n    def row(self, item): ...\n\n\nReport()",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що станеться після запуску цього коду?",
+     "options": [
+      "TypeError: Csv не реалізував row",
+      "Створиться об'єкт Csv",
+      "AttributeError при виклику row",
+      "Попередження без помилки"
+     ],
+     "a": 0,
+     "why": "Нащадок без row — теж абстрактний.",
+     "code": "from abc import ABC, abstractmethod\n\n\nclass Report(ABC):\n    @abstractmethod\n    def row(self, item): ...\n\n\nclass Csv(Report):\n    pass\n\n\nCsv()",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "options": [
+      "шолом;",
+      "Помилку TypeError",
+      "None",
+      ";шолом"
+     ],
+     "a": 0,
+     "why": "Csv реалізував row — тепер його можна створити.",
+     "code": "from abc import ABC, abstractmethod\n\n\nclass Report(ABC):\n    @abstractmethod\n    def row(self, item): ...\n\n\nclass Csv(Report):\n    def row(self, item):\n        return f\"{item};\"\n\n\nprint(Csv().row(\"шолом\"))",
+     "lang": "python"
+    },
+    {
+     "type": "choice",
+     "q": "Що дає @abstractmethod?",
+     "options": [
+      "Нащадок мусить реалізувати метод",
+      "Метод стає статичним",
+      "Метод прихований ззовні",
+      "Метод викликається автоматично"
+     ],
+     "a": 0,
+     "why": "Інакше нащадка не створити — помилку видно одразу."
+    },
+    {
+     "type": "choice",
+     "q": "Коли Python перевіряє, що абстрактні методи реалізовані?",
+     "options": [
+      "При створенні об'єкта",
+      "При імпорті модуля",
+      "При виклику методу",
+      "Ніколи"
+     ],
+     "a": 0,
+     "why": "TypeError виникає на Report(...) чи Csv()."
+    },
+    {
+     "type": "gap",
+     "q": "Абстрактний клас успадковує клас ◻ з модуля abc.",
+     "a": [
+      "ABC"
+     ],
+     "why": "class Report(ABC): …"
+    },
+    {
+     "type": "choice",
+     "q": "Що таке «Шаблонний метод»?",
+     "options": [
+      "Спільний хід у предку, змінні кроки в нащадках",
+      "Метод, скопійований у кожен клас",
+      "Метод для роботи з шаблонами тексту",
+      "Метод, що створює інші класи"
+     ],
+     "a": 0,
+     "why": "render — хід, row — змінний крок."
+    },
+    {
+     "type": "choice",
+     "q": "Чим ABC відрізняється від Protocol?",
+     "options": [
+      "ABC вимагає успадкування, Protocol — ні",
+      "Protocol вимагає успадкування, ABC — ні",
+      "Нічим, це синоніми",
+      "ABC працює лише з dataclass"
+     ],
+     "a": 0,
+     "why": "Protocol перевіряє форму, ABC — родовід плюс обов'язкові методи."
+    },
+    {
+     "type": "choice",
+     "q": "Додаємо звіт у Markdown. Що треба зробити?",
+     "options": [
+      "Нащадок Report з власним row",
+      "Змінити render у Report",
+      "Скопіювати TextReport повністю",
+      "Додати if у render"
+     ],
+     "a": 0,
+     "why": "Хід спільний; новий формат — лише новий row."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається при TextReport(items).render()",
+     "items": [
+      "Створюється TextReport — row реалізовано",
+      "render з Report проходить по речах",
+      "Для кожної речі кличе self.row",
+      "TextReport.row повертає рядок",
+      "render склеює рядки"
+     ],
+     "why": "Спільний хід предка + змінний крок нащадка."
+    }
+   ],
+   "typing": [
+    "Абстрактний клас не створити, лише його нащадків.",
+    "Абстрактний метод нащадок мусить реалізувати.",
+    "Спільний хід — у предку, змінні кроки — у нащадках.",
+    "Помилку видно при створенні об'єкта."
+   ],
+   "tasks": [
+    "Додайте MarkdownReport, що друкує «- назва: кількість». Перевірте, що Report і клас без row не створюються, а ваш — створюється."
+   ],
+   "media": [
+    {
+     "title": "Документація Python: abc",
+     "url": "https://docs.python.org/3/library/abc.html",
+     "main": true
+    },
+    {
+     "title": "refactoring.guru: Шаблонний метод",
+     "url": "https://refactoring.guru/uk/design-patterns/template-method",
+     "note": "українською, з картинками"
+    }
+   ]
+  }
+ ]
+}
