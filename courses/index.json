@@ -139,6 +139,15 @@
    "units": 9,
    "icon": "idea",
    "dir": "backup-power"
+  },
+  {
+   "id": "python-modules",
+   "version": 1,
+   "title": "Модульність на Python",
+   "subtitle": "Як розкласти програму на модулі: пакети, шари, роз'єми, збирання, події й плагіни — на прикладі маленького «Списку справ»",
+   "units": 10,
+   "icon": "code",
+   "dir": "python-modules"
   }
  ]
 }
