@@ -204,6 +204,16 @@
    "icon": "idea",
    "group": "Наука",
    "dir": "electronics-practice"
+  },
+  {
+   "id": "stats-practice",
+   "version": 1,
+   "title": "Ймовірність і статистика",
+   "subtitle": "Відсотки, шанси, середнє й медіана, розкид, тести й опитування, обманні графіки — щоб числа в новинах і в житті не вводили в оману",
+   "units": 11,
+   "icon": "chart",
+   "group": "Наука",
+   "dir": "stats-practice"
   }
  ]
 }
