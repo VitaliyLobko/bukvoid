@@ -184,6 +184,26 @@
    "icon": "code",
    "group": "Програмування й дизайн",
    "file": "python-patterns.json"
+  },
+  {
+   "id": "physics-practice",
+   "version": 1,
+   "title": "Фізика для практики",
+   "subtitle": "Згадати шкільну фізику на прикладах із життя: куля, дрон, акумулятор, авто, чайник — від одиниць до звуку й світла",
+   "units": 11,
+   "icon": "flask",
+   "group": "Наука",
+   "dir": "physics-practice"
+  },
+  {
+   "id": "electronics-practice",
+   "version": 1,
+   "title": "Електроніка для практики",
+   "subtitle": "Мультиметр, резистори, світлодіоди, транзистори, DC-DC, літієві акумулятори, мотори й паяння — на прикладах дрона, авто й генератора",
+   "units": 11,
+   "icon": "idea",
+   "group": "Наука",
+   "dir": "electronics-practice"
   }
  ]
 }

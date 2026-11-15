@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 230" font-family="system-ui, sans-serif">
+  <rect width="360" height="230" fill="#ffffff"/>
+  <line x1="20" y1="200" x2="345" y2="200" stroke="#333333" stroke-width="2"/>
+  <rect x="14" y="40" width="32" height="10" fill="#555555"/>
+  <path d="M46 45 Q 183 45 320 194" fill="none" stroke="#1e88e5" stroke-width="2" stroke-dasharray="5 4"/>
+  <g stroke="#999999" stroke-width="1" stroke-dasharray="3 4">
+    <line x1="40" y1="54" x2="114" y2="54"/>
+    <line x1="40" y1="82" x2="183" y2="82"/>
+    <line x1="40" y1="129" x2="251" y2="129"/>
+  </g>
+  <g fill="#c62828">
+    <circle cx="40" cy="54" r="6"/>
+    <circle cx="40" cy="82" r="6"/>
+    <circle cx="40" cy="129" r="6"/>
+    <circle cx="40" cy="194" r="6"/>
+  </g>
+  <g fill="#1e88e5">
+    <circle cx="114" cy="54" r="6"/>
+    <circle cx="183" cy="82" r="6"/>
+    <circle cx="251" cy="129" r="6"/>
+    <circle cx="320" cy="194" r="6"/>
+  </g>
+  <text x="60" y="222" font-size="15" fill="#c62828" text-anchor="middle">впала</text>
+  <text x="300" y="222" font-size="15" fill="#1e88e5" text-anchor="middle">вилетіла вбік</text>
+  <text x="200" y="26" font-size="15" fill="#333333" text-anchor="middle">однакова висота щомиті</text>
+</svg>

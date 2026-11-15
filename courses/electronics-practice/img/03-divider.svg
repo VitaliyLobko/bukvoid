@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 250" font-family="system-ui, sans-serif">
+  <rect width="360" height="250" fill="#ffffff"/>
+  <g stroke="#333333" stroke-width="3" fill="none">
+    <line x1="150" y1="20" x2="150" y2="40"/>
+    <line x1="150" y1="100" x2="150" y2="140"/>
+    <line x1="150" y1="200" x2="150" y2="230"/>
+    <line x1="150" y1="120" x2="260" y2="120"/>
+    <line x1="150" y1="230" x2="260" y2="230"/>
+  </g>
+  <rect x="135" y="40" width="30" height="60" fill="#fff8e1" stroke="#333333" stroke-width="3"/>
+  <rect x="135" y="140" width="30" height="60" fill="#fff8e1" stroke="#333333" stroke-width="3"/>
+  <text x="180" y="76" font-size="18" fill="#333333">R₁</text>
+  <text x="180" y="176" font-size="18" fill="#333333">R₂</text>
+  <circle cx="150" cy="20" r="5" fill="#c62828"/>
+  <text x="40" y="26" font-size="16" fill="#c62828">вхід U</text>
+  <circle cx="150" cy="230" r="5" fill="#333333"/>
+  <text x="40" y="236" font-size="16" fill="#333333">мінус</text>
+  <circle cx="260" cy="120" r="5" fill="#1e88e5"/>
+  <circle cx="260" cy="230" r="5" fill="#333333"/>
+  <g stroke="#1e88e5" stroke-width="2" fill="none">
+    <line x1="290" y1="128" x2="290" y2="222"/>
+    <polyline points="284,136 290,128 296,136"/>
+    <polyline points="284,214 290,222 296,214"/>
+  </g>
+  <text x="300" y="180" font-size="16" fill="#1e88e5">вихід</text>
+</svg>
