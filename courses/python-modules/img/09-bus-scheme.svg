@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 380" width="640" height="380" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#1f2328"/>
+    </marker>
+  </defs>
+  <rect width="640" height="380" fill="#ffffff"/>
+  <g stroke="#1f2328" stroke-width="3" fill="none" marker-end="url(#a)">
+    <path d="M190 165L238 165"/>
+    <path d="M410 150L456 92"/>
+    <path d="M410 180L456 238"/>
+  </g>
+  <g text-anchor="middle" font-weight="700">
+    <rect x="20" y="125" width="170" height="80" rx="12" fill="#dbeafe" stroke="#1e66f5" stroke-width="3"/>
+    <text x="105" y="160" font-size="24">Task</text>
+    <text x="105" y="190" font-size="24">Service</text>
+    <rect x="240" y="125" width="170" height="80" rx="40" fill="#dcfce7" stroke="#1a7f37" stroke-width="3"/>
+    <text x="325" y="160" font-size="24">шина</text>
+    <text x="325" y="190" font-size="24">«done»</text>
+    <rect x="450" y="20" width="170" height="80" rx="12" fill="#ffe8a3" stroke="#bf8700" stroke-width="3"/>
+    <text x="535" y="55" font-size="24">notify</text>
+    <text x="535" y="85" font-size="22" font-weight="400">друкує</text>
+    <rect x="450" y="230" width="170" height="80" rx="12" fill="#ffe8a3" stroke="#bf8700" stroke-width="3"/>
+    <text x="535" y="265" font-size="24">stats</text>
+    <text x="535" y="295" font-size="22" font-weight="400">рахує</text>
+  </g>
+  <text x="320" y="360" font-size="23" fill="#57606a" text-anchor="middle">сервіс не знає, хто слухає</text>
+</svg>

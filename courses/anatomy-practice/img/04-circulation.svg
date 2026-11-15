@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#1e88e5"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#c62828"/></marker>
+  </defs>
+  <rect width="360" height="260" fill="#ffffff"/>
+  <rect x="110" y="12" width="140" height="44" rx="10" fill="#fce4ec" stroke="#ad1457" stroke-width="2"/>
+  <text x="180" y="40" font-size="16" fill="#ad1457" text-anchor="middle">легені</text>
+  <rect x="110" y="204" width="140" height="44" rx="10" fill="#fff3e0" stroke="#ef6c00" stroke-width="2"/>
+  <text x="180" y="232" font-size="16" fill="#ef6c00" text-anchor="middle">усе тіло</text>
+  <rect x="100" y="100" width="78" height="62" rx="8" fill="#e3f2fd" stroke="#1e88e5" stroke-width="2"/>
+  <rect x="182" y="100" width="78" height="62" rx="8" fill="#ffebee" stroke="#c62828" stroke-width="2"/>
+  <text x="139" y="128" font-size="14" fill="#1e88e5" text-anchor="middle">праве</text>
+  <text x="139" y="146" font-size="14" fill="#1e88e5" text-anchor="middle">серце</text>
+  <text x="221" y="128" font-size="14" fill="#c62828" text-anchor="middle">ліве</text>
+  <text x="221" y="146" font-size="14" fill="#c62828" text-anchor="middle">серце</text>
+  <path d="M120 100 L120 60" stroke="#1e88e5" stroke-width="3" fill="none" marker-end="url(#ab)"/>
+  <path d="M240 58 L240 96" stroke="#c62828" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+  <path d="M240 162 L240 200" stroke="#c62828" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+  <path d="M120 202 L120 166" stroke="#1e88e5" stroke-width="3" fill="none" marker-end="url(#ab)"/>
+  <text x="300" y="76" font-size="13" fill="#333333" text-anchor="middle">мале коло</text>
+  <text x="300" y="94" font-size="13" fill="#c62828" text-anchor="middle">з киснем</text>
+  <text x="300" y="178" font-size="13" fill="#333333" text-anchor="middle">велике коло</text>
+  <text x="300" y="196" font-size="13" fill="#c62828" text-anchor="middle">з киснем</text>
+  <text x="56" y="84" font-size="13" fill="#1e88e5" text-anchor="middle">без кисню</text>
+  <text x="56" y="186" font-size="13" fill="#1e88e5" text-anchor="middle">без кисню</text>
+</svg>

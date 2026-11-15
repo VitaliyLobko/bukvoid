@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 230" font-family="system-ui, sans-serif">
+  <defs>
+    <clipPath id="two"><rect x="60" y="0" width="240" height="180"/></clipPath>
+    <clipPath id="one"><rect x="120" y="0" width="120" height="180"/></clipPath>
+    <path id="bell" d="M20 180 C 60 180, 90 175, 120 125 C 135 80, 160 40, 180 40 C 200 40, 225 80, 240 125 C 270 175, 300 180, 340 180 Z"/>
+  </defs>
+  <rect width="360" height="230" fill="#ffffff"/>
+  <use href="#bell" fill="#e3f2fd" clip-path="url(#two)"/>
+  <use href="#bell" fill="#90caf9" clip-path="url(#one)"/>
+  <path d="M20 180 C 60 180, 90 175, 120 125 C 135 80, 160 40, 180 40 C 200 40, 225 80, 240 125 C 270 175, 300 180, 340 180" fill="none" stroke="#1e88e5" stroke-width="3"/>
+  <line x1="20" y1="180" x2="340" y2="180" stroke="#333333" stroke-width="2"/>
+  <line x1="180" y1="40" x2="180" y2="180" stroke="#333333" stroke-width="1" stroke-dasharray="4 4"/>
+  <g font-size="14" fill="#333333" text-anchor="middle">
+    <text x="60" y="198">−2σ</text>
+    <text x="120" y="198">−σ</text>
+    <text x="180" y="198">середнє</text>
+    <text x="240" y="198">+σ</text>
+    <text x="300" y="198">+2σ</text>
+  </g>
+  <text x="180" y="140" font-size="18" fill="#0d47a1" text-anchor="middle" font-weight="bold">68 %</text>
+  <text x="180" y="222" font-size="15" fill="#1e88e5" text-anchor="middle">від −2σ до +2σ — 95 %</text>
+</svg>

@@ -1,3 +1,5 @@
+import { codeBlockHtml } from './code.js';
+
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Код кольору в `код` отримує кружечок цього кольору; у style — лише те, що пройшло ці шаблони
@@ -42,11 +44,12 @@ const figHtml = (path, alt, caption, src) => {
     + `${caption ? `<figcaption>${inline(caption)}</figcaption>` : ''}</figure>`;
 };
 
-/** Картинка вправи — над питанням. */
-export const exerciseFig = (ex, src) => (ex.img ? figHtml(ex.img, ex.alt, '', src) : '');
+/** Картинка й код вправи — над питанням. */
+export const exerciseFig = (ex, src) => (ex.img ? figHtml(ex.img, ex.alt, '', src) : '')
+  + (ex.code ? codeBlockHtml({ code: ex.code, lang: ex.lang }) : '');
 
 /**
- * Теорія з блоків {h}|{p}|{ul}|{table}|{tip}|{warn}|{note}|{recall, a}|{img}|{swatches}|{contrast}.
+ * Теорія з блоків {h}|{p}|{ul}|{table}|{tip}|{warn}|{note}|{recall, a}|{img}|{code}|{swatches}|{contrast}.
  * note — примітка на полях (деталь, цікавинка); recall — «пригадайте самі»: питання, відповідь розкривається торканням.
  * src(path) — адреса картинки курсу (Courses.src); без неї замість картинки — її опис.
  */
@@ -78,6 +81,7 @@ export const SECTIONS_FROM = 12;
 /** Один блок теорії. */
 function blockHtml(b, src) {
   if (b.img) return figHtml(b.img, b.alt, b.caption, src);
+  if (b.code) return codeBlockHtml(b);
   // hex перевірено validate() — у style лише #rrggbb
   if (b.swatches) {
     return `<div class="swatches">${b.swatches.map((c) => `<div class="swatch"><span class="chip" style="background:${esc(c.hex)}"></span>`

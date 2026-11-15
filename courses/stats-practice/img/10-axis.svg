@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 230" font-family="system-ui, sans-serif">
+  <rect width="360" height="230" fill="#ffffff"/>
+  <text x="90" y="22" font-size="15" fill="#c62828" text-anchor="middle">вісь від 48</text>
+  <text x="270" y="22" font-size="15" fill="#2e7d32" text-anchor="middle">вісь від 0</text>
+  <g stroke="#333333" stroke-width="2">
+    <line x1="30" y1="180" x2="160" y2="180"/>
+    <line x1="30" y1="180" x2="30" y2="40"/>
+    <line x1="210" y1="180" x2="340" y2="180"/>
+    <line x1="210" y1="180" x2="210" y2="40"/>
+  </g>
+  <rect x="50" y="115" width="40" height="65" fill="#ef9a9a"/>
+  <rect x="105" y="50" width="40" height="130" fill="#c62828"/>
+  <rect x="230" y="76" width="40" height="104" fill="#a5d6a7"/>
+  <rect x="285" y="72" width="40" height="108" fill="#2e7d32"/>
+  <g font-size="14" fill="#333333" text-anchor="middle">
+    <text x="70" y="198">50</text>
+    <text x="125" y="198">52</text>
+    <text x="250" y="198">50</text>
+    <text x="305" y="198">52</text>
+    <text x="20" y="184">48</text>
+    <text x="200" y="184">0</text>
+  </g>
+  <text x="180" y="222" font-size="15" fill="#333333" text-anchor="middle">ті самі числа: 50 і 52</text>
+</svg>

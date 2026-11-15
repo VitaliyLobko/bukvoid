@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" font-family="system-ui, sans-serif">
+  <rect width="360" height="240" fill="#0d1b2a"/>
+  <polyline points="30,140 65,125 100,132 140,150 180,182 156,206 116,174 140,150" fill="none" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="156" y1="206" x2="300" y2="62" stroke="#ffd54f" stroke-width="2" stroke-dasharray="6 5"/>
+  <g fill="#ffffff">
+    <circle cx="30" cy="140" r="4"/>
+    <circle cx="65" cy="125" r="4"/>
+    <circle cx="100" cy="132" r="4"/>
+    <circle cx="140" cy="150" r="4"/>
+    <circle cx="116" cy="174" r="4"/>
+  </g>
+  <g fill="#ffd54f">
+    <circle cx="180" cy="182" r="5"/>
+    <circle cx="156" cy="206" r="5"/>
+  </g>
+  <circle cx="300" cy="62" r="7" fill="#ffd54f"/>
+  <text x="300" y="40" font-size="16" fill="#ffd54f" text-anchor="middle">Полярна</text>
+  <text x="80" y="105" font-size="15" fill="#cfd8dc" text-anchor="middle">Великий Віз</text>
+  <text x="290" y="135" font-size="14" fill="#ffd54f" text-anchor="middle">≈ 5 відстаней</text>
+  <text x="270" y="228" font-size="14" fill="#ffd54f" text-anchor="middle">крайні зорі ковша</text>
+</svg>

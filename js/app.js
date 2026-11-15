@@ -312,7 +312,7 @@ function welcomeHero() {
   return `<section class="card welcome">
       <div class="eyebrow">Як тут вчитися</div>
       <p>Кожна тема курсу — <b>теорія, приклади й тест</b>. Помилки тесту повертаються на <b>повторення</b> наступного дня, потім через 2, 4, 8 днів — так знання переходять у довгу пам'ять. Фрази мовних курсів збираються в колоду.</p>
-      <p>Відкрийте будь-який курс нижче або додайте новий з <button type="button" class="link" data-to-catalog>каталогу</button>. ${touchOnly() ? 'Друк наосліп тренують на клавіатурі комп’ютера.' : 'Друк наосліп — окремі курси з екранною клавіатурою.'}</p>
+      <p>Відкрийте будь-який курс нижче або додайте новий у розділі <button type="button" class="link" data-to-catalog>«Можна додати»</button>. ${touchOnly() ? 'Друк наосліп тренують на клавіатурі комп’ютера.' : 'Друк наосліп — окремі курси з екранною клавіатурою.'}</p>
       <p class="muted small">Щоб прогрес був однаковий на телефоні й комп'ютері — ⚙ → «Google Диск».</p>
     </section>`;
 }
@@ -384,56 +384,131 @@ function courseTile({ id, href, icon, title, subtitle, done, started, total, wor
         <span class="course-ico">${iconSvg(icon)}</span>
         <b>${esc(title)}</b>
         <span class="muted">${esc(subtitle || '')}</span>
-        <span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>
+        ${done || started ? `<span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>` : ''}
         <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small>
         ${r?.started && !cur ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
 }
 
-function renderCourses() {
-  const list = Courses.enabled();
-  const typing = typingOn();
+/** Плитки «Моїх курсів»: курс, де зупинились, далі розпочаті, далі нерозпочаті — у порядку з налаштувань. */
+function myCourseItems() {
   const items = [
-    ...typing.map(({ id, lang }) => {
+    ...typingOn().map(({ id, lang }) => {
       const ls = lessons(lang);
       return { id, href: `#kurs/${id}`, icon: 'keyboard', title: typingTitle(lang), subtitle: 'Уроки за розкладкою: клавіші, сполучення, слова',
-        done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' };
+        group: Courses.GROUPS[0], done: typingDone(lang), started: ls.filter((l) => lessonState(l.id).parts.a).length, total: ls.length, word: 'уроків' };
     }),
-    ...list.map(({ id, pack }) => {
+    ...Courses.enabled().map(({ id, pack }) => {
       const p = courseProgress(id);
-      return { id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle,
+      return { id, href: `#kurs/${esc(id)}`, icon: pack.icon, title: pack.title, subtitle: pack.subtitle, group: Courses.groupOf(id, pack),
         done: pack.units.filter((u) => unitDone(p[u.id], pack)).length, started: pack.units.filter((u) => p[u.id]).length, total: pack.units.length, word: 'тем' };
     }),
   ];
-  // Спершу курс, де зупинились, далі розпочаті (менше лишилось — вище), далі нерозпочаті — у порядку з налаштувань
   const cur = lastCourse();
   const rank = (x) => (x.id === cur ? 0 : x.done >= x.total ? 2 : x.done || x.started ? 1 : 3);
-  const tiles = items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => courseTile(x));
+  return items.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map(({ x }) => x);
+}
+
+// Згорнуті групи «Моїх курсів» і розгорнуті групи «Можна додати»: типово мої відкриті, а каталог згорнутий
+const GROUPS_CLOSED_KEY = 'bukvoid:groups-closed';
+const GROUPS_OPEN_KEY = 'bukvoid:groups-open';
+const GROUP_DEFAULT_OPEN = { my: true, cat: false };
+
+/** 1 курс, 2–4 курси, 5–20 курсів, 21 курс…: forms — [один, кілька, багато]. */
+function plural(n, [one, few, many]) {
+  const d = n % 10;
+  const dd = n % 100;
+  return d === 1 && dd !== 11 ? one : d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? few : many;
+}
+const coursesWord = (n) => `${n} ${plural(n, ['курс', 'курси', 'курсів'])}`;
+
+function groupSet(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch { return new Set(); }
+}
+function groupOpen(key) {
+  return GROUP_DEFAULT_OPEN[key.split(':')[0]] !== false ? !groupSet(GROUPS_CLOSED_KEY).has(key) : groupSet(GROUPS_OPEN_KEY).has(key);
+}
+
+/**
+ * Плитки по групах: відомі — у порядку Courses.GROUPS, свої — за абеткою, «Інше» — останньою.
+ * Група згортається, згорнуті пам'ятає цей пристрій. Одна група — проста сітка без заголовків.
+ */
+function groupedTiles(items, tile, scope) {
+  const by = new Map();
+  for (const x of items) {
+    const g = x.group || Courses.OTHER_GROUP;
+    if (!by.has(g)) by.set(g, []);
+    by.get(g).push(x);
+  }
+  const known = Courses.GROUPS.length;
+  const order = (g) => (g === Courses.OTHER_GROUP ? known + 1 : Courses.GROUPS.includes(g) ? Courses.GROUPS.indexOf(g) : known);
+  const names = [...by.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b, 'uk'));
+  if (names.length < 2) return `<div class="tiles courses">${items.map(tile).join('')}</div>`;
+  return names.map((g) => {
+    const key = `${scope}:${g}`;
+    return `<details class="course-group" data-group="${esc(key)}"${groupOpen(key) ? ' open' : ''}>
+      <summary><h3>${esc(g)}</h3><span class="muted">${coursesWord(by.get(g).length)}</span>
+        <span class="group-names muted">${esc(by.get(g).map((x) => x.title).join(', '))}</span></summary>
+      <div class="tiles courses">${by.get(g).map(tile).join('')}</div></details>`;
+  }).join('');
+}
+
+function mountGroups(root) {
+  root.querySelectorAll('details.course-group').forEach((d) => d.addEventListener('toggle', () => {
+    const key = d.dataset.group;
+    const closed = groupSet(GROUPS_CLOSED_KEY);
+    const opened = groupSet(GROUPS_OPEN_KEY);
+    if (d.open) { closed.delete(key); opened.add(key); } else { closed.add(key); opened.delete(key); }
+    try {
+      localStorage.setItem(GROUPS_CLOSED_KEY, JSON.stringify([...closed]));
+      localStorage.setItem(GROUPS_OPEN_KEY, JSON.stringify([...opened]));
+    } catch { /* приватний режим */ }
+  }));
+}
+
+/** Перемалювати «Мої курси»; повертає відбиток груп, щоб після каталогу перемалювати лише за потреби. */
+function fillMyTiles(box, items = myCourseItems()) {
+  box.innerHTML = groupedTiles(items, courseTile, 'my');
+  mountGroups(box);
+  return items.map((x) => `${x.id}:${x.group}`).join('|');
+}
+
+function renderCourses() {
+  const items = myCourseItems();
   view().innerHTML = `
     ${head('Курси', '', 'Теорія, тест, повторення помилок і практика — тема за темою')}
     ${resumeHero() || welcomeHero()}
     ${srsHero()}
     <h2 class="section-title">Мої курси</h2>
-    <div class="tiles courses" id="kursy-tiles">${tiles.join('')}</div>
-    ${tiles.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте з каталогу.</p>'}
-    <section id="kursy-catalog" hidden><h2 class="section-title">Каталог <span class="muted">торкніться, щоб додати</span></h2>
-    <div class="tiles courses" id="catalog-tiles"></div></section>
+    <div id="kursy-tiles"></div>
+    ${items.length ? '' : '<p class="muted" id="kursy-empty">Усі курси сховані — покажіть їх у ⚙ → «Курси» або додайте в розділі «Можна додати».</p>'}
+    <section id="kursy-catalog" hidden><h2 class="section-title">Можна додати <span class="muted">торкніться, щоб додати</span></h2>
+    <div id="catalog-tiles"></div></section>
     <a class="btn" href="#settings/courses">Керувати курсами, курс із файлу</a>`;
-  addCatalogTiles($('catalog-tiles'));
+  const sig = fillMyTiles($('kursy-tiles'), items);
+  addCatalogTiles($('catalog-tiles'), sig);
   view().querySelector('[data-to-catalog]')?.addEventListener('click', () => $('kursy-catalog')?.scrollIntoView({ behavior: 'smooth' }));
 }
 
-/** Курси каталогу, яких ще немає на пристрої, — блідими плитками в тій самій сітці; торкнулись — курс додається. */
-async function addCatalogTiles(grid) {
-  const cat = await Courses.catalog();
-  if (!grid.isConnected || !cat) return;
-  const fresh = cat.filter((c) => !Courses.get(c.id));
-  if (fresh.length) grid.closest('section')?.removeAttribute('hidden');
-  grid.insertAdjacentHTML('beforeend', fresh.map((c) => `<button type="button" class="tile course-tile add" data-course-add="${esc(c.id)}">
+const catalogTile = (c) => `<button type="button" class="tile course-tile add" data-course-add="${esc(c.id)}">
       <span class="course-ico">${iconSvg(c.icon)}</span>
       <b>${esc(c.title)}</b>
       <span class="muted">${esc(c.subtitle || '')}</span>
       <small class="add-label">${c.units ? `${c.units} тем · ` : ''}<span>Додати</span></small>
-    </button>`).join(''));
+    </button>`;
+
+/** Курси каталогу, яких ще немає на пристрої, — блідими плитками по тих самих групах; торкнулись — курс додається. */
+async function addCatalogTiles(grid, mySig) {
+  const cat = await Courses.catalog();
+  if (!grid.isConnected || !cat) return;
+  // Каталог приніс групи, яких ще не знав пристрій, — «Мої курси» перекладаємо по групах
+  const mine = $('kursy-tiles');
+  const items = myCourseItems();
+  if (mine && items.map((x) => `${x.id}:${x.group}`).join('|') !== mySig) fillMyTiles(mine, items);
+  const fresh = cat.filter((c) => !Courses.get(c.id)).map((c) => ({ ...c, group: typeof c.group === 'string' && c.group.trim() ? c.group.trim() : Courses.OTHER_GROUP }));
+  if (fresh.length) grid.closest('section')?.removeAttribute('hidden');
+  grid.innerHTML = groupedTiles(fresh, catalogTile, 'cat');
+  mountGroups(grid);
+  retryScroll();
   grid.querySelectorAll('[data-course-add]').forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
@@ -544,6 +619,13 @@ function renderCourseUnit(cid, uid) {
       secs.forEach((d) => { d.open = open; });
       all.textContent = open ? 'Згорнути все' : 'Розгорнути все';
     };
+  }
+  // Зміст ширший за екран — справа затухання, поки є що прокрутити: видно, що вкладок більше
+  const tocBar = view().querySelector('.toc');
+  if (tocBar) {
+    const more = () => tocBar.classList.toggle('more', tocBar.scrollLeft + tocBar.clientWidth < tocBar.scrollWidth - 2);
+    tocBar.addEventListener('scroll', more, { passive: true });
+    new ResizeObserver(more).observe(tocBar);
   }
   view().querySelectorAll('.toc a:not([data-route])').forEach((a) => {
     a.onclick = (e) => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' }); };
@@ -695,9 +777,29 @@ function renderProgress() {
     const tasks = pack.units.flatMap((u) => (u.tasks ?? []).map((_, i) => S.taskKey(id, u.id, i)));
     const tdone = tasks.filter((k) => S.taskDone(k)).length;
     const m = SRS.mistakeCounts([{ id, pack }]);
-    const bits = [`тем ${topics}/${pack.units.length}`, tasks.length && `завдань ${tdone}/${tasks.length}`, m.total && `помилок ${m.due} на сьогодні з ${m.total}`].filter(Boolean);
+    const bits = [
+      `пройдено ${topics} з ${pack.units.length} тем`,
+      tasks.length && `завдання: ${tdone} з ${tasks.length}`,
+      m.due ? `${m.due} ${plural(m.due, ['помилка', 'помилки', 'помилок'])} на повторення сьогодні`
+        : m.total && `${m.total} ${plural(m.total, ['помилка', 'помилки', 'помилок'])} в повторенні`,
+    ].filter(Boolean);
     return `<a class="li" href="#kurs/${id}"><span>${esc(pack.title)}<small class="muted">${bits.join(' · ')}</small></span><b>${Math.round((topics / Math.max(1, pack.units.length)) * 100)}%</b></a>`;
   };
+  // Ще нічого не робили — замість стіни нулів одна підказка з дією
+  const studied = days.some((d) => d.min > 0) || tot.sessions > 0 || packs.some(({ id }) => Object.keys(s.courses[id] ?? {}).length);
+  if (!studied) {
+    const last = lastCourse();
+    const go = last && courseExists(last) ? `<a class="btn primary" href="#kurs/${esc(last)}">Продовжити курс</a>` : '<a class="btn primary" href="#kursy">Обрати курс</a>';
+    view().innerHTML = `
+    ${head('Прогрес', '')}
+    <section class="card welcome">
+      <h2>Тут з'явиться ваш прогрес</h2>
+      <p>Хвилини навчання по днях, пройдені теми й завдання, помилки на повторення, а для друку наосліп — швидкість і слабкі клавіші.</p>
+      <p class="muted">Пройдіть першу тему будь-якого курсу — і цифри оживуть.</p>
+      <div class="row">${go}</div>
+    </section>`;
+    return;
+  }
   view().innerHTML = `
     ${head('Прогрес', '')}
     <div class="stat-grid">
@@ -713,7 +815,9 @@ function renderProgress() {
       ${packs.map(courseRow).join('') || '<p class="muted">Додайте курс у «Курсах» — тут з’явиться, скільки тем і завдань пройдено.</p>'}
       ${c.total ? `<div class="li"><span>Фрази в колоді</span><b>${c.learned} вивчено з ${c.total}</b></div>` : ''}
     </div>
-    ${typing ? `<h2 class="section-title">Друк наосліп</h2>
+    ${typing && !tot.sessions ? `<h2 class="section-title">Друк наосліп</h2>
+    <p class="muted">Ще жодної вправи. ${typingLangs.length ? `Почніть з <a href="#kurs/druk-${typingLangs[0]}">першого уроку</a> — тут з'являться швидкість, точність і слабкі клавіші.` : ''}</p>` : ''}
+    ${typing && tot.sessions ? `<h2 class="section-title">Друк наосліп</h2>
     <div class="stat-grid">
       <div class="stat"><b>${tot.chars.toLocaleString('uk')}</b><span>букв з'їдено</span></div>
       <div class="stat"><b>${Math.round(tot.ms / 60000)}</b><span>хвилин друку</span></div>
@@ -774,8 +878,8 @@ function setRow(key, ico, title, value, body, { danger = false } = {}) {
     </div>`;
 }
 
-/** Група: підпис над карткою, всередині — рядки через лінію. */
-const setGroup = (title, rows) => `<h2 class="section-title">${title}</h2><div class="card set-list">${rows.join('')}</div>`;
+/** Група налаштувань, як в Арсеналі: рамка з назвою на лінії (як в 1С), всередині — рядки через лінію. */
+const setGroup = (title, rows) => `<fieldset class="set-group"><legend>${title}</legend><div class="set-list">${rows.join('')}</div></fieldset>`;
 
 function mountRows() {
   view().querySelectorAll('.set-row').forEach((row) => {
@@ -872,11 +976,33 @@ function renderSettings(section) {
   const radio = (name, value, label, cur) => `<label class="opt"><input type="radio" name="${name}" value="${value}"${cur === value ? ' checked' : ''}> ${label}</label>`;
   const v = prefLabels(s);
   view().innerHTML = `
-    ${head('Налаштування', '')}
+    ${head('Налаштування', '', `версія ${esc(self.APP_VERSION || '')}`)}
+    ${setGroup('Про застосунок', [aboutHtml()])}
+    ${setGroup('Дані', [
+    setRow('server', 'server', 'Сервер бота', '', `
+        <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
+        <div id="server-status" class="drive-status" role="status"></div>
+        <div id="server-body" class="stack"></div>`),
+    setRow('drive', 'cloud', `Google Диск${Bot.active() ? ' · копія' : ''}`, '', `
+        <p class="muted">${Bot.active() ? 'Синхронізацію веде сервер, а Диск раз на день зберігає копію в файл bukvoid.json. Застосунок бачить лише свої файли.' : "Прогрес однаковий на комп'ютері й телефоні: копія лежить у файлі bukvoid.json на вашому Диску. Застосунок бачить лише свої файли. Увійшли в Google у Вазі чи Марнотраті — тут вхід уже є."}</p>
+        <div id="drive-status" class="drive-status" role="status"></div>
+        <div class="row" id="drive-actions"></div>`),
+    setRow('backup', 'save', 'Резервна копія', '', `
+        <p class="muted">Без синхронізації дані зберігаються лише в цьому браузері. Копія — файл, який можна перенести на інший пристрій.</p>
+        <div class="row">
+          <button type="button" class="btn" id="export">Зберегти копію</button>
+          <label class="btn">Відновити з файлу<input type="file" id="import" accept="application/json,.json" hidden></label>
+        </div>`),
+    // Стерти — останнім рядком і згорнуте: небезпечна дія не має бути найпомітнішою на екрані
+    setRow('reset', 'trash', 'Стерти весь прогрес', '', `
+        <p class="muted">Уроки, тести, фрази й статистика клавіш — на цьому пристрої${Sync.enabled() || Bot.active() ? ' й під час синхронізації на інших' : ''}.</p>
+        <div class="row"><button type="button" class="btn danger" id="reset">Стерти весь прогрес</button><span id="reset-confirm" hidden><button type="button" class="btn danger" id="reset-yes">Так, стерти</button> <button type="button" class="btn" id="reset-no">Ні</button></span></div>`,
+    { danger: true })])}
+    <p id="settings-msg" class="muted" role="status"></p>
     ${setGroup('Навчання', [
     setRow('courses', 'book', 'Курси', '', `
         <div id="courses-installed" class="stack"></div>
-        <p class="muted small">Нові курси — у розділі «Каталог» на вкладці <a href="#kursy">«Курси»</a>: торкніться плитки — курс додано.</p>
+        <p class="muted small">Нові курси — у розділі «Можна додати» на вкладці <a href="#kursy">«Курси»</a>: торкніться плитки — курс додано.</p>
         <div class="row"><label class="btn">Додати курс із файлу<input type="file" id="course-file" accept="application/json,.json,application/zip,.zip" hidden></label></div>
         <div id="courses-msg" class="muted" role="status"></div>
         <p class="muted small">Курс — файл .json у форматі Буквоїда: теорія, приклади, тест, друк. Курс із файлу живе лише на цьому пристрої; прогрес за ним синхронізується, як і решта.</p>`)])}
@@ -898,36 +1024,14 @@ function renderSettings(section) {
         ${THEMES.filter(([val]) => SPECIAL_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
         <label class="night-level" id="night-level"${s.theme === 'night' ? '' : ' hidden'}><span>Яскравість червоного</span><input type="range" id="night-range" min="20" max="100" step="5" value="${nightLevel()}"></label>
         <p class="muted">Нічна — усе червоним, щоб не збивати нічний зір. Фосфор, Бурштин і Білий фосфор — як старі монітори-кінескопи.</p>`),
-    backdropRow()])}
-    ${setGroup('Синхронізація', [
-    setRow('server', 'server', 'Сервер бота', '', `
-        <p class="muted">Через сервер бота Хобі-плану — той самий, що в Хобі-плані, Вазі й Марнотраті. Прогрес однаковий на всіх пристроях, а підсумки приходять у вечірньому повідомленні Telegram-бота.</p>
-        <div id="server-status" class="drive-status" role="status"></div>
-        <div id="server-body" class="stack"></div>`),
-    setRow('drive', 'cloud', `Google Диск${Bot.active() ? ' · копія' : ''}`, '', `
-        <p class="muted">${Bot.active() ? 'Синхронізацію веде сервер, а Диск раз на день зберігає копію в файл bukvoid.json. Застосунок бачить лише свої файли.' : "Прогрес однаковий на комп'ютері й телефоні: копія лежить у файлі bukvoid.json на вашому Диску. Застосунок бачить лише свої файли. Увійшли в Google у Вазі чи Марнотраті — тут вхід уже є."}</p>
-        <div id="drive-status" class="drive-status" role="status"></div>
-        <div class="row" id="drive-actions"></div>`)])}
-    ${setGroup('Дані', [
-    setRow('backup', 'save', 'Резервна копія', '', `
-        <p class="muted">Без Google Диска дані зберігаються лише в цьому браузері. Копія — файл, який можна перенести на інший пристрій.</p>
-        <div class="row">
-          <button type="button" class="btn" id="export">Зберегти копію</button>
-          <label class="btn">Відновити з файлу<input type="file" id="import" accept="application/json,.json" hidden></label>
-        </div>`),
-    // Стерти — останнім рядком і згорнуте: небезпечна дія не має бути найпомітнішою на екрані
-    setRow('reset', 'trash', 'Стерти весь прогрес', '', `
-        <p class="muted">Уроки, тести, фрази й статистика клавіш — на цьому пристрої${Sync.enabled() || Bot.active() ? ' й під час синхронізації на інших' : ''}.</p>
-        <div class="row"><button type="button" class="btn danger" id="reset">Стерти весь прогрес</button><span id="reset-confirm" hidden><button type="button" class="btn danger" id="reset-yes">Так, стерти</button> <button type="button" class="btn" id="reset-no">Ні</button></span></div>`,
-    { danger: true })])}
-    <p id="settings-msg" class="muted" role="status"></p>
-    ${aboutHtml()}`;
+    backdropRow()])}`;
   mountRows();
   mountServer();
   mountDrive();
   mountCourses();
   mountBackdrop();
   view().querySelector('.about-avatar').onclick = avatarHi;
+  $('check-update').onclick = checkUpdate;
   if (section === 'courses') $('row-courses').scrollIntoView();
   // Кожен перемикач зберігає всі чотири, як раніше спільна форма, і одразу міняє значення в рядку
   const prefs = view().querySelectorAll('input[name="mode"], input[name="keyboard"], input[name="fontSize"], input[name="theme"]');
@@ -1010,7 +1114,7 @@ function mountCourses() {
     $('courses-installed').innerHTML = `
       <h3 class="sub-title">На вкладці «Курси»</h3>
       <p class="muted small">Курси, які ви проходите: їхні помилки й фрази — у повторенні.</p>
-      ${on.length ? `<div class="course-list">${on.map(row).join('')}</div>` : '<p class="muted">Жодного — покажіть схований курс або додайте з каталогу.</p>'}
+      ${on.length ? `<div class="course-list">${on.map(row).join('')}</div>` : '<p class="muted">Жодного — покажіть схований курс або додайте в розділі «Можна додати».</p>'}
       ${off.length ? `<h3 class="sub-title">Сховані</h3>
       <p class="muted small">Лежать на пристрої, прогрес збережено. «Видалити» прибере курс із пристрою, прогрес лишиться й тоді.</p>
       <div class="course-list">${off.map(row).join('')}</div>` : ''}`;
@@ -1182,12 +1286,14 @@ const CUP_SVG = '<svg viewBox="0 0 16 20" aria-hidden="true">'
 
 function aboutHtml() {
   return `
-    <section class="card stack about">
-      <h2>Про застосунок</h2>
+    <section class="stack about">
       <div class="about-head">
         <span class="about-avatar"><img src="./icons/author.jpg" alt="" width="64" height="64" loading="lazy"><span class="av-live">${AVATAR_SVG}</span></span>
-        <p class="muted">Буквоїд ${esc(self.APP_VERSION || '')}: курси з теорією, тестами, повторенням помилок і практичними завданнями, а також друк наосліп. Працює без інтернету, усе рахується на пристрої.</p>
+        <div><h3>Буквоїд</h3><p class="muted small">Версія ${esc(self.APP_VERSION || '')} · збірка ${esc(self.APP_BUILD || '—')}</p></div>
       </div>
+      <p class="muted small">Курси з теорією, тестами, повторенням помилок і практичними завданнями, а також друк наосліп. Працює без інтернету, усе рахується на пристрої.</p>
+      <div class="row"><button type="button" class="btn" id="check-update">Перевірити оновлення</button></div>
+      <p class="muted small" id="update-msg" role="status" hidden></p>
       <a class="donate-card" href="https://send.monobank.ua/jar/XJKDMyVfW" target="_blank" rel="noopener">
         <span class="donate-art">
           <span class="donate-cat"><img src="./icons/cat-portrait.png" alt="" width="50" height="50"><span class="donate-cup">${CUP_SVG}</span></span>
@@ -1201,22 +1307,22 @@ function aboutHtml() {
           <p>Прогрес лежить у браузері на цьому пристрої. Сервера в застосунку немає, автор не отримує ні даних, ні статистики.</p>
           <p>Синхронізація через сервер бота Хобі-плану — за бажанням, вашим ключем доступу. Боту для підсумків ідуть лише хвилини, швидкість, точність і назви пройдених уроків — без набраних текстів.</p>
           <p>Google Диск підключається за бажанням: копія лягає у файл bukvoid.json на вашому Диску, застосунок бачить лише свої файли.</p>
-          <p>Резервна копія у файл — кнопка «Зберегти копію» вище. Нею ж можна перенести прогрес на інший пристрій.</p>
+          <p>Резервна копія у файл — у групі «Дані» нижче: «Резервна копія» → «Зберегти копію». Нею ж можна перенести прогрес на інший пристрій.</p>
         </div>
       </details>
       <details class="about-more"><summary>З чого почати</summary>
         <ol class="about-steps">
-          <li>Оберіть курс на вкладці «Курси» або додайте з «Каталогу». Тема — теорія, приклади, тест; «Завдання» — те, що варто зробити руками.</li>
+          <li>Оберіть курс на вкладці «Курси» або додайте в розділі «Можна додати». Тема — теорія, приклади, тест; «Завдання» — те, що варто зробити руками.</li>
           <li>Тест зараховано від прохідного балу курсу (зазвичай 80%). Помилки повертаються в «Повторення» наступного дня — заходьте туди щодня, хоч на 5 хвилин.</li>
           <li>Друк наосліп — на комп'ютері: «Перш ніж почати» на сторінці курсу, далі уроки по черзі, 15–20 хвилин щодня; урок зараховано від 97% точності.</li>
           <li>Підключіть Google Диск, щоб прогрес був однаковий на комп'ютері й телефоні.</li>
         </ol>
       </details>
-      <p class="muted small">
-        <a href="https://github.com/VitaliyLobko/bukvoid" target="_blank" rel="noopener">Вихідний код</a>.
-        Правопис — за редакцією 2019 року (<a href="https://2019.pravopys.net/" target="_blank" rel="noopener">2019.pravopys.net</a>).
-        Шрифти Unbounded і JetBrains Mono — <a href="https://openfontlicense.org/" target="_blank" rel="noopener">SIL Open Font License</a>.
-      </p>
+      <nav class="about-links">
+        <a href="https://github.com/VitaliyLobko/bukvoid/issues/new" target="_blank" rel="noopener">Повідомити про помилку</a>
+        <a href="https://github.com/VitaliyLobko/bukvoid" target="_blank" rel="noopener">Код</a>
+      </nav>
+      <p class="muted small">Правопис — за редакцією 2019 року (<a href="https://2019.pravopys.net/" target="_blank" rel="noopener">2019.pravopys.net</a>). Шрифти Unbounded і JetBrains Mono — <a href="https://openfontlicense.org/" target="_blank" rel="noopener">SIL Open Font License</a>.</p>
     </section>`;
 }
 
@@ -1388,7 +1494,28 @@ function drawCurrentTab() {
   a.innerHTML = `${iconSvg(typing ? 'keyboard' : pack.icon)}<span>${esc(typing ? `Друк · ${LANG_NAMES[typing.lang]}` : shortTitle(pack))}</span>`;
 }
 
+// Повернулись на сторінку — на те саме місце: прокрутку пам'ятаємо за адресою (лише в цьому відкритті застосунку)
+const scrollAt = new Map();
+let shownRoute = null;
+let pendingScroll = null;
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+/** Прокрутити до y; сторінка ще коротка (каталог підвантажується) — дотягнути, коли виросте, але не пізніше ніж за 2 с. */
+function restoreScroll(y) {
+  pendingScroll = null;
+  window.scrollTo(0, y);
+  if (y > 0 && window.scrollY < y - 2) pendingScroll = { y, until: Date.now() + 2000 };
+}
+function retryScroll() {
+  if (!pendingScroll || Date.now() > pendingScroll.until) { pendingScroll = null; return; }
+  const { y } = pendingScroll;
+  window.scrollTo(0, y);
+  if (window.scrollY >= y - 2) pendingScroll = null;
+}
+
 function route() {
+  if (shownRoute !== null) scrollAt.set(shownRoute, window.scrollY);
+  shownRoute = location.hash || '#kursy';
   const [name, ...args] = (location.hash.slice(1) || 'kursy').split('/');
   const cid = routeCourse(name, args);
   if (cid && courseExists(cid)) { try { localStorage.setItem(CURRENT_KEY, cid); } catch { /* приватний режим */ } }
@@ -1409,7 +1536,31 @@ function route() {
   });
   $('settings-btn').classList.toggle('on', name === 'settings');
   fn(...args);
-  window.scrollTo(0, 0);
+  restoreScroll(scrollAt.get(shownRoute) ?? 0);
+}
+
+/** «Перевірити оновлення» в «Про застосунок»: результат — рядком під кнопкою; нова версія — та сама плашка «Оновити», що й зазвичай. */
+async function checkUpdate() {
+  const btn = $('check-update');
+  const say = (text) => { const m = $('update-msg'); if (m) { m.hidden = false; m.textContent = text; } };
+  if (!('serviceWorker' in navigator)) { say('Оновлення працюють лише через https.'); return; }
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) { say('Застосунок ще не встановлено як офлайн-копію — він і так відкривається з сайту найновішим.'); return; }
+  // Без мережі reg.update() тихо завершується — інакше вийшло б «у вас найновіша версія»
+  if (!navigator.onLine) { say('Немає зв’язку із сервером.'); return; }
+  btn.disabled = true;
+  say('Перевіряю…');
+  try {
+    // Wi-Fi без інтернету браузер теж вважає «онлайн» — питаємо сам сервер; HEAD іде повз service worker
+    const res = await fetch('./version.js', { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(String(res.status));
+    await reg.update();
+    say(reg.installing || reg.waiting ? 'Є нова версія — натисніть «Оновити» вгорі.' : 'У вас найновіша версія.');
+  } catch {
+    say('Немає зв’язку із сервером.');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function registerWorker() {

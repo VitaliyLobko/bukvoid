@@ -324,6 +324,18 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .course-tile.add > .muted { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: calc(13px * var(--fs)); }
 /* Де зупинились: останній відкритий курс обведено, у плитці — тема, на якій зупинились */
 .course-tile.current { border-color: var(--accent); }
+/* Групи курсів: заголовок-summary згортає групу (+ / −), згорнуті пам'ятає пристрій */
+.course-group > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: var(--tap); padding: 6px 2px; list-style: none; cursor: pointer; }
+/* Згорнута група показує, що в ній: назви курсів рядком під заголовком (до двох рядків) */
+.course-group > summary .group-names { order: 1; flex-basis: 100%; font-size: calc(13px * var(--fs)); overflow: hidden; display: none; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.course-group:not([open]) > summary .group-names { display: -webkit-box; }
+.course-group > summary::-webkit-details-marker { display: none; }
+.course-group > summary h3 { margin: 0; font: 600 calc(15px * var(--fs))/1.3 var(--sans); color: var(--text); }
+.course-group > summary .muted { font-size: calc(13px * var(--fs)); }
+.course-group > summary::after { content: '+'; margin-left: auto; color: var(--muted); font-size: calc(20px * var(--fs)); line-height: 1; }
+.course-group[open] > summary::after { content: '−'; }
+.course-group > .tiles.courses { margin-bottom: 8px; }
+.course-group:not([open]) { border-bottom: 1px solid var(--line); }
 /* Телефон: плитка курсу — рядок «значок | текст», опис у два рядки, щоб курси вміщались без довгої прокрутки */
 @media (max-width: 600px) {
   .tiles.courses { grid-template-columns: 1fr; gap: 8px; }
@@ -453,6 +465,26 @@ details.fold.ref { margin-bottom: 8px; }
 .fig figcaption { margin-top: 6px; color: var(--muted); font-size: calc(14px * var(--fs)); }
 .fig-missing { padding: 18px 14px; border: 1px dashed var(--line-strong); border-radius: 10px; color: var(--muted); font-size: calc(14px * var(--fs)); }
 .quiz .fig { margin: 4px 0 10px; }
+
+/* Блок коду курсу (js/code.js): довгий рядок гортається всередині блока, а не всією сторінкою */
+:root { --code-bg: var(--surface-2); --code-text: #e6edf3; --code-kw: #ff7b72; --code-str: #a5d6ff; --code-com: #9aa4b2; --code-num: #79c0ff; --code-dec: #d2a8ff; --code-hl: rgb(255 214 102 / .16); }
+:root[data-theme="light"] { --code-bg: #f6f8fa; --code-text: #1f2328; --code-kw: #cf222e; --code-str: #0a3069; --code-com: #5d6478; --code-num: #0550ae; --code-dec: #8250df; --code-hl: #fff1b8; }
+.code { margin: 12px 0; max-width: 720px; border: 1px solid var(--line); border-radius: 10px; background: var(--code-bg); overflow: hidden; }
+.code figcaption { padding: 6px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font: 600 calc(13px * var(--fs)) var(--mono); }
+.code pre { margin: 0; padding: 10px 0; overflow-x: auto; color: var(--code-text); font: calc(13.5px * var(--fs))/1.55 var(--mono); tab-size: 4; }
+.code pre code { display: inline-block; min-width: 100%; padding: 0; border-radius: 0; background: none; color: inherit; font: inherit; }
+.code-line { display: block; padding: 0 12px; white-space: pre; }
+.code-line.hl { background: var(--code-hl); box-shadow: inset 3px 0 var(--warn); }
+.code.term { --code-bg: #0d1117; --code-text: #e6edf3; --code-hl: rgb(248 81 73 / .22); border-color: #30363d; }
+.code.term figcaption { color: #9aa4b2; border-color: #30363d; }
+.tk-kw { color: var(--code-kw); font-weight: 650; }
+.tk-str { color: var(--code-str); }
+.tk-com { color: var(--code-com); font-style: italic; }
+.tk-num { color: var(--code-num); }
+.tk-dec { color: var(--code-dec); }
+.tk-prompt { color: #7ee787; user-select: none; }
+.tk-cmd { font-weight: 650; }
+.quiz .code { margin: 4px 0 10px; }
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
 .swatch { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
 .chip { flex: none; width: 44px; height: 44px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgb(127 127 127 / .35); }
@@ -479,6 +511,8 @@ th { color: var(--muted); font-weight: 600; font-size: calc(13px * var(--fs)); }
 }
 .toc::-webkit-scrollbar { display: none; }
 .toc a { flex: none; white-space: nowrap; }
+/* справа ще є вкладки — затухання липне до правого краю смуги */
+.toc.more::after { content: ""; position: sticky; right: 0; flex: none; width: 32px; margin-left: -32px; background: linear-gradient(to right, transparent, var(--bg)); pointer-events: none; }
 /* Цілі переходів зі змісту — не під шапкою й змістом */
 #view [id^="u-"], #course-ref { scroll-margin-top: calc(var(--topbar-h, 64px) + 64px); }
 .toc a { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; font-size: calc(13px * var(--fs)); }
@@ -707,8 +741,11 @@ legend { font-weight: 650; margin-bottom: 6px; padding: 0; }
 @keyframes av-blink { 0%, 41%, 44.5%, 84%, 86.6%, 87%, 89.4%, 100% { transform: translateY(var(--o)); } 42.2%, 42.8%, 85.2%, 85.6%, 88.2%, 88.4% { transform: none; } }
 @keyframes av-blink-now { 0%, 100% { transform: translateY(var(--o)); } 28%, 40% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .about-avatar .av-lid { animation: none !important; } }
-/* налаштування: підпис групи над карткою, всередині — рядки «значок · назва · значення ›» */
-.card.set-list { padding: 0 16px; }
+/* налаштування, як в Арсеналі: група — рамка з назвою-плашкою на лінії (як в 1С), всередині — рядки «значок · назва · значення ›» */
+.set-group { min-width: 0; margin: 18px 0 4px; padding: 2px 16px 4px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.set-group > legend { margin-left: -6px; padding: 2px 10px 2px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+  font: 800 calc(12.5px * var(--fs))/1.3 var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.set-group .about { padding: 12px 0 10px; }
 .set-row + .set-row { border-top: 1px solid var(--line); }
 .set-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 0; border: 0; background: none;
   color: var(--text); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -755,6 +792,12 @@ legend { font-weight: 650; margin-bottom: 6px; padding: 0; }
   font-weight: 800;
 }
 .about a { color: var(--accent); }
+.about-head h3 { margin: 0 0 2px; font: 650 calc(18px * var(--fs))/1.3 var(--display); }
+.about > p { margin: 0; }
+/* посилання плашками, як в Арсеналі */
+.about-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.about .about-links a { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: calc(13px * var(--fs)); text-decoration: none; }
+.about .about-links a:hover { border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .about-more > summary::before { transition: none; } }
 
 /* телефон боком: менше хрому, більше тексту вправи */

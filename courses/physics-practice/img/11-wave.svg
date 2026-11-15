@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200" font-family="system-ui, sans-serif">
+  <rect width="360" height="200" fill="#ffffff"/>
+  <line x1="20" y1="110" x2="345" y2="110" stroke="#999999" stroke-width="1" stroke-dasharray="4 4"/>
+  <path d="M20 110 C 45 50, 75 50, 100 110 S 155 170, 180 110 S 235 50, 260 110 S 315 170, 340 110" fill="none" stroke="#1e88e5" stroke-width="4"/>
+  <g stroke="#2e7d32" stroke-width="2" fill="none">
+    <line x1="60" y1="40" x2="220" y2="40"/>
+    <polyline points="68,34 60,40 68,46"/>
+    <polyline points="212,34 220,40 212,46"/>
+    <line x1="60" y1="46" x2="60" y2="64" stroke-dasharray="3 3"/>
+    <line x1="220" y1="46" x2="220" y2="64" stroke-dasharray="3 3"/>
+  </g>
+  <text x="140" y="30" font-size="16" fill="#2e7d32" text-anchor="middle">довжина хвилі λ</text>
+  <g stroke="#c62828" stroke-width="2" fill="none">
+    <line x1="300" y1="110" x2="300" y2="158"/>
+    <polyline points="294,150 300,158 306,150"/>
+  </g>
+  <text x="300" y="186" font-size="15" fill="#c62828" text-anchor="middle">амплітуда</text>
+</svg>
