@@ -303,13 +303,16 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 }
 .tile:hover { border-color: var(--accent); }
 .tile .muted { font-size: calc(13px * var(--fs)); overflow-wrap: anywhere; }
-.tiles.courses { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin-bottom: 14px; }
-.course-tile { gap: 6px; padding: 16px; }
+/* Плитка курсу — рядок «значок | назва, стан»: опис лише підказкою, щоб список не ставав стіною тексту */
+.tiles.courses { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.course-tile { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; row-gap: 2px; padding: 12px 14px; align-items: center; }
+.course-tile > .course-ico { grid-row: 1 / span 4; width: 40px; height: 40px; margin: 0; align-self: start; }
+.course-tile > :not(.course-ico) { grid-column: 2; min-width: 0; }
 .course-ico { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--accent-soft); color: var(--accent); margin-bottom: 4px; }
 .course-ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .course-ico.small { width: 36px; height: 36px; border-radius: 10px; margin: 0; }
 .course-ico.small svg { width: 20px; height: 20px; }
-.course-tile b { font: 650 calc(17px * var(--fs))/1.3 var(--display); letter-spacing: -.01em; }
+.course-tile b { font: 650 calc(16px * var(--fs))/1.3 var(--display); letter-spacing: -.01em; }
 /* Курс каталогу, якого ще немає на пристрої: бліда плитка, торкнулись — додається */
 .course-tile.add { font: inherit; text-align: left; cursor: pointer; background: transparent; border-style: dashed; }
 .course-tile.add > :not(.add-label) { opacity: .6; }
@@ -317,18 +320,13 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .course-tile.add .add-label { margin-top: 4px; color: var(--muted); font-size: calc(13px * var(--fs)); }
 .course-tile.add .add-label > span:not(.errors) { color: var(--accent); font-weight: 600; }
 .course-tile.add:disabled { cursor: progress; }
-.course-tile.add { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; row-gap: 3px; padding: 12px 14px; align-items: start; }
-.course-tile.add > .course-ico { grid-row: 1 / span 4; width: 40px; height: 40px; margin: 0; }
-.course-tile.add > :not(.course-ico) { grid-column: 2; }
+.course-tile.add { align-items: start; row-gap: 3px; }
 .course-tile.add b { font-size: calc(15px * var(--fs)); }
 .course-tile.add > .muted { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: calc(13px * var(--fs)); }
 /* Де зупинились: останній відкритий курс обведено, у плитці — тема, на якій зупинились */
 .course-tile.current { border-color: var(--accent); }
 /* Групи курсів: заголовок-summary згортає групу (+ / −), згорнуті пам'ятає пристрій */
 .course-group > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: var(--tap); padding: 6px 2px; list-style: none; cursor: pointer; }
-/* Згорнута група показує, що в ній: назви курсів рядком під заголовком (до двох рядків) */
-.course-group > summary .group-names { order: 1; flex-basis: 100%; font-size: calc(13px * var(--fs)); overflow: hidden; display: none; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.course-group:not([open]) > summary .group-names { display: -webkit-box; }
 .course-group > summary::-webkit-details-marker { display: none; }
 .course-group > summary h3 { margin: 0; font: 600 calc(15px * var(--fs))/1.3 var(--sans); color: var(--text); }
 .course-group > summary .muted { font-size: calc(13px * var(--fs)); }
@@ -336,16 +334,10 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .course-group[open] > summary::after { content: '−'; }
 .course-group > .tiles.courses { margin-bottom: 8px; }
 .course-group:not([open]) { border-bottom: 1px solid var(--line); }
-/* Телефон: плитка курсу — рядок «значок | текст», опис у два рядки, щоб курси вміщались без довгої прокрутки */
 @media (max-width: 600px) {
-  .tiles.courses { grid-template-columns: 1fr; gap: 8px; }
-  .course-tile { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; row-gap: 3px; padding: 12px 14px; align-items: start; }
-  .course-tile > .course-ico { grid-row: 1 / span 6; width: 40px; height: 40px; margin: 0; }
-  .course-tile > :not(.course-ico) { grid-column: 2; }
-  .course-tile b { font-size: calc(16px * var(--fs)); }
-  .course-tile > .muted:not(small) { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tiles.courses { grid-template-columns: 1fr; }
 }
-.tile-next { color: var(--accent); font-size: calc(13px * var(--fs)); font-weight: 600; overflow-wrap: anywhere; }
+.tile-next { color: var(--accent); font-size: calc(13px * var(--fs)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .eyebrow { font-size: calc(12px * var(--fs)); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .hero.resume { flex-wrap: nowrap; gap: 14px; }
 .hero.resume .course-ico { margin: 0; }

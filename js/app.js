@@ -380,10 +380,10 @@ function renderMistakes() {
 function courseTile({ id, href, icon, title, subtitle, done, started, total, word }) {
   const r = resumeOf(id);
   const cur = id === lastCourse();
-  return `<a class="tile course-tile${cur ? ' current' : ''}" href="${href}">
+  // Опис курсу — підказкою, а не текстом у плитці: список «Моїх курсів» лишається коротким
+  return `<a class="tile course-tile${cur ? ' current' : ''}" href="${href}" title="${esc(subtitle || '')}">
         <span class="course-ico">${iconSvg(icon)}</span>
         <b>${esc(title)}</b>
-        <span class="muted">${esc(subtitle || '')}</span>
         ${done || started ? `<span class="course-meter" aria-label="Пройдено ${done} з ${total}"><span style="width:${(done / total) * 100}%"></span></span>` : ''}
         <small class="muted">${done ? `пройдено ${done} з ${total}` : started ? `почато ${started} з ${total}` : `${total} ${word}`}</small>
         ${r?.started && !cur ? `<small class="tile-next">${r.how === 'Повторити' ? 'усе пройдено' : `${r.how === 'Продовжити' ? 'зупинились' : 'далі'}: ${r.word.toLowerCase()} ${r.n} · ${esc(r.title)}`}</small>` : ''}</a>`;
@@ -428,6 +428,13 @@ function groupOpen(key) {
   return GROUP_DEFAULT_OPEN[key.split(':')[0]] !== false ? !groupSet(GROUPS_CLOSED_KEY).has(key) : groupSet(GROUPS_OPEN_KEY).has(key);
 }
 
+/** «5 курсів · у роботі 2 · пройдено 1» — замість переліку назв під заголовком групи. */
+function groupMeta(list) {
+  const fin = list.filter((x) => x.total && x.done >= x.total).length;
+  const act = list.filter((x) => (x.done || x.started) && !(x.done >= x.total)).length;
+  return `${coursesWord(list.length)}${act ? ` · у роботі ${act}` : ''}${fin ? ` · пройдено ${fin}` : ''}`;
+}
+
 /**
  * Плитки по групах: відомі — у порядку Courses.GROUPS, свої — за абеткою, «Інше» — останньою.
  * Група згортається, згорнуті пам'ятає цей пристрій. Одна група — проста сітка без заголовків.
@@ -446,8 +453,7 @@ function groupedTiles(items, tile, scope) {
   return names.map((g) => {
     const key = `${scope}:${g}`;
     return `<details class="course-group" data-group="${esc(key)}"${groupOpen(key) ? ' open' : ''}>
-      <summary><h3>${esc(g)}</h3><span class="muted">${coursesWord(by.get(g).length)}</span>
-        <span class="group-names muted">${esc(by.get(g).map((x) => x.title).join(', '))}</span></summary>
+      <summary><h3>${esc(g)}</h3><span class="muted">${groupMeta(by.get(g))}</span></summary>
       <div class="tiles courses">${by.get(g).map(tile).join('')}</div></details>`;
   }).join('');
 }
