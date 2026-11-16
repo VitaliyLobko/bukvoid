@@ -291,6 +291,8 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .page-head .muted { margin-top: 4px; }
 .back { font-size: calc(28px * var(--fs)); line-height: 1; text-decoration: none; width: var(--tap); height: var(--tap); display: grid; place-items: center; border-radius: 10px; flex: none; margin-top: -3px; }
 .back:hover { background: var(--accent-soft); }
+.page-title { flex: 1; min-width: 0; }
+.back.fwd { margin-left: auto; }
 
 .hero {
   display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;

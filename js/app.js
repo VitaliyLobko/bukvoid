@@ -37,8 +37,10 @@ function speak(text) {
   } catch { /* озвучення недоступне */ }
 }
 
-function head(title, back, sub = '') {
-  return `<div class="page-head">${back ? `<a class="back" href="${back}" aria-label="Назад">‹</a>` : ''}<div><h1>${esc(title)}</h1>${sub ? `<div class="muted">${sub}</div>` : ''}</div></div>`;
+// fwd — {href, label}: кнопка «›» праворуч (наступна тема)
+function head(title, back, sub = '', fwd = null) {
+  return `<div class="page-head">${back ? `<a class="back" href="${back}" aria-label="Назад">‹</a>` : ''}<div class="page-title"><h1>${esc(title)}</h1>${sub ? `<div class="muted">${sub}</div>` : ''}</div>`
+    + `${fwd ? `<a class="back fwd" href="${fwd.href}" aria-label="${esc(fwd.label)}" title="${esc(fwd.label)}">›</a>` : ''}</div>`;
 }
 
 // ---------- Друк ----------
@@ -611,7 +613,8 @@ function renderCourseUnit(cid, uid) {
   };
   const panel = (k, html) => `<section class="u-panel" id="p-${k}" data-panel="${k}" role="tabpanel" aria-label="${tabs.find(([id]) => id === k)[1]}">${html}${panelEnd(k)}</section>`;
   view().innerHTML = `
-    ${head(t.title, `#kurs/${esc(cid)}`, esc(t.topic ? `${t.topic} · ${pack.title}` : t.goal || ''))}
+    ${head(t.title, `#kurs/${esc(cid)}`, esc(t.topic ? `${t.topic} · ${pack.title}` : t.goal || ''),
+    next && { href: `#k/${esc(cid)}/${esc(next.id)}`, label: `Наступна тема: ${next.title}` })}
     ${t.topic && t.goal ? `<p class="goal">${inline(t.goal)}</p>` : ''}
     <div id="u-tabs-top"></div>
     <nav class="toc utabs" role="tablist" aria-label="Частини теми">${tabs.map(([id, label]) => `<a href="#p-${id}" role="tab" data-tab="${id}" aria-controls="p-${id}">${label}</a>`).join('')}</nav>
