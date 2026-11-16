@@ -264,6 +264,16 @@
    "icon": "code",
    "group": "Програмування й дизайн",
    "file": "redis.json"
+  },
+  {
+   "id": "rabbitmq",
+   "version": 3,
+   "title": "RabbitMQ для розробника",
+   "subtitle": "Черги й обмінники, підтвердження й prefetch, quorum-черги, мертві листи й повторні спроби, TTL і пріоритети, RPC, стріми, надійна відправка з бази й aio-pika у FastAPI — на прикладі «Складу спорядження». RabbitMQ 4.4",
+   "units": 11,
+   "icon": "code",
+   "group": "Програмування й дизайн",
+   "file": "rabbitmq.json"
   }
  ]
 }

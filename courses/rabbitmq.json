@@ -1,0 +1,3932 @@
+{
+ "format": "bukvoid-course",
+ "v": 1,
+ "id": "rabbitmq",
+ "version": 3,
+ "title": "RabbitMQ для розробника",
+ "short": "RabbitMQ",
+ "subtitle": "Черги й обмінники, підтвердження й prefetch, quorum-черги, мертві листи й повторні спроби, TTL і пріоритети, RPC, стріми, надійна відправка з бази й aio-pika у FastAPI — на прикладі «Складу спорядження». RabbitMQ 4.4",
+ "lang": "uk",
+ "pass": 0.8,
+ "icon": "code",
+ "group": "Програмування й дизайн",
+ "author": "Буквоїд",
+ "source": {
+  "title": "Документація RabbitMQ",
+  "url": "https://www.rabbitmq.com/docs/queues"
+ },
+ "reference": [
+  {
+   "id": "glossary",
+   "title": "Словник",
+   "theory": [
+    {
+     "p": "Терміни курсу коротко. Подробиці — у темі, де термін з'явився."
+    },
+    {
+     "table": [
+      [
+       "Термін",
+       "Що це"
+      ],
+      [
+       "брокер",
+       "сервер, що приймає й роздає повідомлення"
+      ],
+      [
+       "обмінник (exchange)",
+       "куди пише видавець; роздає в черги"
+      ],
+      [
+       "прив'язка (binding)",
+       "правило «обмінник → черга»"
+      ],
+      [
+       "ключ маршрутизації",
+       "routing_key, за яким обмінник вибирає черги"
+      ],
+      [
+       "канал",
+       "легка розмова всередині з'єднання"
+      ],
+      [
+       "ack",
+       "«оброблено — видаляй»"
+      ],
+      [
+       "prefetch",
+       "скільки невизнаних на споживача"
+      ],
+      [
+       "publisher confirms",
+       "брокер підтверджує прийом публікації"
+      ],
+      [
+       "mandatory",
+       "повідомлення без черги — повернути"
+      ],
+      [
+       "durable",
+       "черга переживає рестарт"
+      ],
+      [
+       "persistent",
+       "delivery_mode=2, повідомлення на диску"
+      ],
+      [
+       "quorum",
+       "реплікована черга на Raft"
+      ],
+      [
+       "stream",
+       "журнал, що не видаляє прочитане"
+      ],
+      [
+       "DLX",
+       "обмінник мертвих листів"
+      ],
+      [
+       "delivery-count",
+       "лічильник збоїв доставки (quorum)"
+      ],
+      [
+       "TTL",
+       "термін життя повідомлення чи черги"
+      ],
+      [
+       "vhost",
+       "окремий простір черг і прав"
+      ],
+      [
+       "heartbeat",
+       "сигнал «я живий» між клієнтом і брокером"
+      ],
+      [
+       "direct reply-to",
+       "відповідь RPC без черги"
+      ],
+      [
+       "offset",
+       "номер повідомлення в стрімі"
+      ],
+      [
+       "ідемпотентність",
+       "повтор нічого не змінює"
+      ],
+      [
+       "outbox",
+       "подія в таблиці в тій самій транзакції"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cheatsheet",
+   "title": "Шпаргалка: прийоми курсу",
+   "theory": [
+    {
+     "p": "Найчастіші прийоми разом. Версія RabbitMQ у дужках — з якої працює."
+    },
+    {
+     "table": [
+      [
+       "Задача",
+       "Як"
+      ],
+      [
+       "Черга завдань",
+       "quorum, durable=True"
+      ],
+      [
+       "Не загубити дорогою",
+       "confirm_delivery() + mandatory"
+      ],
+      [
+       "Воркер",
+       "prefetch 1, ack після роботи"
+      ],
+      [
+       "Розсилка кільком",
+       "обмінник topic або fanout"
+      ],
+      [
+       "Отруйне повідомлення",
+       "DLX + x-delivery-limit"
+      ],
+      [
+       "Повтор з паузою",
+       "x-delayed-retry-* (4.3)"
+      ],
+      [
+       "Доставити пізніше",
+       "x-opt-delivery-time (4.4)"
+      ],
+      [
+       "Журнал подій",
+       "stream + x-stream-offset"
+      ],
+      [
+       "Відповідь",
+       "reply_to + correlation_id"
+      ],
+      [
+       "Подія з бази",
+       "outbox + message_id"
+      ]
+     ]
+    },
+    {
+     "h": "Коди помилок"
+    },
+    {
+     "table": [
+      [
+       "Код",
+       "Коли"
+      ],
+      [
+       "541",
+       "недовговічна неексклюзивна черга (4.3+)"
+      ],
+      [
+       "406",
+       "інші параметри, подвійний ack"
+      ],
+      [
+       "404",
+       "немає обмінника чи черги"
+      ],
+      [
+       "540",
+       "не підтримується (basic_get зі стріму)"
+      ],
+      [
+       "312",
+       "NO_ROUTE — повернене повідомлення"
+      ],
+      [
+       "320",
+       "брокер закрив з'єднання (рестарт)"
+      ]
+     ]
+    },
+    {
+     "h": "Що змінилось у 4.x"
+    },
+    {
+     "table": [
+      [
+       "Версія",
+       "Зміна"
+      ],
+      [
+       "4.0",
+       "без дзеркалювання classic; ліміт доставок 20"
+      ],
+      [
+       "4.3",
+       "541 для недовговічних неексклюзивних черг; nack не рахується; тайм-аут споживача, відкладений повтор, суворі пріоритети quorum"
+      ],
+      [
+       "4.4",
+       "відкладені повідомлення quorum"
+      ]
+     ]
+    },
+    {
+     "h": "pika і aio-pika: що пам'ятати"
+    },
+    {
+     "ul": [
+      "Одне з'єднання на потік: pika не потокобезпечна, з чужого потоку — лише `add_callback_threadsafe`.",
+      "Тіло приходить байтами — `body.decode()`.",
+      "`BlockingConnection` не перепідключається сам; aio-pika `connect_robust` — так.",
+      "Довга робота — в потік, ack через `add_callback_threadsafe`.",
+      "aio-pika: `process()` без `requeue=True` відкидає повідомлення при винятку.",
+      "aio-pika: без `on_return_raises=True` повідомлення без черги не дає помилки."
+     ]
+    }
+   ]
+  }
+ ],
+ "units": [
+  {
+   "id": "first-queue",
+   "title": "Брокер і перша черга",
+   "topic": "навіщо брокер, з'єднання й канал, обмінник і черга, quorum-черга, публікація й отримання в pika",
+   "goal": "Підняти RabbitMQ, покласти завдання в чергу з одного процесу й забрати з іншого",
+   "theory": [
+    {
+     "recall": "Пригадайте з курсу Redis: чого не вміє черга на списку з BLMOVE?",
+     "a": "Рахувати спроби й повторювати з паузою, роздавати повідомлення за правилами маршрутизації, відкладати й відкидати «отруйні» повідомлення."
+    },
+    {
+     "p": "**Брокер повідомлень** — окремий сервер, який приймає повідомлення від одних програм і роздає іншим. Вебзапит кладе «друк акта 7» і одразу відповідає; воркер забирає завдання, коли готовий. Якщо воркер лежить — повідомлення чекає в черзі на диску брокера. **RabbitMQ** — найпоширеніший брокер з протоколом **AMQP 0-9-1**; курс перевірено на RabbitMQ 4.4 і бібліотеці **pika** 1.4 ([Queues](https://www.rabbitmq.com/docs/queues))."
+    },
+    {
+     "table": [
+      [
+       "Слово",
+       "Що це"
+      ],
+      [
+       "Видавець (publisher)",
+       "хто надсилає"
+      ],
+      [
+       "Обмінник (exchange)",
+       "куди надсилають"
+      ],
+      [
+       "Прив'язка (binding)",
+       "правило обмінник → черга"
+      ],
+      [
+       "Черга (queue)",
+       "де повідомлення чекають"
+      ],
+      [
+       "Споживач (consumer)",
+       "хто забирає"
+      ]
+     ]
+    },
+    {
+     "p": "Видавець ніколи не пише в чергу напряму: він надсилає в **обмінник**, а той за прив'язками кладе копії в черги. Поки що ми користуємось **типовим обмінником** з порожнім іменем `''`: він кладе повідомлення в чергу, чиє ім'я збігається з ключем маршрутизації (`routing_key`). Інші обмінники — тема 4."
+    },
+    {
+     "h": "Запустити брокер"
+    },
+    {
+     "code": "$ docker run -d --name rabbit \\\n    -p 5672:5672 -p 15672:15672 \\\n    rabbitmq:4-management",
+     "lang": "console",
+     "title": "термінал"
+    },
+    {
+     "p": "5672 — порт AMQP для програм, 15672 — вебконсоль: `http://localhost:15672`, вхід `guest` / `guest`. Там видно черги, кількість повідомлень і споживачів."
+    },
+    {
+     "h": "З'єднання і канал"
+    },
+    {
+     "p": "**З'єднання** — TCP-з'єднання з брокером, дороге: його відкривають один раз на процес. **Канал** — легка «віртуальна» розмова всередині з'єднання; усі команди йдуть через канал. У pika `BlockingConnection` — синхронне з'єднання, найпростіше для скриптів і воркерів."
+    },
+    {
+     "code": "import pika\n\nconn = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = conn.channel()\nch.queue_declare(\n    'acts', durable=True,\n    arguments={'x-queue-type': 'quorum'})\nch.basic_publish(exchange='',\n                 routing_key='acts',\n                 body='друк акта 7')\nprint('надіслано')\nconn.close()",
+     "lang": "python",
+     "title": "send.py",
+     "hl": [
+      6,
+      9
+     ]
+    },
+    {
+     "code": "надіслано",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "code": "$ rabbitmqctl -q list_queues name messages\nname  messages\nacts  1",
+     "lang": "console",
+     "title": "термінал, продовження"
+    },
+    {
+     "note": "Лічильник messages у quorum-черги оновлюється раз на кілька секунд — одразу після публікації може ще показувати 0."
+    },
+    {
+     "p": "`queue_declare` створює чергу, якщо її немає, і нічого не робить, якщо вона вже є з тими самими параметрами. Тому чергу оголошують **обидві сторони** — і видавець, і споживач: хоч би хто стартував першим, черга буде."
+    },
+    {
+     "p": "**Quorum-черга** (`x-queue-type: quorum`) зберігає повідомлення на диску й реплікує між вузлами кластера. Це сучасний типовий вибір для черг завдань, і так тепер починає й офіційний підручник RabbitMQ. Чим вона відрізняється від класичної — тема 5."
+    },
+    {
+     "h": "Забрати повідомлення"
+    },
+    {
+     "code": "import pika\n\nconn = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = conn.channel()\nch.queue_declare(\n    'acts', durable=True,\n    arguments={'x-queue-type': 'quorum'})\nfor m, props, body in ch.consume(\n        'acts', inactivity_timeout=1):\n    if m is None:\n        break\n    print('отримано:', body.decode())\n    ch.basic_ack(m.delivery_tag)\nconn.close()",
+     "lang": "python",
+     "title": "receive.py, продовження",
+     "hl": [
+      9,
+      14
+     ]
+    },
+    {
+     "code": "отримано: друк акта 7",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`ch.consume` — генератор: віддає повідомлення, щойно вони приходять, а через `inactivity_timeout` секунд тиші — `(None, None, None)`. Тіло приходить **байтами**: `body.decode()`. `basic_ack` каже брокеру «оброблено, можна видаляти» — без нього повідомлення лишиться в черзі (тема 2)."
+    },
+    {
+     "warn": "❌ `ch.queue_declare(queue='hello')` зі старих прикладів → ✅ з RabbitMQ 4.3 недовговічні неексклюзивні черги типово заборонені, і брокер **закриває все з'єднання**: `541 INTERNAL_ERROR - Feature transient_nonexcl_queues is deprecated`. Оголошуйте `durable=True` (а краще одразу quorum), тимчасові — `exclusive=True`."
+    },
+    {
+     "p": "Друга пастка оголошення: черга вже є, а ви оголошуєте її з **іншими** параметрами — `406 PRECONDITION_FAILED - inequivalent arg`. Параметри черги змінюють не повторним оголошенням, а видаленням і створенням заново або політиками."
+    },
+    {
+     "recall": "Пригадайте: навіщо і видавець, і споживач викликають queue_declare для тієї самої черги?",
+     "a": "Оголошення ідемпотентне: створить чергу, якщо її ще немає. Хоч би хто стартував першим — черга існуватиме з правильними параметрами."
+    }
+   ],
+   "examples": [
+    {
+     "w": "docker run … -p 5672:5672 -p 15672:15672 rabbitmq:4-management",
+     "note": "брокер і вебконсоль"
+    },
+    {
+     "w": "pika.BlockingConnection(params)",
+     "note": "одне з'єднання на процес"
+    },
+    {
+     "w": "ch = conn.channel()",
+     "note": "канал для команд"
+    },
+    {
+     "w": "queue_declare('acts', durable=True, arguments={'x-queue-type': 'quorum'})",
+     "note": "quorum-черга"
+    },
+    {
+     "w": "basic_publish(exchange='', routing_key='acts', body=…)",
+     "note": "через типовий обмінник"
+    },
+    {
+     "w": "ch.consume('acts', inactivity_timeout=1)",
+     "note": "забирати по одному"
+    },
+    {
+     "w": "ch.basic_ack(m.delivery_tag)",
+     "note": "оброблено — видаляй"
+    },
+    {
+     "w": "rabbitmqctl -q list_queues name messages",
+     "note": "що в чергах"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Куди надсилає повідомлення видавець в AMQP 0-9-1?",
+     "options": [
+      "В обмінник, а той кладе в черги",
+      "Прямо в чергу",
+      "Прямо споживачу",
+      "У канал іншого клієнта"
+     ],
+     "a": 0,
+     "why": "Черги наповнює обмінник за прив'язками; видавець черг не бачить."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить типовий обмінник з іменем ''?",
+     "options": [
+      "Кладе в чергу з ім'ям, що дорівнює routing_key",
+      "Кладе в усі черги",
+      "Відкидає повідомлення",
+      "Кладе в першу створену чергу"
+     ],
+     "a": 0,
+     "why": "Кожна черга автоматично прив'язана до '' за власним ім'ям."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код на RabbitMQ 4.4?",
+     "code": "import pika\nimport pika.exceptions as E\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\ntry:\n    c.channel().queue_declare('hello')\n    print('ok')\nexcept E.ConnectionClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "541",
+      "ok",
+      "404",
+      "406"
+     ],
+     "a": 0,
+     "why": "З 4.3 недовговічна неексклюзивна черга заборонена — брокер закриває з'єднання з кодом 541."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import pika\nimport pika.exceptions as E\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = c.channel()\nch.queue_declare('acts', durable=True)\nq = {'x-queue-type': 'quorum'}\ntry:\n    ch.queue_declare('acts', durable=True,\n                     arguments=q)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "541",
+      "404"
+     ],
+     "a": 0,
+     "why": "Черга вже є класичною: інший тип — PRECONDITION_FAILED, 406."
+    },
+    {
+     "type": "choice",
+     "q": "Скільки з'єднань відкривати в процесі воркера?",
+     "options": [
+      "Одне; для паралельних розмов — канали",
+      "Одне на кожне повідомлення",
+      "Одне на кожну чергу",
+      "Десять про запас"
+     ],
+     "a": 0,
+     "why": "З'єднання — дороге TCP; канали всередині нього легкі."
+    },
+    {
+     "type": "choice",
+     "q": "У якому вигляді pika віддає тіло повідомлення?",
+     "options": [
+      "bytes — треба decode()",
+      "str",
+      "dict",
+      "JSON-об'єкт"
+     ],
+     "a": 0,
+     "why": "AMQP переносить байти; формат (текст, JSON) — домовленість застосунку."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо basic_ack після обробки?",
+     "options": [
+      "Сказати брокеру, що повідомлення можна видалити",
+      "Надіслати відповідь видавцю",
+      "Закрити канал",
+      "Отримати наступне повідомлення"
+     ],
+     "a": 0,
+     "why": "Без підтвердження брокер вважає повідомлення необробленим."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне ch.consume('acts', inactivity_timeout=1), коли секунду нічого не приходило?",
+     "options": [
+      "(None, None, None)",
+      "Виняток TimeoutError",
+      "Порожній рядок",
+      "Генератор завершиться без значення"
+     ],
+     "a": 0,
+     "why": "Так генератор дає змогу вийти з циклу або зробити щось між повідомленнями."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо брокер, якщо воркер може читати завдання з таблиці?",
+     "options": [
+      "Миттєва доставка, роздача кільком воркерам і маршрутизація без опитування бази",
+      "Брокер замінює базу даних",
+      "Таблиця не вміє зберігати текст",
+      "Брокер швидший за будь-який диск"
+     ],
+     "a": 0,
+     "why": "Брокер сам штовхає повідомлення споживачам і розподіляє їх; база лишається джерелом правди."
+    },
+    {
+     "type": "gap",
+     "q": "Порт AMQP для програм: ◻; вебконсоль — 15672.",
+     "a": [
+      "5672"
+     ],
+     "why": "5672 — стандартний порт AMQP, 15672 — плагін management."
+    },
+    {
+     "type": "order",
+     "q": "Шлях повідомлення",
+     "items": [
+      "Видавець: basic_publish",
+      "Обмінник",
+      "Прив'язка за routing_key",
+      "Черга",
+      "Споживач: basic_ack"
+     ],
+     "why": "Видавець пише в обмінник, той за прив'язками — в черги, звідти забирає споживач."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з курсу Redis: чим BLMOVE надійніший за BLPOP?",
+     "options": [
+      "Завдання лишається у списку «в роботі»",
+      "Він швидший",
+      "Він повторює завдання",
+      "Він бере пачку"
+     ],
+     "a": 0,
+     "why": "Упав воркер — завдання не загубилось. У RabbitMQ ту саму роль грає підтвердження basic_ack."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з курсу Redis: чим Pub/Sub гірший за стрім для важливих подій?",
+     "options": [
+      "Нічого не зберігає: офлайн-підписник пропускає",
+      "Повільніший",
+      "Не вміє кілька каналів",
+      "Потребує Lua"
+     ],
+     "a": 0,
+     "why": "Pub/Sub доставляє лише тим, хто слухає зараз."
+    }
+   ],
+   "typing": [
+    "Видавець надсилає в обмінник, а не в чергу.",
+    "Типовий обмінник кладе в чергу з ім'ям ключа маршрутизації.",
+    "З'єднання одне на процес, канали всередині нього.",
+    "Чергу оголошують і видавець, і споживач.",
+    "Черги завдань роблять довговічними, краще quorum."
+   ],
+   "tasks": [
+    "Запустіть rabbitmq:4-management у Docker, виконайте send.py тричі й подивіться у вебконсолі на http://localhost:15672 кількість повідомлень у черзі acts. Потім виконайте receive.py.",
+    "Відтворіть помилку 541: оголосіть чергу без durable. Потім помилку 406: оголосіть acts вдруге з іншим x-queue-type. Прочитайте обидва тексти помилок."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ tutorial: Hello World (Python)",
+     "url": "https://www.rabbitmq.com/tutorials/tutorial-one-python",
+     "note": "офіційний перший урок на pika",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Queues",
+     "url": "https://www.rabbitmq.com/docs/queues",
+     "note": "властивості черг, durable, exclusive"
+    },
+    {
+     "title": "RabbitMQ 4.3.0 release notes",
+     "url": "https://github.com/rabbitmq/rabbitmq-server/releases/tag/v4.3.0",
+     "note": "заборона недовговічних черг типово"
+    }
+   ]
+  },
+  {
+   "id": "workers-ack",
+   "title": "Воркери, підтвердження і prefetch",
+   "topic": "basic_consume, ручний ack, повторна доставка, рівномірний розподіл, тайм-аут споживача",
+   "goal": "Написати воркер, який не губить завдань у разі падіння й ділить роботу з іншими порівну",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 1: що робить basic_ack і чому чергу оголошують обидві сторони?",
+     "a": "basic_ack каже брокеру «оброблено — видаляй». Оголошення ідемпотентне: хто стартує першим, той і створить чергу."
+    },
+    {
+     "p": "**Воркер** — процес, який постійно слухає чергу й виконує завдання: друкує акти, шле листи, рахує звіти. Повільну роботу виносять у воркери, щоб вебзапит відповідав одразу. Воркерів можна запустити кілька — брокер роздасть їм повідомлення по черзі ([Work Queues](https://www.rabbitmq.com/tutorials/tutorial-two-python))."
+    },
+    {
+     "h": "Модуль rmq.py"
+    },
+    {
+     "p": "Оголошення черги повторюється в кожному скрипті, тож винесемо його в маленький модуль. `confirm_delivery()` змушує `basic_publish` чекати, поки брокер прийме повідомлення, — докладно в темі 3."
+    },
+    {
+     "code": "from pika import (BlockingConnection,\n                  ConnectionParameters)\n\nQUORUM = {'x-queue-type': 'quorum'}\n\n\ndef channel(queue='acts', host='localhost'):\n    conn = BlockingConnection(\n        ConnectionParameters(host))\n    ch = conn.channel()\n    ch.confirm_delivery()\n    ch.queue_declare(queue, durable=True,\n                     arguments=QUORUM)\n    return ch",
+     "lang": "python",
+     "title": "rmq.py"
+    },
+    {
+     "h": "Воркер на basic_consume"
+    },
+    {
+     "code": "def handle(ch, method, props, body):\n    print_act(body.decode())\n    ch.basic_ack(method.delivery_tag)\n\n\nch = channel()\nch.basic_qos(prefetch_count=1)\nch.basic_consume('acts', handle)\nch.start_consuming()",
+     "lang": "python",
+     "title": "worker.py",
+     "hl": [
+      3,
+      7
+     ]
+    },
+    {
+     "p": "`basic_consume` реєструє **колбек** — функцію, яку pika викликає для кожного повідомлення з чотирма аргументами: канал, `method` (тут `delivery_tag`), властивості й тіло. `start_consuming()` крутиться вічно, поки процес не зупинять. Є й `basic_get` — забрати одне повідомлення на запит; для воркера це погано: кожне — окремий обмін з брокером, а коли черга порожня, доводиться опитувати в циклі."
+    },
+    {
+     "h": "Підтвердження"
+    },
+    {
+     "table": [
+      [
+       "Як",
+       "Що буде, коли воркер упав"
+      ],
+      [
+       "auto_ack=True",
+       "завдання загублено"
+      ],
+      [
+       "basic_ack після роботи",
+       "завдання повернеться"
+      ]
+     ]
+    },
+    {
+     "p": "З `auto_ack=True` брокер видаляє повідомлення в момент видачі. Упав воркер посеред друку — акт не надрукується ніколи. З ручним `basic_ack` повідомлення до підтвердження висить як «невизнане»; закрився канал чи з'єднання без ack — брокер повертає його в чергу з позначкою `redelivered`."
+    },
+    {
+     "code": "from rmq import channel\n\nboss = channel()\nboss.basic_publish('', 'acts', 'акт 7')\nw = channel()\nm, props, body = w.basic_get('acts')\nprint('1:', body.decode(), m.redelivered)\nw.connection.close()  # «упав» без ack\nm, props, body = boss.basic_get('acts')\nprint('2:', body.decode(), m.redelivered)\nboss.basic_ack(m.delivery_tag)",
+     "lang": "python",
+     "title": "падіння воркера",
+     "hl": [
+      8,
+      10
+     ]
+    },
+    {
+     "code": "1: акт 7 False\n2: акт 7 True",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "warn": "❌ ack «про всяк випадок» двічі або на іншому каналі → ✅ `delivery_tag` — номер у межах **свого** каналу. Чужий чи вже підтверджений номер — `406 PRECONDITION_FAILED - unknown delivery tag`, і брокер закриває канал разом з усіма його невизнаними повідомленнями."
+    },
+    {
+     "h": "Prefetch: скільки видати наперед"
+    },
+    {
+     "p": "Без обмеження брокер штовхає повідомлення споживачу, хоч би скільки їх було: перший воркер отримає всі шість актів собі в буфер, а другий простоюватиме. `basic_qos(prefetch_count=N)` каже: «не більше N невизнаних на цього споживача». Коли воркер підтвердить одне — отримає наступне."
+    },
+    {
+     "code": "from rmq import channel\n\nboss = channel()\nfor n in range(1, 7):\n    act = f'акт {n}'\n    boss.basic_publish('', 'acts', act)\na, b = channel(), channel()\na.basic_qos(prefetch_count=1)\nb.basic_qos(prefetch_count=1)\nm, _, body = next(a.consume('acts'))\nprint('A:', body.decode())  # друкує довго\nfor m, _, body in b.consume(\n        'acts', inactivity_timeout=1):\n    if m is None:\n        break\n    print('B:', body.decode())\n    b.basic_ack(m.delivery_tag)",
+     "lang": "python",
+     "title": "два воркери",
+     "hl": [
+      8,
+      9
+     ]
+    },
+    {
+     "code": "A: акт 1\nB: акт 2\nB: акт 3\nB: акт 4\nB: акт 5\nB: акт 6",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "tip": "Довгі завдання (друк, звіти) — `prefetch_count=1`: роботу отримує той, хто вільний. Дрібні й швидкі — 10–50: менше простою на дорозі туди й назад. Без жодного `basic_qos` — ніколи."
+    },
+    {
+     "note": "Quorum-черга з RabbitMQ 4.3 має **тайм-аут споживача** (типово 30 хв): хто тримає повідомлення без ack довше — того скасовують, а повідомлення віддають іншому. Перевірено: після тайм-ауту інший канал отримав те саме завдання. Тобто завдання може виконатись двічі — тема 10."
+    },
+    {
+     "recall": "Пригадайте: чому воркер друку актів має ставити basic_qos(prefetch_count=1) і підтверджувати після друку, а не до?",
+     "a": "prefetch 1 — новий акт отримує вільний воркер, а не той, що вже має чергу в буфері. Ack після друку — якщо воркер упаде, акт повернеться в чергу, а не загубиться."
+    }
+   ],
+   "examples": [
+    {
+     "w": "def handle(ch, method, props, body): …",
+     "note": "колбек споживача"
+    },
+    {
+     "w": "ch.basic_consume('acts', handle)",
+     "note": "брокер штовхає сам"
+    },
+    {
+     "w": "ch.start_consuming()",
+     "note": "слухати вічно"
+    },
+    {
+     "w": "ch.basic_ack(method.delivery_tag)",
+     "note": "після роботи, не до"
+    },
+    {
+     "w": "ch.basic_qos(prefetch_count=1)",
+     "note": "одне невизнане на воркера"
+    },
+    {
+     "w": "m.redelivered",
+     "note": "True — повторна доставка"
+    },
+    {
+     "w": "basic_get('acts')",
+     "note": "одне на запит — для скриптів, не воркерів"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Воркер з auto_ack=True упав посеред друку акта. Що з актом?",
+     "options": [
+      "Загублено: брокер видалив його під час видачі",
+      "Повернеться в чергу",
+      "Піде в іншу чергу",
+      "Брокер повторить через хвилину"
+     ],
+     "a": 0,
+     "why": "auto_ack — підтвердження в момент видачі; результат обробки брокера вже не цікавить."
+    },
+    {
+     "type": "choice",
+     "q": "Воркер узяв повідомлення без auto_ack і закрив з'єднання, не підтвердивши. Що далі?",
+     "options": [
+      "Повернеться в чергу з redelivered=True",
+      "Зникне",
+      "Лишиться невизнаним назавжди",
+      "Брокер закриє чергу"
+     ],
+     "a": 0,
+     "why": "Невизнані повідомлення закритого каналу брокер повертає в чергу."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "from rmq import channel\n\nboss = channel()\nboss.basic_publish('', 'acts', 'акт 7')\nw = channel()\nw.basic_get('acts')\nw.connection.close()\nm, props, body = boss.basic_get('acts')\nprint(m.redelivered)",
+     "lang": "python",
+     "options": [
+      "True",
+      "False",
+      "None",
+      "AttributeError"
+     ],
+     "a": 0,
+     "why": "Повідомлення вже видавалось і повернулось без ack — тепер воно повторне."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "from rmq import channel\nimport pika.exceptions as E\n\nch = channel()\nch.basic_publish('', 'acts', 'x')\nm, props, body = ch.basic_get('acts')\nch.basic_ack(m.delivery_tag)\ntry:\n    ch.basic_ack(m.delivery_tag)\n    ch.queue_declare('acts', passive=True)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "404",
+      "541"
+     ],
+     "a": 0,
+     "why": "Повторний ack — невідомий delivery tag, PRECONDITION_FAILED 406, канал закрито."
+    },
+    {
+     "type": "choice",
+     "q": "Два воркери слухають чергу без basic_qos. У черзі 6 актів, воркер A підключився першим. Як піде робота?",
+     "options": [
+      "A забере всі шість у буфер, B простоює",
+      "По три кожному",
+      "A — один, B — п'ять",
+      "B — усі шість"
+     ],
+     "a": 0,
+     "why": "Без prefetch брокер штовхає споживачу все, що є, незважаючи на його зайнятість."
+    },
+    {
+     "type": "choice",
+     "q": "Що задає basic_qos(prefetch_count=1)?",
+     "options": [
+      "Не більше одного невизнаного повідомлення на споживача",
+      "Одне повідомлення в черзі",
+      "Одного споживача на чергу",
+      "Одну спробу доставки"
+     ],
+     "a": 0,
+     "why": "Наступне повідомлення воркер отримає, лише підтвердивши попереднє."
+    },
+    {
+     "type": "number",
+     "q": "Три воркери, у кожного prefetch_count=10. Скільки щонайбільше невизнаних повідомлень одночасно?",
+     "a": 30,
+     "tol": 0,
+     "why": "Обмеження діє на кожного споживача: 3 × 10."
+    },
+    {
+     "type": "choice",
+     "q": "У межах чого унікальний delivery_tag?",
+     "options": [
+      "Одного каналу",
+      "Усього брокера",
+      "Однієї черги",
+      "Одного з'єднання з усіма каналами"
+     ],
+     "a": 0,
+     "why": "Тому ack роблять на тому каналі, з якого отримали повідомлення."
+    },
+    {
+     "type": "choice",
+     "q": "Чим basic_get гірший за basic_consume для воркера?",
+     "options": [
+      "Кожне повідомлення — окремий запит, порожню чергу доводиться опитувати",
+      "Він не вміє ack",
+      "Він видаляє чергу",
+      "Він повертає лише текст"
+     ],
+     "a": 0,
+     "why": "basic_consume — брокер сам штовхає повідомлення, щойно вони з'являються."
+    },
+    {
+     "type": "choice",
+     "q": "Воркер тримає повідомлення quorum-черги без ack довше за тайм-аут споживача (RabbitMQ 4.3+). Що станеться?",
+     "options": [
+      "Споживача скасують, повідомлення віддадуть іншому",
+      "Повідомлення видалять",
+      "Брокер зупиниться",
+      "Нічого, тайм-аут лише в логах"
+     ],
+     "a": 0,
+     "why": "Повідомлення повертається в чергу — тож завдання може виконатися двічі."
+    },
+    {
+     "type": "gap",
+     "q": "Для довгих завдань на кшталт друку актів ставлять prefetch_count = ◻.",
+     "a": [
+      "1"
+     ],
+     "why": "Тоді нове завдання дістається вільному воркеру."
+    },
+    {
+     "type": "order",
+     "q": "Життя воркера",
+     "items": [
+      "Підключитися й оголосити чергу",
+      "basic_qos(prefetch_count=1)",
+      "basic_consume з колбеком",
+      "start_consuming()",
+      "Виконати завдання",
+      "basic_ack"
+     ],
+     "why": "Спершу налаштування каналу, потім підписка, а ack — лише після роботи."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 1: куди потрапить basic_publish(exchange='', routing_key='acts', …)?",
+     "options": [
+      "У чергу acts",
+      "В усі черги",
+      "Нікуди — обмінника '' немає",
+      "У першу створену чергу"
+     ],
+     "a": 0,
+     "why": "Типовий обмінник кладе в чергу з ім'ям, що збігається з ключем."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 1: чому queue_declare('hello') без durable закриває з'єднання на RabbitMQ 4.4?",
+     "options": [
+      "З 4.3 недовговічні неексклюзивні черги типово заборонені",
+      "Ім'я hello зарезервоване",
+      "Бракує прав guest",
+      "Черга вже існує"
+     ],
+     "a": 0,
+     "why": "Брокер відповідає 541 і закриває все з'єднання; оголошуйте durable=True чи exclusive=True."
+    }
+   ],
+   "typing": [
+    "Підтверджуй повідомлення після роботи, а не до.",
+    "Без підтвердження повідомлення повертається в чергу.",
+    "Номер доставки діє лише в межах свого каналу.",
+    "Prefetch обмежує невизнані повідомлення на споживача.",
+    "Для довгих завдань ставлять prefetch один."
+   ],
+   "tasks": [
+    "Запустіть два worker.py з prefetch_count=1, де handle спить 3 секунди, і надішліть десять повідомлень. Подивіться, як вони діляться. Повторіть без basic_qos.",
+    "Зупиніть воркер Ctrl+C посеред обробки й переконайтесь у вебконсолі, що повідомлення повернулось у чергу (Ready), а наступний воркер бачить redelivered=True."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ tutorial: Work Queues (Python)",
+     "url": "https://www.rabbitmq.com/tutorials/tutorial-two-python",
+     "note": "воркери, ack і prefetch на pika",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Consumer Acknowledgements",
+     "url": "https://www.rabbitmq.com/docs/confirms",
+     "note": "підтвердження й повторна доставка"
+    },
+    {
+     "title": "RabbitMQ: Consumer Prefetch",
+     "url": "https://www.rabbitmq.com/docs/consumer-prefetch",
+     "note": "як працює basic_qos"
+    }
+   ]
+  },
+  {
+   "id": "reliable-publish",
+   "title": "Щоб повідомлення не губилось",
+   "topic": "підтвердження публікації, mandatory, persistent-повідомлення, рестарт брокера",
+   "goal": "Знати чотири місця, де губиться повідомлення, і закрити кожне",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 2: що буде з повідомленням, якщо воркер закрив з'єднання, не підтвердивши його?",
+     "a": "Брокер поверне його в чергу з redelivered=True, і його отримає інший воркер."
+    },
+    {
+     "p": "Ручний ack з теми 2 рятує лише останній крок. Повідомлення може зникнути раніше: не дійти до брокера, не знайти черги або загинути під час рестарту. Типово `basic_publish` про це **мовчить** ([Reliability Guide](https://www.rabbitmq.com/docs/reliability))."
+    },
+    {
+     "table": [
+      [
+       "Де губиться",
+       "Що рятує"
+      ],
+      [
+       "дорогою до брокера",
+       "confirm_delivery()"
+      ],
+      [
+       "немає черги під ключ",
+       "mandatory=True"
+      ],
+      [
+       "рестарт брокера",
+       "quorum або persistent"
+      ],
+      [
+       "падіння воркера",
+       "ручний ack"
+      ]
+     ]
+    },
+    {
+     "h": "Підтвердження публікації"
+    },
+    {
+     "p": "`ch.confirm_delivery()` вмикає на каналі **publisher confirms**: брокер відповідає на кожну публікацію «прийняв» — вже після запису на диск, а для quorum-черги — на більшість вузлів кластера. У pika `BlockingConnection` після цього `basic_publish` чекає відповіді й кидає виняток, якщо брокер відмовив. Наш `rmq.channel()` з теми 2 вже його вмикає ([Publisher Confirms](https://www.rabbitmq.com/docs/confirms))."
+    },
+    {
+     "p": "Але «прийняв» ще не означає «поклав у чергу». Повідомлення, для якого не знайшлось жодної черги, обмінник просто відкидає — і брокер чесно підтверджує: прийняв і викинув. Щоб дізнатися про це, потрібен прапорець `mandatory=True`: тоді брокер повертає таке повідомлення, а pika кидає `UnroutableError`."
+    },
+    {
+     "code": "from pika.exceptions import UnroutableError\nfrom rmq import channel\n\nch = channel()\nch.basic_publish('', 'acts', 'акт 1')\nprint('прийнято')\nch.basic_publish('', 'act', 'акт 2')\nprint('теж «прийнято»!')\ntry:\n    ch.basic_publish('', 'act', 'акт 3',\n                     mandatory=True)\nexcept UnroutableError:\n    print('немає черги act')",
+     "lang": "python",
+     "title": "одруківка в ключі",
+     "hl": [
+      7,
+      11
+     ]
+    },
+    {
+     "code": "прийнято\nтеж «прийнято»!\nнемає черги act",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "warn": "❌ надіслати без `confirm_delivery()` і вважати, що дійшло → ✅ без підтверджень `basic_publish` повертається одразу. Навіть публікація в обмінник, якого немає, «проходить», а `404 NOT_FOUND` закриває канал уже потім — під час наступної операції. З підтвердженнями той самий виклик одразу кидає `ChannelClosedByBroker` з кодом 404."
+    },
+    {
+     "tip": "Підтвердження кожного повідомлення по черзі — це очікування відповіді брокера на кожному кроці. Для тисяч повідомлень на секунду публікують пачкою й чекають підтверджень разом або беруть асинхронний клієнт (aio-pika, тема 11)."
+    },
+    {
+     "h": "Рестарт брокера"
+    },
+    {
+     "p": "`durable=True` у черги зберігає саму **чергу**, а не повідомлення в ній. У класичній черзі рестарт переживе лише повідомлення з `delivery_mode=2` (**persistent**, у pika — `pika.DeliveryMode.Persistent`). Quorum-черга пише на диск усе, хоч би що вказав видавець. `rmq.channel()` оголошує quorum, тому класичну чергу тут оголошено вручну."
+    },
+    {
+     "code": "import pika\n\nconn = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = conn.channel()\nch.confirm_delivery()\nch.queue_declare('mail', durable=True)\nch.basic_publish('', 'mail', 'звичайне')\nprops = pika.BasicProperties(\n    delivery_mode=2)  # persistent\nch.basic_publish('', 'mail', 'persistent',\n                 properties=props)\nprint('2 листи в класичній черзі')",
+     "lang": "python",
+     "title": "класична черга",
+     "hl": [
+      10
+     ]
+    },
+    {
+     "code": "2 листи в класичній черзі",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "code": "$ rabbitmqctl -q stop_app\n$ rabbitmqctl -q start_app\n$ rabbitmqctl -q list_queues name messages\nname  messages\nmail  1",
+     "lang": "console",
+     "title": "термінал, продовження"
+    },
+    {
+     "p": "Брокер зупинився й піднявся — у черзі `mail` лишився один лист, persistent. Звичайний зник без жодної помилки. Чекати від класичної черги збереження без `delivery_mode=2` — типова причина «загадково зниклих» листів після оновлення сервера."
+    },
+    {
+     "recall": "Пригадайте: з якими трьома налаштуваннями видавця повідомлення гарантовано лягає в чергу й переживе рестарт?",
+     "a": "confirm_delivery() — брокер підтверджує прийом; mandatory=True — повідомлення без черги повертається помилкою; quorum-черга (або persistent-повідомлення в класичній)."
+    }
+   ],
+   "examples": [
+    {
+     "w": "ch.confirm_delivery()",
+     "note": "брокер підтверджує кожну публікацію"
+    },
+    {
+     "w": "basic_publish(…, mandatory=True)",
+     "note": "немає черги — UnroutableError"
+    },
+    {
+     "w": "pika.BasicProperties(delivery_mode=2)",
+     "note": "persistent у класичній черзі"
+    },
+    {
+     "w": "queue_declare('mail', durable=True)",
+     "note": "зберігає чергу, не повідомлення"
+    },
+    {
+     "w": "rabbitmqctl -q stop_app / start_app",
+     "note": "перезапуск брокера"
+    },
+    {
+     "w": "except UnroutableError:",
+     "note": "одруківка в ключі"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Черги act немає, є лише acts.",
+     "code": "from rmq import channel\n\nch = channel()\ntry:\n    ch.basic_publish('', 'act', 'акт 2')\n    print('ok')\nexcept Exception as e:\n    print(type(e).__name__)",
+     "lang": "python",
+     "options": [
+      "ok",
+      "UnroutableError",
+      "ChannelClosedByBroker",
+      "KeyError"
+     ],
+     "a": 0,
+     "why": "Без mandatory брокер підтверджує й тихо викидає повідомлення, для якого немає черги."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Черги act немає.",
+     "code": "from rmq import channel\n\nch = channel()\ntry:\n    ch.basic_publish('', 'act', 'акт 3',\n                     mandatory=True)\n    print('ok')\nexcept Exception as e:\n    print(type(e).__name__)",
+     "lang": "python",
+     "options": [
+      "UnroutableError",
+      "ok",
+      "ChannelClosedByBroker",
+      "NackError"
+     ],
+     "a": 0,
+     "why": "mandatory + підтвердження: брокер повертає повідомлення, pika кидає UnroutableError."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Обмінника docs немає.",
+     "code": "from rmq import channel\nimport pika.exceptions as E\n\nch = channel()\ntry:\n    ch.basic_publish('docs', 'acts', 'x')\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "404",
+      "ok",
+      "406",
+      "541"
+     ],
+     "a": 0,
+     "why": "Обмінник, якого немає, — NOT_FOUND 404; з підтвердженнями помилка приходить одразу."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Обмінника docs немає, підтвердження не ввімкнені.",
+     "code": "import pika\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = c.channel()\nch.basic_publish('docs', 'acts', 'x')\nprint('надіслано')",
+     "lang": "python",
+     "options": [
+      "надіслано",
+      "404",
+      "UnroutableError",
+      "Нічого — зависне"
+     ],
+     "a": 0,
+     "why": "Без підтверджень basic_publish не чекає відповіді: канал закриється пізніше, а повідомлення втрачено."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Черга qx уже є, і вона quorum.",
+     "code": "from rmq import channel\nimport pika.exceptions as E\n\nch = channel('qx')\ntry:\n    ch.queue_declare('qx', durable=True)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "404",
+      "541"
+     ],
+     "a": 0,
+     "why": "Оголошення без x-queue-type означає classic, а черга quorum — inequivalent arg, 406."
+    },
+    {
+     "type": "choice",
+     "q": "Класична durable-черга, у ній повідомлення без delivery_mode. Брокер перезапустили. Що з повідомленням?",
+     "options": [
+      "Зникло",
+      "Лишилось",
+      "Пішло в мертві листи",
+      "Стало persistent"
+     ],
+     "a": 0,
+     "why": "durable зберігає чергу; повідомлення в класичній черзі переживає рестарт лише з delivery_mode=2."
+    },
+    {
+     "type": "choice",
+     "q": "Quorum-черга, у ній повідомлення без delivery_mode. Брокер перезапустили. Що з повідомленням?",
+     "options": [
+      "Лишилось",
+      "Зникло",
+      "Пішло в мертві листи",
+      "Повернулось видавцю"
+     ],
+     "a": 0,
+     "why": "Quorum-черга пише на диск і реплікує всі повідомлення."
+    },
+    {
+     "type": "choice",
+     "q": "Що означає підтвердження публікації від брокера?",
+     "options": [
+      "Брокер прийняв повідомлення і записав (або відкинув, якщо черги немає)",
+      "Воркер обробив повідомлення",
+      "Повідомлення точно в черзі",
+      "Споживач прочитав повідомлення"
+     ],
+     "a": 0,
+     "why": "Підтвердження стосується лише брокера; без mandatory відкинуте повідомлення теж підтверджується."
+    },
+    {
+     "type": "choice",
+     "q": "Як надсилати тисячі повідомлень на секунду з підтвердженнями?",
+     "options": [
+      "Пачкою з одним очікуванням або асинхронним клієнтом",
+      "Вимкнути підтвердження",
+      "Відкривати з'єднання на кожне",
+      "Ставити prefetch_count=1000"
+     ],
+     "a": 0,
+     "why": "Очікувати відповідь на кожне повідомлення окремо — повільно; надійність при цьому лишається."
+    },
+    {
+     "type": "gap",
+     "q": "Persistent-повідомлення: delivery_mode = ◻.",
+     "a": [
+      "2"
+     ],
+     "why": "1 — звичайне (transient), 2 — persistent."
+    },
+    {
+     "type": "order",
+     "q": "Шлях повідомлення без втрат",
+     "items": [
+      "confirm_delivery: брокер прийняв",
+      "mandatory: знайшлась черга",
+      "Диск: quorum або persistent",
+      "Воркер: basic_ack після роботи"
+     ],
+     "why": "Кожен крок закриває своє місце втрати — від видавця до воркера."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 2: що задає basic_qos(prefetch_count=1)?",
+     "options": [
+      "Одне невизнане повідомлення на споживача",
+      "Одну чергу на воркера",
+      "Одну спробу доставки",
+      "Одне з'єднання"
+     ],
+     "a": 0,
+     "why": "Наступне повідомлення — лише після ack попереднього."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 2: delivery_tag унікальний у межах…",
+     "options": [
+      "Каналу",
+      "Брокера",
+      "Черги",
+      "Обмінника"
+     ],
+     "a": 0,
+     "why": "Підтверджувати треба на тому ж каналі, з якого отримали повідомлення."
+    }
+   ],
+   "typing": [
+    "Підтвердження публікації кажуть, що брокер прийняв повідомлення.",
+    "Без mandatory повідомлення без черги зникає мовчки.",
+    "Durable зберігає чергу, а не повідомлення.",
+    "У класичній черзі рестарт переживає лише persistent.",
+    "Quorum-черга пише на диск усі повідомлення."
+   ],
+   "tasks": [
+    "Надішліть повідомлення з одруківкою в ключі тричі: без підтверджень, з confirm_delivery і з mandatory. Запишіть, що повідомляє кожен варіант.",
+    "Покладіть у класичну durable-чергу звичайне й persistent-повідомлення, перезапустіть контейнер (docker restart rabbit) і перевірте, що лишилось."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ: Consumer Acknowledgements and Publisher Confirms",
+     "url": "https://www.rabbitmq.com/docs/confirms",
+     "note": "підтвердження з обох боків",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Reliability Guide",
+     "url": "https://www.rabbitmq.com/docs/reliability",
+     "note": "де губляться повідомлення"
+    },
+    {
+     "title": "RabbitMQ: Publishers",
+     "url": "https://www.rabbitmq.com/docs/publishers",
+     "note": "mandatory, повернення, властивості повідомлень"
+    }
+   ]
+  },
+  {
+   "id": "exchanges",
+   "title": "Обмінники: direct, fanout, topic, headers",
+   "topic": "прив'язки, шаблони * і #, розсилка кільком, резервний обмінник",
+   "goal": "Розсилати одну подію в кілька черг за правилами, не змінюючи видавця",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 3: що станеться з повідомленням, для якого обмінник не знайшов жодної черги, якщо не ставити mandatory?",
+     "a": "Обмінник його відкине, а брокер усе одно підтвердить публікацію — повідомлення зникне мовчки."
+    },
+    {
+     "p": "Досі ми писали в типовий обмінник `''` — він лише кладе в чергу з ім'ям ключа. Справжня сила RabbitMQ — у власних обмінниках: видавець надсилає подію «акт підписано» один раз, а **прив'язки** вирішують, хто її отримає — друк, аудит, пошта. Додали нового споживача — додали прив'язку, видавця не чіпали ([Exchanges](https://www.rabbitmq.com/docs/exchanges))."
+    },
+    {
+     "table": [
+      [
+       "Тип",
+       "Куди кладе"
+      ],
+      [
+       "direct",
+       "ключ = ключ прив'язки"
+      ],
+      [
+       "fanout",
+       "в усі прив'язані черги"
+      ],
+      [
+       "topic",
+       "ключ підходить під шаблон"
+      ],
+      [
+       "headers",
+       "за заголовками"
+      ]
+     ]
+    },
+    {
+     "h": "direct і fanout"
+    },
+    {
+     "code": "ch.exchange_declare('docs', 'direct',\n                    durable=True)\nch.queue_bind('print', 'docs', 'act')\nch.queue_bind('audit', 'docs', 'act')\nch.queue_bind('audit', 'docs', 'invoice')",
+     "lang": "python",
+     "title": "прив'язки direct"
+    },
+    {
+     "p": "`queue_bind(черга, обмінник, ключ)`. Подію з ключем `act` отримають обидві черги — кожна свою копію; `invoice` — лише `audit`. Одна черга може мати скільки завгодно прив'язок. **fanout** ключ ігнорує й копіює в усі прив'язані черги — це класичне «опублікувати-підписатись»: кеш, сповіщення, журнали."
+    },
+    {
+     "h": "topic: шаблони"
+    },
+    {
+     "p": "Ключ у topic — слова через крапку: `act.signed`, `stock.received`. У шаблоні прив'язки `*` — рівно одне слово, `#` — нуль чи більше слів."
+    },
+    {
+     "table": [
+      [
+       "Шаблон",
+       "Підходить",
+       "Ні"
+      ],
+      [
+       "act.*",
+       "act.new",
+       "act, act.new.urgent"
+      ],
+      [
+       "act.#",
+       "act, act.new.urgent",
+       "stock.new"
+      ],
+      [
+       "*.signed",
+       "act.signed",
+       "signed, a.b.signed"
+      ],
+      [
+       "#",
+       "усе",
+       "—"
+      ]
+     ]
+    },
+    {
+     "code": "from rmq import QUORUM, channel\n\nch = channel('print')\nch.exchange_declare('events', 'topic',\n                    durable=True)\nbinds = {'print': 'act.*', 'audit': '#',\n         'mail': '*.signed'}\nfor q, key in binds.items():\n    ch.queue_declare(q, durable=True,\n                     arguments=QUORUM)\n    ch.queue_bind(q, 'events', key)\nkeys = ['act.new', 'act.signed',\n        'stock.signed', 'act.new.urgent']\nfor k in keys:\n    ch.basic_publish('events', k, k)\nres = {k: [] for k in keys}\nfor q in binds:\n    while True:\n        m, _, body = ch.basic_get(q, True)\n        if m is None:\n            break\n        res[body.decode()].append(q)\nfor k, qs in res.items():\n    print(f'{k}:', *qs)",
+     "lang": "python",
+     "title": "events.py",
+     "hl": [
+      6,
+      7
+     ]
+    },
+    {
+     "code": "act.new: print audit\nact.signed: print audit mail\nstock.signed: audit mail\nact.new.urgent: audit",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`basic_get(q, True)` — другий аргумент `auto_ack`: забрати й одразу підтвердити, для перевірки цього досить. `act.new.urgent` не потрапив у `print`, бо `*` — одне слово. Хочете «все про акти» — `act.#`."
+    },
+    {
+     "h": "headers і резервний обмінник"
+    },
+    {
+     "p": "**headers** ігнорує ключ і дивиться на заголовки повідомлення: прив'язка з `x-match: all` вимагає збігу всіх вказаних заголовків, з `any` — хоч одного. Використовують рідко: topic зазвичай простіший і швидший."
+    },
+    {
+     "p": "**Резервний обмінник** (`alternate-exchange`) — куди обмінник скине повідомлення, для якого не знайшов черги. Тоді нічого не губиться мовчки: усе «нікому не потрібне» лягає в окрему чергу для розбору. Перевірено: з ним навіть `mandatory=True` не кидає помилки — повідомлення ж знайшло чергу."
+    },
+    {
+     "code": "ch.exchange_declare('lost', 'fanout',\n                    durable=True)\nch.queue_bind('unrouted', 'lost')\nae = {'alternate-exchange': 'lost'}\nch.exchange_declare('docs', 'direct',\n                    durable=True,\n                    arguments=ae)",
+     "lang": "python",
+     "title": "резервний обмінник",
+     "hl": [
+      4
+     ]
+    },
+    {
+     "warn": "❌ змінити тип обмінника, повторно оголосивши його → ✅ `406 PRECONDITION_FAILED - inequivalent arg 'type'`. Як і з чергами: видалити й створити заново, а прив'язки відновити."
+    },
+    {
+     "recall": "Пригадайте: подія stock.signed і три прив'язки topic — act.*, #, *.signed. Які з них її отримають і чому?",
+     "a": "# (будь-що) і *.signed (одне слово перед signed). act.* — ні: перше слово stock, а не act."
+    }
+   ],
+   "examples": [
+    {
+     "w": "exchange_declare('events', 'topic', durable=True)",
+     "note": "власний обмінник"
+    },
+    {
+     "w": "queue_bind('print', 'events', 'act.*')",
+     "note": "черга, обмінник, шаблон"
+    },
+    {
+     "w": "basic_publish('events', 'act.signed', body)",
+     "note": "видавець знає лише обмінник і ключ"
+    },
+    {
+     "w": "act.* / act.# / #",
+     "note": "одне слово / нуль чи більше / усе"
+    },
+    {
+     "w": "exchange_declare('news', 'fanout')",
+     "note": "копія в кожну прив'язану чергу"
+    },
+    {
+     "w": "{'x-match': 'any', 'type': 'act'}",
+     "note": "прив'язка headers"
+    },
+    {
+     "w": "arguments={'alternate-exchange': 'lost'}",
+     "note": "куди падає «нікому не потрібне»"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Обмінник fanout, повідомлення з ключем act.signed. Хто його отримає?",
+     "options": [
+      "Усі прив'язані черги",
+      "Лише прив'язані з ключем act.signed",
+      "Черга з ім'ям act.signed",
+      "Ніхто — fanout не бере ключ"
+     ],
+     "a": 0,
+     "why": "fanout ігнорує ключ і копіює в кожну прив'язану чергу."
+    },
+    {
+     "type": "choice",
+     "q": "Чи отримає прив'язка topic act.* повідомлення з ключем act.new.urgent?",
+     "options": [
+      "Ні: * — рівно одне слово",
+      "Так",
+      "Так, якщо черга quorum",
+      "Лише з mandatory"
+     ],
+     "a": 0,
+     "why": "Після act. стоять два слова, а * бере одне. Для будь-якої глибини — act.#."
+    },
+    {
+     "type": "choice",
+     "q": "Чи отримає прив'язка topic act.# повідомлення з ключем act?",
+     "options": [
+      "Так: # — нуль чи більше слів",
+      "Ні: після act має бути крапка",
+      "Ні: # — одне слово",
+      "Лише з headers"
+     ],
+     "a": 0,
+     "why": "# може бути й порожнім, тож act.# підходить і для самого act."
+    },
+    {
+     "type": "choice",
+     "q": "Чи отримає прив'язка *.signed повідомлення з ключем signed?",
+     "options": [
+      "Ні: * вимагає одного слова перед signed",
+      "Так",
+      "Так, якщо ключ без крапок",
+      "Лише через alternate-exchange"
+     ],
+     "a": 0,
+     "why": "* не буває порожнім; на відміну від #.signed."
+    },
+    {
+     "type": "choice",
+     "q": "Обмінник direct, черги print і audit прив'язані з ключем act. Видавець надіслав одне повідомлення з ключем act. Скільки копій ляже в черги?",
+     "options": [
+      "Дві — по одній у кожну",
+      "Одна — у першу прив'язану",
+      "Одна — по черзі",
+      "Жодної"
+     ],
+     "a": 0,
+     "why": "Обмінник кладе копію в кожну чергу, чия прив'язка підходить. По черзі ділять лише воркери однієї черги."
+    },
+    {
+     "type": "choice",
+     "q": "Прив'язка headers з x-match: all, type: act, urgent: yes. Повідомлення має лише заголовок type: act. Отримає?",
+     "options": [
+      "Ні — потрібні всі заголовки",
+      "Так",
+      "Так, якщо ключ act",
+      "Лише з any"
+     ],
+     "a": 0,
+     "why": "all — збіг усіх; any — хоч одного."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Обмінника docs ще немає.",
+     "code": "from rmq import channel\nimport pika.exceptions as E\n\nch = channel()\nch.exchange_declare('docs', 'direct',\n                    durable=True)\ntry:\n    ch.exchange_declare('docs', 'topic',\n                        durable=True)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "404",
+      "541"
+     ],
+     "a": 0,
+     "why": "Тип обмінника не змінюють повторним оголошенням — inequivalent arg, 406."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Прив'язка лише одна — act.#.",
+     "code": "from rmq import channel\n\nch = channel('print')\nch.exchange_declare('events', 'topic',\n                    durable=True)\nch.queue_bind('print', 'events', 'act.#')\nfor k in ('act', 'act.new', 'stock.new'):\n    ch.basic_publish('events', k, k)\nq = ch.queue_declare('print', passive=True)\nprint(q.method.message_count)",
+     "lang": "python",
+     "options": [
+      "2",
+      "1",
+      "3",
+      "0"
+     ],
+     "a": 0,
+     "why": "act.# бере act і act.new; stock.new — ні."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо резервний обмінник (alternate-exchange)?",
+     "options": [
+      "Збирати повідомлення, для яких не знайшлось черги",
+      "Підміняти обмінник, коли той упав",
+      "Дублювати кожне повідомлення",
+      "Зберігати повідомлення після рестарту"
+     ],
+     "a": 0,
+     "why": "Без нього таке повідомлення відкидається; з ним — лягає в окрему чергу для розбору."
+    },
+    {
+     "type": "choice",
+     "q": "Додається новий сервіс, якому потрібні всі події про акти. Що міняють?",
+     "options": [
+      "Нова черга з прив'язкою act.# до events",
+      "Код видавця",
+      "Тип обмінника на fanout",
+      "Ключ кожного повідомлення"
+     ],
+     "a": 0,
+     "why": "Маршрутизація — у прив'язках: видавець про споживачів не знає."
+    },
+    {
+     "type": "gap",
+     "q": "У шаблоні topic символ ◻ означає рівно одне слово.",
+     "a": [
+      "*"
+     ],
+     "why": "* — одне слово, # — нуль чи більше."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 3: що робить mandatory=True разом з confirm_delivery()?",
+     "options": [
+      "Повідомлення без черги повертається помилкою UnroutableError",
+      "Повідомлення стає persistent",
+      "Брокер чекає воркера",
+      "Канал закривається"
+     ],
+     "a": 0,
+     "why": "Без mandatory таке повідомлення тихо відкидається."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 3: що зберігає durable=True у класичної черги?",
+     "options": [
+      "Саму чергу; повідомлення — лише persistent",
+      "Усі повідомлення",
+      "Лише споживачів",
+      "Прив'язки, але не чергу"
+     ],
+     "a": 0,
+     "why": "Повідомлення в класичній черзі переживає рестарт лише з delivery_mode=2."
+    }
+   ],
+   "typing": [
+    "Обмінник fanout копіює повідомлення в усі прив'язані черги.",
+    "У шаблоні topic зірочка означає одне слово, а ґратка — будь-скільки.",
+    "Кожна черга з відповідною прив'язкою отримує свою копію.",
+    "Новий споживач — нова прив'язка, видавець не змінюється.",
+    "Резервний обмінник збирає повідомлення без черги."
+   ],
+   "tasks": [
+    "Зробіть обмінник events типу topic і три черги: print (act.*), audit (#), mail (*.signed). Надішліть по одній події з ключами act.new, act.signed, stock.signed і перевірте у вебконсолі, де що лежить.",
+    "Додайте до docs резервний обмінник lost і надішліть повідомлення з ключем, якого ніхто не слухає. Знайдіть його в черзі unrouted."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ tutorial: Topics (Python)",
+     "url": "https://www.rabbitmq.com/tutorials/tutorial-five-python",
+     "note": "topic і шаблони на pika",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ tutorial: Publish/Subscribe (Python)",
+     "url": "https://www.rabbitmq.com/tutorials/tutorial-three-python",
+     "note": "fanout"
+    },
+    {
+     "title": "RabbitMQ tutorial: Routing (Python)",
+     "url": "https://www.rabbitmq.com/tutorials/tutorial-four-python",
+     "note": "direct і кілька прив'язок"
+    },
+    {
+     "title": "RabbitMQ: Exchanges",
+     "url": "https://www.rabbitmq.com/docs/exchanges",
+     "note": "усі типи й властивості обмінників"
+    }
+   ]
+  },
+  {
+   "id": "queue-types",
+   "title": "Типи черг: classic, quorum, stream",
+   "topic": "чим відрізняються, коли яку брати, тип черги для vhost, що змінилось у RabbitMQ 4.x",
+   "goal": "Обрати тип черги під задачу й не впасти на оновленні з 3.x на 4.x",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 4: чим fanout відрізняється від direct?",
+     "a": "fanout ігнорує ключ і кладе копію в кожну прив'язану чергу; direct — лише в черги, чий ключ прив'язки дорівнює ключу повідомлення."
+    },
+    {
+     "p": "Тип черги задають під час оголошення аргументом `x-queue-type` і більше не змінюють. Без аргументу виходить **classic**. Ми з першої теми беремо **quorum**: це сучасний вибір для важливих черг ([Quorum Queues](https://www.rabbitmq.com/docs/quorum-queues))."
+    },
+    {
+     "table": [
+      [
+       "Тип",
+       "Для чого"
+      ],
+      [
+       "classic",
+       "тимчасові й ексклюзивні черги, відповіді RPC"
+      ],
+      [
+       "quorum",
+       "завдання, які не можна загубити"
+      ],
+      [
+       "stream",
+       "журнал подій, читати кілька разів"
+      ]
+     ]
+    },
+    {
+     "h": "Чим quorum відрізняється"
+    },
+    {
+     "p": "Quorum-черга зберігає повідомлення на кількох вузлах кластера за алгоритмом **Raft**: є лідер і послідовники, а повідомлення вважається прийнятим, коли його записала більшість. Типово quorum-черга має 3 репліки й переживає втрату однієї; з 5 репліками (`x-quorum-initial-group-size: 5`, у кластері з 5 вузлів) — двох. На одному вузлі (наш Docker) quorum теж працює — просто без реплік."
+    },
+    {
+     "table": [
+      [
+       "Можливість",
+       "classic",
+       "quorum"
+      ],
+      [
+       "репліки",
+       "ні",
+       "так"
+      ],
+      [
+       "exclusive",
+       "так",
+       "ні"
+      ],
+      [
+       "ім'я від сервера",
+       "так",
+       "ні"
+      ],
+      [
+       "повідомлення на диску",
+       "persistent",
+       "усі"
+      ],
+      [
+       "ліміт доставок",
+       "ні",
+       "так, 20"
+      ],
+      [
+       "тайм-аут споживача",
+       "ні",
+       "так"
+      ],
+      [
+       "відкладений повтор",
+       "ні",
+       "так"
+      ]
+     ]
+    },
+    {
+     "p": "Ліміт доставок, тайм-аут споживача й відкладений повтор — захист від «отруйних» повідомлень і завислих воркерів (теми 2 і 6). У classic такого немає. Зате classic — для тимчасового: ексклюзивна черга з ім'ям від сервера на час з'єднання (тема 8)."
+    },
+    {
+     "tip": "Щоб не писати `x-queue-type` у кожному оголошенні, задайте тип для всього vhost: `rabbitmqctl add_vhost store --default-queue-type quorum`. Перевірено: у такому vhost `queue_declare('x', durable=True)` без аргументів створює quorum. **vhost** (віртуальний хост) — окремий простір черг і обмінників з власними правами всередині одного брокера."
+    },
+    {
+     "h": "Stream"
+    },
+    {
+     "p": "**Stream** (потік) — журнал, який прочитаного не видаляє (старе прибирає лише за налаштуванням зберігання, тема 9): кожен споживач читає з потрібного місця, хоч з початку, і може перечитати. Як стріми в Redis. Потрібен, коли одну подію читають багато сервісів або треба повторити історію. Докладно — тема 9."
+    },
+    {
+     "h": "Що змінилось у 4.x"
+    },
+    {
+     "table": [
+      [
+       "Версія",
+       "Зміна"
+      ],
+      [
+       "4.0",
+       "дзеркалювання classic прибрано; quorum: ліміт доставок 20"
+      ],
+      [
+       "4.2",
+       "Khepri — типове сховище метаданих нових кластерів"
+      ],
+      [
+       "4.3",
+       "недовговічні неексклюзивні черги — 541; Mnesia і classic v1 прибрано; тайм-аут споживача лише в quorum"
+      ],
+      [
+       "4.4",
+       "відкладені повідомлення в quorum"
+      ]
+     ]
+    },
+    {
+     "p": "**Khepri** — нове сховище метаданих кластера (хто які черги, обмінники, користувачі) на тому ж Raft, що й quorum; старе Mnesia з 4.3 прибрано. Для коду застосунку це непомітно, для адміністратора — це зміна процедури оновлення ([Release notes 4.3.0](https://github.com/rabbitmq/rabbitmq-server/releases/tag/v4.3.0))."
+    },
+    {
+     "warn": "❌ відмовостійкість політикою `ha-mode` зі старих статей → ✅ на 4.x вона не працює: перевірено на 4.4 — `[{<<\"ha-mode\">>,<<\"all\">>}] are not recognised policy settings`. Класична черга живе на одному вузлі; потрібні репліки — quorum."
+    },
+    {
+     "note": "`x-queue-mode: lazy` 4.4 приймає без помилки, але нічого не робить: класичні черги v2 й так тримають повідомлення на диску. Release notes 4.3 обіцяють на ньому помилку — тож аргумент просто приберіть. А от `x-queue-version: 1` — `406 unsupported queue version '1'`."
+    },
+    {
+     "recall": "Пригадайте: для якої черги брати classic, для якої quorum, для якої stream?",
+     "a": "classic — тимчасові й ексклюзивні (відповіді RPC); quorum — важливі завдання, які не можна загубити; stream — журнал, який читають кілька споживачів або перечитують."
+    }
+   ],
+   "examples": [
+    {
+     "w": "arguments={'x-queue-type': 'quorum'}",
+     "note": "репліки, ліміт доставок"
+    },
+    {
+     "w": "arguments={'x-queue-type': 'stream'}",
+     "note": "журнал, що не видаляє"
+    },
+    {
+     "w": "queue_declare('', exclusive=True)",
+     "note": "тимчасова classic з ім'ям від сервера"
+    },
+    {
+     "w": "rabbitmqctl add_vhost store --default-queue-type quorum",
+     "note": "quorum без аргументів"
+    },
+    {
+     "w": "x-delivery-limit",
+     "note": "типово 20 з RabbitMQ 4.0"
+    },
+    {
+     "w": "3 репліки (типово) — витримують втрату 1",
+     "note": "більшість — 2 з 3"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "from rmq import QUORUM\nimport pika\nimport pika.exceptions as E\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\ntry:\n    c.channel().queue_declare(\n        'tmp', durable=True, exclusive=True,\n        arguments=QUORUM)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "541",
+      "404"
+     ],
+     "a": 0,
+     "why": "Quorum-черга не буває ексклюзивною — PRECONDITION_FAILED."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Ім'я черги порожнє — нехай вигадає сервер.",
+     "code": "from rmq import QUORUM\nimport pika\nimport pika.exceptions as E\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\ntry:\n    c.channel().queue_declare(\n        '', durable=True, arguments=QUORUM)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "541",
+      "404"
+     ],
+     "a": 0,
+     "why": "Імена від сервера бувають лише в classic-черг."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import pika\nimport pika.exceptions as E\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\ntry:\n    c.channel().queue_declare(\n        'old', durable=True,\n        arguments={'x-queue-version': 1})\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "541",
+      "404"
+     ],
+     "a": 0,
+     "why": "Classic queue v1 прибрано в 4.3 — unsupported queue version."
+    },
+    {
+     "type": "choice",
+     "q": "Яку чергу взяти для відповідей RPC, що живе, поки живе з'єднання клієнта?",
+     "options": [
+      "classic, exclusive, з ім'ям від сервера",
+      "quorum",
+      "stream",
+      "quorum з TTL"
+     ],
+     "a": 0,
+     "why": "Тимчасове й ексклюзивне вміє лише classic."
+    },
+    {
+     "type": "choice",
+     "q": "Яку чергу взяти для завдань «друк акта», які не можна загубити?",
+     "options": [
+      "quorum",
+      "classic без durable",
+      "exclusive",
+      "stream"
+     ],
+     "a": 0,
+     "why": "Репліки, усі повідомлення на диску, ліміт доставок для отруйних."
+    },
+    {
+     "type": "choice",
+     "q": "Подію «акт підписано» мають прочитати п'ять сервісів, і новий сервіс хоче прочитати історію за тиждень. Яку чергу?",
+     "options": [
+      "stream",
+      "quorum",
+      "classic",
+      "п'ять exclusive"
+     ],
+     "a": 0,
+     "why": "Stream не видаляє прочитане: кожен читає зі свого місця, можна з початку."
+    },
+    {
+     "type": "number",
+     "q": "Яке типове значення x-delivery-limit у quorum-черги з RabbitMQ 4.0?",
+     "a": 20,
+     "tol": 0,
+     "why": "Типово 20 — це повторні доставки, тож разом спроб буде 21. Значення -1 повертає безліміт 3.13, але це не радять."
+    },
+    {
+     "type": "number",
+     "q": "Quorum-черга має пережити втрату двох реплік одночасно. Скільки реплік щонайменше?",
+     "a": 5,
+     "tol": 0,
+     "why": "Потрібна більшість живих: 3 з 5. Типово реплік 3 — більше задає x-quorum-initial-group-size."
+    },
+    {
+     "type": "choice",
+     "q": "У vhost задано --default-queue-type quorum. Яку чергу створить queue_declare('x', durable=True) без аргументів?",
+     "options": [
+      "quorum",
+      "classic",
+      "stream",
+      "Помилку 406"
+     ],
+     "a": 0,
+     "why": "Типовий тип черги vhost підставляється, коли x-queue-type не вказано."
+    },
+    {
+     "type": "choice",
+     "q": "Застосунок на 3.13 тримав відмовостійкість на політиці ha-mode. Що буде на 4.4?",
+     "options": [
+      "Політику не приймуть: дзеркалювання classic прибрано з 4.0",
+      "Працюватиме як раніше",
+      "Classic стануть quorum самі",
+      "Повідомлення продублюються"
+     ],
+     "a": 0,
+     "why": "Треба переходити на quorum: нова черга, переведення споживачів."
+    },
+    {
+     "type": "choice",
+     "q": "Як змінити тип наявної черги з classic на quorum?",
+     "options": [
+      "Створити нову чергу й перевести видавців і споживачів",
+      "Повторно оголосити з x-queue-type",
+      "Політикою",
+      "rabbitmqctl set_queue_type"
+     ],
+     "a": 0,
+     "why": "Тип задається раз; повторне оголошення з іншим типом — 406."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 4: чи отримає прив'язка act.* повідомлення з ключем act.new.urgent?",
+     "options": [
+      "Ні",
+      "Так",
+      "Лише з mandatory",
+      "Лише у fanout"
+     ],
+     "a": 0,
+     "why": "* — рівно одне слово; для будь-якої глибини — act.#."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 4: навіщо резервний обмінник?",
+     "options": [
+      "Збирати повідомлення, для яких не знайшлось черги",
+      "Замінювати впалий обмінник",
+      "Дублювати повідомлення",
+      "Зберігати після рестарту"
+     ],
+     "a": 0,
+     "why": "Інакше такі повідомлення відкидаються мовчки."
+    }
+   ],
+   "typing": [
+    "Тип черги задають під час оголошення й більше не змінюють.",
+    "Quorum-черга підтверджує повідомлення, коли його записала більшість реплік.",
+    "Класична черга потрібна для тимчасових і ексклюзивних черг.",
+    "Стрім не видаляє прочитане, його можна перечитати.",
+    "Дзеркалювання класичних черг прибрано з четвертої версії."
+   ],
+   "tasks": [
+    "Створіть vhost з --default-queue-type quorum, оголосіть у ньому чергу без аргументів і подивіться її тип у вебконсолі.",
+    "Спробуйте оголосити quorum-чергу ексклюзивною й з порожнім ім'ям. Прочитайте тексти помилок 406."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ: Quorum Queues",
+     "url": "https://www.rabbitmq.com/docs/quorum-queues",
+     "note": "порівняння з classic, ліміт доставок, тайм-аут",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Streams",
+     "url": "https://www.rabbitmq.com/docs/streams",
+     "note": "коли брати stream"
+    },
+    {
+     "title": "RabbitMQ: Virtual Hosts",
+     "url": "https://www.rabbitmq.com/docs/vhosts",
+     "note": "default queue type для vhost"
+    }
+   ]
+  },
+  {
+   "id": "failures-dlx",
+   "title": "Збої: reject, мертві листи, повтори",
+   "topic": "reject і nack, обмінник мертвих листів, ліміт доставок, відкладений повтор quorum-черг",
+   "goal": "Відрізнити тимчасову помилку від постійної й не дати «отруйному» повідомленню крутитись вічно",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 5: який ліміт доставок має quorum-черга з RabbitMQ 4.0 і чого немає в classic?",
+     "a": "Типово 20 доставок. У classic немає ні ліміту доставок, ні тайм-ауту споживача, ні відкладеного повтору."
+    },
+    {
+     "p": "Воркер не впорався. Буває **тимчасова** помилка — принтер зайнятий, база недоступна: варто повторити пізніше. І **постійна** — битий JSON, акт уже видалено: хоч скільки повторюй — не вийде. Таке повідомлення називають **отруйним** (poison message): якщо його повертати в чергу щоразу, воно крутиться вічно й заважає решті ([Dead Letter Exchanges](https://www.rabbitmq.com/docs/dlx))."
+    },
+    {
+     "table": [
+      [
+       "Виклик",
+       "Що буде"
+      ],
+      [
+       "basic_ack",
+       "видалити"
+      ],
+      [
+       "reject, requeue=True",
+       "повернути, лічильник +1"
+      ],
+      [
+       "nack, requeue=True",
+       "повернути, лічильник 0"
+      ],
+      [
+       "reject, requeue=False",
+       "у мертві листи"
+      ]
+     ]
+    },
+    {
+     "p": "**Лічильник** — заголовок `x-delivery-count` quorum-черги. З RabbitMQ 4.3 він росте лише від справжніх збоїв: `basic_reject`, обрив з'єднання з невизнаним повідомленням. `basic_nack` і тайм-аут споживача вважаються «просто повернув» і не рахуються. До 4.3 рахувалось будь-яке повернення ([Quorum Queues](https://www.rabbitmq.com/docs/quorum-queues))."
+    },
+    {
+     "h": "Мертві листи (DLX)"
+    },
+    {
+     "p": "Аргумент черги `x-dead-letter-exchange` називає обмінник, куди черга перекладає «мертві» повідомлення: відхилені без повернення, ті, що перевищили ліміт доставок, прострочені й витіснені лімітом довжини (тема 7). Причину пише заголовок: `x-first-death-reason` і масив `x-death`."
+    },
+    {
+     "code": "from rmq import QUORUM, channel\n\nch = channel('dead')\nch.exchange_declare('dlx', 'fanout',\n                    durable=True)\nch.queue_bind('dead', 'dlx')\nargs = {**QUORUM, 'x-delivery-limit': 2,\n        'x-dead-letter-exchange': 'dlx'}\nch.queue_declare('work', durable=True,\n                 arguments=args)\nch.basic_publish('', 'work', '{битий json')\nn = 0\nfor m, props, body in ch.consume(\n        'work', inactivity_timeout=1):\n    if m is None:\n        break\n    n += 1\n    ch.basic_reject(m.delivery_tag,\n                    requeue=True)\nprint('спроб:', n)\nm, props, body = ch.basic_get('dead', True)\nprint(props.headers['x-first-death-reason'])",
+     "lang": "python",
+     "title": "отруйне повідомлення",
+     "hl": [
+      7,
+      8,
+      18
+     ]
+    },
+    {
+     "code": "спроб: 3\ndelivery_limit",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Ліміт 2 — це дві **повторні** доставки: разом три спроби, після третьої відмови повідомлення пішло в `dead` з причиною `delivery_limit`. Якби воркер одразу викликав `basic_reject(…, requeue=False)`, причина була б `rejected`. Чергу `dead` теж робимо quorum: мертві листи зберігають свій `delivery_mode`, і в класичній черзі звичайні зникли б після рестарту."
+    },
+    {
+     "warn": "❌ `basic_nack(tag, requeue=True)` на кожну помилку → ✅ з 4.3 nack лічильник не збільшує, тож ліміт доставок не спрацює ніколи. Перевірено: повідомлення, яке nack повертало в чергу, доставлялось знову й знову, у мертві листи так і не потрапило. Для збою — `basic_reject`."
+    },
+    {
+     "h": "Відкладений повтор"
+    },
+    {
+     "p": "Повертати повідомлення миттєво погано: база ще лежить, а воркер уже вдесяте її смикає. З 4.3 quorum-черга вміє **відкладений повтор**: повернуте повідомлення чекає `min(мін × лічильник, макс)` мілісекунд, перш ніж стати доступним знову."
+    },
+    {
+     "code": "args = {**QUORUM,\n        'x-delivery-limit': 5,\n        'x-dead-letter-exchange': 'dlx',\n        'x-delayed-retry-type': 'failed',\n        'x-delayed-retry-min': 1000,\n        'x-delayed-retry-max': 30000}",
+     "lang": "python",
+     "title": "повтор з паузою"
+    },
+    {
+     "table": [
+      [
+       "Тип",
+       "Що затримує"
+      ],
+      [
+       "failed",
+       "лише збої (reject, обрив)"
+      ],
+      [
+       "returned",
+       "лише nack"
+      ],
+      [
+       "all",
+       "будь-яке повернення"
+      ],
+      [
+       "disabled",
+       "нічого (типово)"
+      ]
+     ]
+    },
+    {
+     "p": "Перевірено з мін. 1 с і макс. 3 с: після `reject` повідомлення приходило через 1, 2, 3, 3 с, а після ліміту пішло в `dead`. Після `nack` пауза завжди мінімальна — лічильник же не росте."
+    },
+    {
+     "tip": "На RabbitMQ до 4.3 відкладеного повтору немає. Переносний спосіб — окрема черга `retry` з TTL, з якої прострочені повідомлення через DLX вертаються в `work` (тема 7)."
+    },
+    {
+     "recall": "Пригадайте: воркер отримав акт з битим JSON. Що викликати — і що буде, якщо замість цього викликати nack з requeue=True на RabbitMQ 4.4?",
+     "a": "basic_reject(requeue=False) — повідомлення одразу піде в мертві листи. nack з requeue=True поверне його в чергу без збільшення лічильника, і воно крутитиметься нескінченно."
+    }
+   ],
+   "examples": [
+    {
+     "w": "basic_reject(tag, requeue=False)",
+     "note": "постійна помилка — у мертві листи"
+    },
+    {
+     "w": "basic_reject(tag, requeue=True)",
+     "note": "збій — повторити, лічильник +1"
+    },
+    {
+     "w": "basic_nack(tag, requeue=True)",
+     "note": "повернути без лічильника (4.3+)"
+    },
+    {
+     "w": "'x-dead-letter-exchange': 'dlx'",
+     "note": "куди йдуть мертві листи"
+    },
+    {
+     "w": "'x-delivery-limit': 5",
+     "note": "скільки повторних доставок"
+    },
+    {
+     "w": "props.headers['x-first-death-reason']",
+     "note": "rejected, delivery_limit, expired, maxlen"
+    },
+    {
+     "w": "'x-delayed-retry-type': 'failed'",
+     "note": "пауза перед повтором (4.3+)"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Воркер отримав акт, якого вже немає в базі. Що викликати?",
+     "options": [
+      "basic_reject(requeue=False) — у мертві листи",
+      "basic_reject(requeue=True)",
+      "basic_nack(requeue=True)",
+      "Нічого не робити"
+     ],
+     "a": 0,
+     "why": "Постійна помилка: повтор не допоможе, повідомлення треба відкласти для розбору."
+    },
+    {
+     "type": "choice",
+     "q": "Принтер тимчасово зайнятий. Що викликати, щоб спроба врахувалась у ліміті доставок (RabbitMQ 4.4)?",
+     "options": [
+      "basic_reject(requeue=True)",
+      "basic_nack(requeue=True)",
+      "basic_ack",
+      "basic_reject(requeue=False)"
+     ],
+     "a": 0,
+     "why": "З 4.3 лічильник збільшує reject, а nack — ні."
+    },
+    {
+     "type": "choice",
+     "q": "Quorum-черга з x-delivery-limit і DLX. Воркер на кожну помилку викликає basic_nack(requeue=True). RabbitMQ 4.4. Що буде з отруйним повідомленням?",
+     "options": [
+      "Крутитиметься нескінченно",
+      "Піде в DLX після ліміту",
+      "Видалиться",
+      "Брокер закриє канал"
+     ],
+     "a": 0,
+     "why": "nack не збільшує delivery-count, тож ліміт не досягається."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "from rmq import QUORUM, channel\n\nch = channel('dead')\nch.exchange_declare('dlx', 'fanout',\n                    durable=True)\nch.queue_bind('dead', 'dlx')\nargs = {**QUORUM,\n        'x-dead-letter-exchange': 'dlx'}\nch.queue_declare('work', durable=True,\n                 arguments=args)\nch.basic_publish('', 'work', 'x')\nfor m, props, body in ch.consume(\n        'work', inactivity_timeout=1):\n    if m is None:\n        break\n    ch.basic_reject(m.delivery_tag,\n                    requeue=False)\nm, props, body = ch.basic_get('dead', True)\nprint(props.headers['x-first-death-reason'])",
+     "lang": "python",
+     "options": [
+      "rejected",
+      "delivery_limit",
+      "expired",
+      "maxlen"
+     ],
+     "a": 0,
+     "why": "Відхилено без повернення — причина rejected."
+    },
+    {
+     "type": "number",
+     "q": "x-delivery-limit = 2, воркер щоразу робить basic_reject(requeue=True). Скільки разів воркер отримає повідомлення, перш ніж воно піде в DLX?",
+     "a": 3,
+     "tol": 0,
+     "why": "Перша доставка плюс дві повторні — після третьої відмови ліміт перевищено."
+    },
+    {
+     "type": "number",
+     "q": "Відкладений повтор: min 1000 мс, max 30000 мс. Скільки мілісекунд чекатиме повідомлення після третього reject?",
+     "a": 3000,
+     "tol": 0,
+     "unit": " мс",
+     "why": "min(1000 × 3, 30000) = 3000."
+    },
+    {
+     "type": "number",
+     "q": "Відкладений повтор: min 5000 мс, max 20000 мс. Скільки мілісекунд пауза після десятого reject?",
+     "a": 20000,
+     "tol": 0,
+     "unit": " мс",
+     "why": "min(5000 × 10, 20000) — пауза обмежена максимумом."
+    },
+    {
+     "type": "choice",
+     "q": "Який x-delayed-retry-type затримує лише повідомлення, повернуті через збій (reject, обрив з'єднання)?",
+     "options": [
+      "failed",
+      "returned",
+      "all",
+      "disabled"
+     ],
+     "a": 0,
+     "why": "returned — лише nack, all — будь-яке повернення."
+    },
+    {
+     "type": "choice",
+     "q": "Чому чергу мертвих листів роблять quorum, а не classic?",
+     "options": [
+      "Мертві листи зберігають свій delivery_mode — звичайні в classic зникнуть після рестарту",
+      "Classic не приймає мертві листи",
+      "Так швидше",
+      "Quorum сама їх повторно надішле"
+     ],
+     "a": 0,
+     "why": "Quorum-черга тримає на диску всі повідомлення незалежно від delivery_mode."
+    },
+    {
+     "type": "choice",
+     "q": "Як дізнатися, чому повідомлення опинилось у мертвих листах?",
+     "options": [
+      "Заголовки x-first-death-reason і x-death",
+      "Властивість redelivered",
+      "delivery_tag",
+      "Ім'я черги"
+     ],
+     "a": 0,
+     "why": "Брокер дописує причину й історію: з якої черги, скільки разів."
+    },
+    {
+     "type": "order",
+     "q": "Шлях отруйного повідомлення в quorum-черзі з DLX",
+     "items": [
+      "Воркер отримує й не може обробити",
+      "basic_reject(requeue=True), лічильник +1",
+      "Пауза відкладеного повтору",
+      "Ліміт доставок перевищено",
+      "Повідомлення в черзі dead з причиною delivery_limit"
+     ],
+     "why": "Кожна спроба рахується, пауза росте, після ліміту — мертві листи."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 5: яку чергу взяти для тимчасових відповідей RPC?",
+     "options": [
+      "classic, exclusive",
+      "quorum",
+      "stream",
+      "quorum з TTL"
+     ],
+     "a": 0,
+     "why": "Ексклюзивною й з ім'ям від сервера буває лише classic."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 5: як змінити тип черги з classic на quorum?",
+     "options": [
+      "Нова черга й переведення клієнтів",
+      "Повторне оголошення",
+      "Політика",
+      "rabbitmqctl set_queue_type"
+     ],
+     "a": 0,
+     "why": "Тип черги задається один раз."
+    }
+   ],
+   "typing": [
+    "Постійну помилку відхиляють без повернення в чергу.",
+    "Мертві листи потрапляють в окремий обмінник для розбору.",
+    "З версії 4.3 лічильник доставок збільшує reject, а не nack.",
+    "Відкладений повтор робить паузу перед наступною спробою.",
+    "Отруйне повідомлення не повинно крутитися вічно."
+   ],
+   "tasks": [
+    "Зробіть чергу work з x-delivery-limit 3 і DLX, надішліть «отруйне» повідомлення й відхиляйте його через basic_reject(requeue=True). Подивіться заголовки в черзі dead через вебконсоль (Get messages).",
+    "Повторіть те саме з basic_nack(requeue=True) і переконайтеся, що повідомлення в мертві листи не йде. Зупиніть воркер і видаліть повідомлення вручну."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ: Dead Letter Exchanges",
+     "url": "https://www.rabbitmq.com/docs/dlx",
+     "note": "коли й як повідомлення стає мертвим",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Quorum Queues — Poison Message Handling",
+     "url": "https://www.rabbitmq.com/docs/quorum-queues",
+     "note": "лічильник доставок, відкладений повтор"
+    },
+    {
+     "title": "RabbitMQ 4.3.0 release notes",
+     "url": "https://github.com/rabbitmq/rabbitmq-server/releases/tag/v4.3.0",
+     "note": "що змінилось у підрахунку доставок"
+    }
+   ]
+  },
+  {
+   "id": "ttl-limits-priority",
+   "title": "TTL, довжина черги, пріоритети, відкладена доставка",
+   "topic": "термін життя повідомлень, ліміт довжини й переповнення, пріоритети quorum, x-opt-delivery-time у 4.4, черга повторів",
+   "goal": "Не дати черзі розростись, пустити термінове вперед і доставити повідомлення пізніше",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 6: куди потрапить повідомлення, відхилене через basic_reject(requeue=False), і як дізнатися причину?",
+     "a": "В обмінник мертвих листів (x-dead-letter-exchange) і далі в прив'язану чергу. Причина — у заголовку x-first-death-reason (тут rejected)."
+    },
+    {
+     "p": "Черга — не склад навіки. Нагадування про друк, яке пролежало добу, вже нікому не потрібне; черга з мільйоном повідомлень — ознака, що воркери не встигають. RabbitMQ дає змогу обмежити час і розмір, а надто старе чи зайве — переслати в мертві листи ([Time-To-Live](https://www.rabbitmq.com/docs/ttl), [Length Limit](https://www.rabbitmq.com/docs/maxlength))."
+    },
+    {
+     "h": "TTL — термін життя"
+    },
+    {
+     "table": [
+      [
+       "Де",
+       "Як"
+      ],
+      [
+       "вся черга",
+       "x-message-ttl: 60000"
+      ],
+      [
+       "одне повідомлення",
+       "expiration='60000'"
+      ],
+      [
+       "сама черга без діла",
+       "x-expires: 600000"
+      ]
+     ]
+    },
+    {
+     "p": "Числа — мілісекунди. `expiration` у властивостях повідомлення — **рядок**, не число. Прострочене повідомлення йде в DLX з причиною `expired`. `x-expires` видаляє саму чергу, якою ніхто не користувався вказаний час."
+    },
+    {
+     "h": "Ліміт довжини"
+    },
+    {
+     "p": "`x-max-length` (кількість) або `x-max-length-bytes` (обсяг). Що робити, коли черга повна, задає `x-overflow`:"
+    },
+    {
+     "table": [
+      [
+       "x-overflow",
+       "Що буде"
+      ],
+      [
+       "drop-head (типово)",
+       "найстаріше — у DLX, причина maxlen"
+      ],
+      [
+       "reject-publish",
+       "нове відхиляється видавцю"
+      ]
+     ]
+    },
+    {
+     "code": "from rmq import QUORUM, channel\n\nch = channel('dead')\nch.exchange_declare('dlx', 'fanout',\n                    durable=True)\nch.queue_bind('dead', 'dlx')\nargs = {**QUORUM, 'x-max-length': 3,\n        'x-dead-letter-exchange': 'dlx'}\nch.queue_declare('alerts', durable=True,\n                 arguments=args)\nfor i in range(1, 6):\n    ch.basic_publish('', 'alerts', f'a{i}')\nfor q in ('alerts', 'dead'):\n    got = []\n    while True:\n        m, _, body = ch.basic_get(q, True)\n        if m is None:\n            break\n        got.append(body.decode())\n    print(q, *got)",
+     "lang": "python",
+     "title": "drop-head",
+     "hl": [
+      7
+     ]
+    },
+    {
+     "code": "alerts a3 a4 a5\ndead a1 a2",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "note": "З `reject-publish` і `confirm_delivery()` pika кидає `NackError` на відхилене повідомлення. Перевірено: quorum-черга з лімітом 2 прийняла **три** повідомлення й відхилила четверте — документація попереджає, що quorum може перевищити ліміт щонайменше на одне. Точний ліміт це не гарантує."
+    },
+    {
+     "h": "Пріоритети"
+    },
+    {
+     "p": "Видавець ставить `priority` у властивостях — більше число, раніше видача. З 4.3 quorum-черга має **суворі** пріоритети 0–31 без жодних аргументів (`x-max-priority` вона ігнорує). Повідомлення **без** пріоритету quorum вважає пріоритетом **4**, класична черга — 0."
+    },
+    {
+     "code": "from rmq import channel\nfrom pika import BasicProperties\n\nch = channel('jobs')\nfor name, pr in [('p1', 1), ('без', None),\n                 ('p9', 9), ('p3', 3)]:\n    props = BasicProperties(priority=pr)\n    ch.basic_publish('', 'jobs', name,\n                     properties=props)\nout = []\nwhile (m := ch.basic_get('jobs', True))[0]:\n    out.append(m[2].decode())\nprint(*out)",
+     "lang": "python",
+     "title": "quorum: порядок видачі",
+     "hl": [
+      7
+     ]
+    },
+    {
+     "code": "p9 без p3 p1",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "warn": "❌ ставити пріоритет 1 «терміновим» у quorum-черзі, де решта без пріоритету → ✅ «без пріоритету» там — це 4, тож ваше «термінове» піде **після** звичайних. Або давайте пріоритет усім, або терміновим — вище 4. Повернуті (reject, nack) повідомлення стають у чергу без урахування пріоритету."
+    },
+    {
+     "h": "Доставити пізніше"
+    },
+    {
+     "p": "З RabbitMQ 4.4 quorum-черга вміє **відкладені повідомлення**: заголовок `x-opt-delivery-time` — момент у мілісекундах від 1970 року. Повідомлення одразу лягає в чергу й підтверджується, але видається споживачам лише в цей момент. Плагін не потрібен. Класична черга заголовок ігнорує — віддасть одразу."
+    },
+    {
+     "code": "import time\nfrom rmq import channel\nfrom pika import BasicProperties\n\nch = channel('later')\nat = int(time.time() * 1000) + 2000\nprops = BasicProperties(\n    headers={'x-opt-delivery-time': at})\nch.basic_publish('', 'later', 'через 2 с',\n                 properties=props)\nprint('зараз:', ch.basic_get('later')[2])\ntime.sleep(2.5)\nm, _, body = ch.basic_get('later', True)\nprint('потім:', body.decode())",
+     "lang": "python",
+     "title": "відкладена доставка",
+     "hl": [
+      8
+     ]
+    },
+    {
+     "code": "зараз: None\nпотім: через 2 с",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Для 4.3 і старіших — переносний прийом **черги повторів**: черга `retry` з `x-message-ttl` і DLX, що веде назад у `work`. Повідомлення відлежується в `retry`, прострочується й повертається в роботу. Перевірено: прийшло з причиною `expired` через ~1 с."
+    },
+    {
+     "code": "retry_args = {\n    **QUORUM, 'x-message-ttl': 1000,\n    'x-dead-letter-exchange': '',\n    'x-dead-letter-routing-key': 'work'}",
+     "lang": "python",
+     "title": "черга повторів"
+    },
+    {
+     "recall": "Пригадайте: які три способи дає RabbitMQ 4.4, щоб повідомлення потрапило до воркера не одразу?",
+     "a": "Відкладений повтор quorum-черги (x-delayed-retry-*), заголовок x-opt-delivery-time (лише quorum, 4.4) і черга повторів з TTL та DLX назад у робочу чергу (працює скрізь)."
+    }
+   ],
+   "examples": [
+    {
+     "w": "'x-message-ttl': 60000",
+     "note": "хвилина для кожного повідомлення черги"
+    },
+    {
+     "w": "BasicProperties(expiration='60000')",
+     "note": "TTL одного повідомлення — рядком"
+    },
+    {
+     "w": "'x-max-length': 1000",
+     "note": "не більше тисячі"
+    },
+    {
+     "w": "'x-overflow': 'reject-publish'",
+     "note": "повна — відхиляти нові"
+    },
+    {
+     "w": "BasicProperties(priority=9)",
+     "note": "раніше за звичайні"
+    },
+    {
+     "w": "headers={'x-opt-delivery-time': at}",
+     "note": "видати в момент at (4.4, quorum)"
+    },
+    {
+     "w": "'x-dead-letter-routing-key': 'work'",
+     "note": "черга повторів веде назад"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Черга з x-max-length 3 і типовим x-overflow. Надіслали a1…a5. Що лишиться в черзі?",
+     "options": [
+      "a3 a4 a5",
+      "a1 a2 a3",
+      "a1…a5",
+      "Нічого"
+     ],
+     "a": 0,
+     "why": "drop-head викидає найстаріші — a1 і a2 пішли в DLX з причиною maxlen."
+    },
+    {
+     "type": "choice",
+     "q": "З якою причиною x-first-death-reason у DLX потрапить прострочене повідомлення?",
+     "options": [
+      "expired",
+      "maxlen",
+      "rejected",
+      "delivery_limit"
+     ],
+     "a": 0,
+     "why": "Причина відповідає події: TTL — expired, ліміт довжини — maxlen."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Повідомлення без пріоритету й з пріоритетом 3 у quorum-черзі.",
+     "code": "from rmq import channel\nfrom pika import BasicProperties\n\nch = channel('jobs')\nfor name, pr in [('p3', 3), ('без', None)]:\n    props = BasicProperties(priority=pr)\n    ch.basic_publish('', 'jobs', name,\n                     properties=props)\nm, _, body = ch.basic_get('jobs', True)\nprint(body.decode())",
+     "lang": "python",
+     "options": [
+      "без",
+      "p3"
+     ],
+     "a": 0,
+     "why": "Quorum вважає повідомлення без пріоритету пріоритетом 4 — вище за 3."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Повідомлення отримає час доставки через 5 секунд.",
+     "code": "import time\nfrom rmq import channel\nfrom pika import BasicProperties\n\nch = channel('later')\nat = int(time.time() * 1000) + 5000\nprops = BasicProperties(\n    headers={'x-opt-delivery-time': at})\nch.basic_publish('', 'later', 'x',\n                 properties=props)\nprint(ch.basic_get('later')[0])",
+     "lang": "python",
+     "options": [
+      "None",
+      "x",
+      "NackError",
+      "406"
+     ],
+     "a": 0,
+     "why": "Повідомлення в черзі, але до вказаного часу споживачам не видається."
+    },
+    {
+     "type": "choice",
+     "q": "Де працює заголовок x-opt-delivery-time?",
+     "options": [
+      "У quorum-черзі з RabbitMQ 4.4",
+      "У будь-якій черзі",
+      "Лише з плагіном",
+      "Лише в stream"
+     ],
+     "a": 0,
+     "why": "Класична черга його ігнорує й видає одразу."
+    },
+    {
+     "type": "choice",
+     "q": "Як задати TTL одного повідомлення в pika?",
+     "options": [
+      "BasicProperties(expiration='60000') — рядком",
+      "expiration=60000 — числом",
+      "headers={'ttl': 60}",
+      "x-message-ttl у basic_publish"
+     ],
+     "a": 0,
+     "why": "expiration у AMQP — рядок з мілісекундами."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить x-expires: 600000?",
+     "options": [
+      "Видаляє саму чергу, якою не користувались 10 хв",
+      "Видаляє повідомлення старші за 10 хв",
+      "Закриває з'єднання",
+      "Відкладає доставку"
+     ],
+     "a": 0,
+     "why": "x-expires — TTL черги; для повідомлень — x-message-ttl."
+    },
+    {
+     "type": "choice",
+     "q": "Черга з x-overflow reject-publish повна, видавець з confirm_delivery(). Що отримає pika?",
+     "options": [
+      "NackError",
+      "UnroutableError",
+      "406",
+      "Нічого"
+     ],
+     "a": 0,
+     "why": "Брокер не приймає повідомлення й відповідає nack на публікацію."
+    },
+    {
+     "type": "number",
+     "q": "Quorum-черга, пріоритети 9, без пріоритету, 3, 5. Яким за ліком видасть повідомлення без пріоритету?",
+     "a": 3,
+     "tol": 0,
+     "why": "9, 5, далі «без» (= 4), потім 3."
+    },
+    {
+     "type": "choice",
+     "q": "Як зробити повтор через хвилину на RabbitMQ 4.2, де немає відкладеного повтору?",
+     "options": [
+      "Черга retry з x-message-ttl і DLX назад у work",
+      "x-opt-delivery-time",
+      "nack з requeue",
+      "time.sleep у воркері"
+     ],
+     "a": 0,
+     "why": "TTL + DLX працюють у всіх версіях; sleep у воркері тримає повідомлення й блокує роботу."
+    },
+    {
+     "type": "gap",
+     "q": "TTL для всієї черги задає аргумент x-message-◻.",
+     "a": [
+      "ttl"
+     ],
+     "why": "x-message-ttl — повідомлення черги; x-expires — сама черга."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 6: чому nack з requeue=True не зупинить отруйне повідомлення на RabbitMQ 4.4?",
+     "options": [
+      "nack не збільшує лічильник доставок",
+      "nack видаляє повідомлення",
+      "nack закриває канал",
+      "nack діє лише в classic"
+     ],
+     "a": 0,
+     "why": "Ліміт доставок рахує лише збої: reject і обриви."
+    },
+    {
+     "type": "number",
+     "q": "Повторення з теми 6: відкладений повтор, min 2000 мс, max 10000 мс. Яка пауза після другого reject?",
+     "a": 4000,
+     "tol": 0,
+     "unit": " мс",
+     "why": "min(2000 × 2, 10000) = 4000."
+    }
+   ],
+   "typing": [
+    "Прострочене повідомлення йде в мертві листи з причиною expired.",
+    "Коли черга повна, типово викидається найстаріше повідомлення.",
+    "У quorum-черзі повідомлення без пріоритету має пріоритет чотири.",
+    "Заголовок delivery-time відкладає видачу повідомлення.",
+    "Черга повторів притримує повідомлення й повертає його в роботу."
+   ],
+   "tasks": [
+    "Зробіть чергу alerts з x-max-length 3 і DLX, надішліть п'ять повідомлень і знайдіть два найстаріші в черзі dead. Потім спробуйте x-overflow reject-publish і порахуйте, скільки насправді прийнято.",
+    "Надішліть у quorum-чергу повідомлення з x-opt-delivery-time на хвилину вперед і подивіться у вебконсолі, як воно виглядає до й після цього часу."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ: Time-To-Live and Expiration",
+     "url": "https://www.rabbitmq.com/docs/ttl",
+     "note": "TTL повідомлень і черг",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Queue Length Limit",
+     "url": "https://www.rabbitmq.com/docs/maxlength",
+     "note": "x-max-length і x-overflow"
+    },
+    {
+     "title": "RabbitMQ: Priority Queues",
+     "url": "https://www.rabbitmq.com/docs/priority",
+     "note": "пріоритети classic і quorum"
+    },
+    {
+     "title": "RabbitMQ 4.4.0 release notes",
+     "url": "https://github.com/rabbitmq/rabbitmq-server/releases/tag/v4.4.0",
+     "note": "відкладені повідомлення quorum"
+    }
+   ]
+  },
+  {
+   "id": "rpc",
+   "title": "Запит-відповідь (RPC) і direct reply-to",
+   "topic": "reply_to і correlation_id, черга відповідей, direct reply-to, тайм-аут клієнта",
+   "goal": "Отримати відповідь від воркера через брокер і не зависнути, якщо відповіді немає",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 7: що робить x-opt-delivery-time і в яких чергах працює?",
+     "a": "Повідомлення лягає в чергу одразу, але видається споживачам лише в указаний момент (мс від 1970 року). Лише quorum-черги, з RabbitMQ 4.4; класична черга віддає одразу."
+    },
+    {
+     "p": "Досі повідомлення летіли в один бік: «надрукуй акт» — і забули. Іноді потрібна **відповідь**: «скільки бронежилетів на складі?» Воркер-обчислювач сидить за чергою `rpc`, клієнт питає й чекає. Це **RPC** (remote procedure call, віддалений виклик) поверх брокера ([RPC tutorial](https://www.rabbitmq.com/tutorials/tutorial-six-python))."
+    },
+    {
+     "table": [
+      [
+       "Властивість",
+       "Навіщо"
+      ],
+      [
+       "reply_to",
+       "куди надіслати відповідь"
+      ],
+      [
+       "correlation_id",
+       "на який запит ця відповідь"
+      ]
+     ]
+    },
+    {
+     "p": "Клієнт кладе в запит адресу для відповіді й унікальний номер. Сервер обчислює й публікує відповідь у типовий обмінник `''` з ключем `reply_to`, скопіювавши той самий `correlation_id`. Клієнт за номером зіставляє відповідь із запитом — їх може бути кілька в дорозі одночасно."
+    },
+    {
+     "h": "Куди приходять відповіді"
+    },
+    {
+     "table": [
+      [
+       "Спосіб",
+       "Коли"
+      ],
+      [
+       "exclusive classic-черга",
+       "відповіді живуть, поки живе з'єднання"
+      ],
+      [
+       "довга черга клієнта",
+       "довгі завдання, відповідь не можна загубити"
+      ],
+      [
+       "direct reply-to",
+       "тисячі клієнтів, втрата відповіді не страшна"
+      ]
+     ]
+    },
+    {
+     "p": "**Direct reply-to** — псевдочерга `amq.rabbitmq.reply-to`: черги насправді немає, брокер передає відповідь прямо в канал клієнта. Нічого не створюється й не видаляється — тому це найдешевше для великої кількості клієнтів. Ціна — доставка **щонайбільше один раз**: від'єднався клієнт — відповідь пропала ([Direct Reply-To](https://www.rabbitmq.com/docs/direct-reply-to))."
+    },
+    {
+     "h": "Приклад"
+    },
+    {
+     "p": "Клієнт і сервер тут в одному скрипті по черзі — щоб було видно кожен крок. У житті сервер — окремий воркер з `basic_consume`."
+    },
+    {
+     "code": "import uuid\nfrom pika import BasicProperties\nfrom rmq import channel\n\ncli, srv = channel('rpc'), channel('rpc')\nanswers = {}\n\n\ndef on_reply(ch, method, props, body):\n    answers[props.correlation_id] = body\n\n\ncli.basic_consume('amq.rabbitmq.reply-to',\n                  on_reply, auto_ack=True)\ncid = str(uuid.uuid4())\nask = BasicProperties(\n    reply_to='amq.rabbitmq.reply-to',\n    correlation_id=cid)\ncli.basic_publish('', 'rpc', 'бронежилети',\n                  properties=ask)\n# --- сервер ---\nm, props, body = srv.basic_get('rpc')\nout = BasicProperties(\n    correlation_id=props.correlation_id)\nsrv.basic_publish('', props.reply_to, '7',\n                  properties=out)\nsrv.basic_ack(m.delivery_tag)\n# --- клієнт ---\ncli.connection.process_data_events(\n    time_limit=1)\nprint(answers[cid].decode())",
+     "lang": "python",
+     "title": "rpc_demo.py",
+     "hl": [
+      14,
+      17,
+      25
+     ]
+    },
+    {
+     "code": "7",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Брокер переписує `reply_to` у запиті на `amq.rabbitmq.reply-to.<щось>` — сервер просто відповідає на те, що отримав. Підтвердження публікації (`confirm_delivery()` у нашому `rmq.channel()`) з direct reply-to працюють — перевірено."
+    },
+    {
+     "warn": "❌ підписатись на `amq.rabbitmq.reply-to` з ручним ack або надіслати запит до підписки → ✅ обидва варіанти — `406 PRECONDITION_FAILED` (`reply consumer cannot acknowledge` і `fast reply consumer does not exist`). Порядок: спершу `basic_consume(…, auto_ack=True)`, потім запит, і **на тому самому каналі**."
+    },
+    {
+     "h": "Тайм-аут обов'язковий"
+    },
+    {
+     "code": "REPLY = 'amq.rabbitmq.reply-to'\n\n\ndef call(text, timeout=5):\n    cid = str(uuid.uuid4())\n    ask = BasicProperties(\n        reply_to=REPLY, correlation_id=cid)\n    cli.basic_publish('', 'rpc', text,\n                      properties=ask)\n    end = time.monotonic() + timeout\n    while cid not in answers:\n        left = end - time.monotonic()\n        if left <= 0:\n            raise TimeoutError(cid)\n        cli.connection.process_data_events(\n            time_limit=left)\n    return answers.pop(cid)",
+     "lang": "python",
+     "title": "клієнт з тайм-аутом",
+     "hl": [
+      13,
+      14
+     ]
+    },
+    {
+     "p": "Сервер упав, у черги `rpc` немає воркерів, відповідь загубилась — без тайм-ауту клієнт чекатиме вічно. Отримали `TimeoutError` — вирішуйте: повторити запит чи показати помилку. Повтор означає, що сервер може отримати той самий запит двічі (тема 10)."
+    },
+    {
+     "tip": "RPC через брокер вигідний, коли за чергою пул воркерів: брокер сам розподілить запити, воркери можна додавати без налаштувань клієнта. Коли сервіс один і відповідь потрібна відразу — простіший звичайний HTTP."
+    },
+    {
+     "recall": "Пригадайте: що клієнт ставить у запит RPC, що з цим робить сервер і чим обмежений direct reply-to?",
+     "a": "reply_to і correlation_id. Сервер публікує відповідь у '' з ключем reply_to і тим самим correlation_id. Direct reply-to: лише auto_ack, підписка до запиту на тому ж каналі, відповідь губиться, якщо клієнт від'єднається."
+    }
+   ],
+   "examples": [
+    {
+     "w": "BasicProperties(reply_to=…, correlation_id=cid)",
+     "note": "запит"
+    },
+    {
+     "w": "basic_publish('', props.reply_to, …)",
+     "note": "відповідь у типовий обмінник"
+    },
+    {
+     "w": "queue_declare('', exclusive=True)",
+     "note": "черга відповідей amq.gen-…"
+    },
+    {
+     "w": "basic_consume('amq.rabbitmq.reply-to', cb, auto_ack=True)",
+     "note": "direct reply-to"
+    },
+    {
+     "w": "str(uuid.uuid4())",
+     "note": "унікальний correlation_id"
+    },
+    {
+     "w": "raise TimeoutError(cid)",
+     "note": "не чекати вічно"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Зверніть увагу: auto_ack не вказано.",
+     "code": "import pika\nimport pika.exceptions as E\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = c.channel()\nq = 'amq.rabbitmq.reply-to'\ntry:\n    ch.basic_consume(q, print)\n    ch.queue_declare('x', exclusive=True)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "404",
+      "541"
+     ],
+     "a": 0,
+     "why": "Типово basic_consume чекає ручного ack, а direct reply-to приймає лише auto_ack=True — reply consumer cannot acknowledge."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Підписки на amq.rabbitmq.reply-to на цьому каналі немає.",
+     "code": "from pika import BasicProperties\nfrom rmq import channel\nimport pika.exceptions as E\n\nch = channel('rpc')\np = BasicProperties(\n    reply_to='amq.rabbitmq.reply-to')\ntry:\n    ch.basic_publish('', 'rpc', 'x',\n                     properties=p)\n    print('ok')\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "ok",
+      "404",
+      "UnroutableError"
+     ],
+     "a": 0,
+     "why": "Спершу підписка на тому ж каналі, потім запит — інакше fast reply consumer does not exist."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо correlation_id у RPC?",
+     "options": [
+      "Зіставити відповідь із запитом",
+      "Вибрати чергу на сервері",
+      "Зашифрувати відповідь",
+      "Задати пріоритет"
+     ],
+     "a": 0,
+     "why": "Відповіді приходять в одне місце, а запитів у дорозі може бути кілька."
+    },
+    {
+     "type": "choice",
+     "q": "Куди сервер публікує відповідь?",
+     "options": [
+      "У типовий обмінник '' з ключем reply_to",
+      "У чергу rpc",
+      "В обмінник amq.direct з ключем correlation_id",
+      "Назад у reply_to як обмінник"
+     ],
+     "a": 0,
+     "why": "reply_to — ім'я черги (або псевдочерги), а '' кладе в чергу з ім'ям ключа."
+    },
+    {
+     "type": "choice",
+     "q": "Клієнт direct reply-to від'єднався, поки сервер рахував. Що з відповіддю?",
+     "options": [
+      "Пропаде",
+      "Чекатиме в черзі",
+      "Піде в DLX",
+      "Повернеться серверу"
+     ],
+     "a": 0,
+     "why": "Direct reply-to — щонайбільше одна доставка, буфера немає."
+    },
+    {
+     "type": "choice",
+     "q": "Звіт рахується 20 хвилин, і відповідь не можна загубити навіть у разі перепідключення клієнта. Куди слати відповіді?",
+     "options": [
+      "У довговічну чергу клієнта",
+      "Direct reply-to",
+      "Exclusive-чергу",
+      "У чергу rpc"
+     ],
+     "a": 0,
+     "why": "Exclusive зникне разом із з'єднанням, direct reply-to губить відповідь — потрібна черга, що переживе розрив."
+    },
+    {
+     "type": "choice",
+     "q": "Сервер RPC лежить. Що буде з клієнтом без тайм-ауту?",
+     "options": [
+      "Чекатиме відповіді вічно",
+      "Отримає помилку від брокера",
+      "Отримає None",
+      "Брокер відповість за сервер"
+     ],
+     "a": 0,
+     "why": "Запит спокійно лежить у черзі, а відповіді ніхто не надсилає."
+    },
+    {
+     "type": "choice",
+     "q": "Коли сервер RPC має підтвердити (ack) запит?",
+     "options": [
+      "Після публікації відповіді",
+      "Одразу після отримання",
+      "Ніколи — auto_ack",
+      "Коли клієнт отримає відповідь"
+     ],
+     "a": 0,
+     "why": "Упав посеред роботи — запит повернеться в чергу й інший воркер відповість."
+    },
+    {
+     "type": "choice",
+     "q": "Чим RPC через брокер кращий за HTTP?",
+     "options": [
+      "Пул воркерів за чергою: брокер сам розподіляє запити",
+      "Він завжди швидший",
+      "Не потрібен тайм-аут",
+      "Відповідь гарантовано приходить"
+     ],
+     "a": 0,
+     "why": "Для одного сервісу з миттєвою відповіддю HTTP простіший."
+    },
+    {
+     "type": "order",
+     "q": "Кроки RPC з direct reply-to",
+     "items": [
+      "Клієнт: basic_consume на amq.rabbitmq.reply-to з auto_ack",
+      "Клієнт: запит з reply_to і correlation_id",
+      "Сервер: отримує й обчислює",
+      "Сервер: відповідь у '' з ключем reply_to",
+      "Сервер: ack запиту",
+      "Клієнт: відповідь за correlation_id"
+     ],
+     "why": "Підписка до запиту, ack — після відповіді."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 7: черга з x-max-length 3 і типовим переповненням, надіслали a1…a5. Що в черзі?",
+     "options": [
+      "a3 a4 a5",
+      "a1 a2 a3",
+      "усі п'ять",
+      "нічого"
+     ],
+     "a": 0,
+     "why": "drop-head викидає найстаріші в DLX з причиною maxlen."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 7: quorum-черга, повідомлення з пріоритетом 3 і без пріоритету. Яке видасть першим?",
+     "options": [
+      "Без пріоритету",
+      "З пріоритетом 3",
+      "Хто прийшов раніше",
+      "Випадково"
+     ],
+     "a": 0,
+     "why": "Без пріоритету quorum вважає пріоритетом 4."
+    }
+   ],
+   "typing": [
+    "Клієнт кладе в запит адресу для відповіді й номер запиту.",
+    "Сервер відповідає в типовий обмінник з ключем reply_to.",
+    "Номер запиту зіставляє відповідь із запитом.",
+    "На direct reply-to підписуються без підтверджень і до запиту.",
+    "Клієнт RPC завжди чекає відповіді з тайм-аутом."
+   ],
+   "tasks": [
+    "Розділіть rpc_demo.py на два файли: сервер з basic_consume і клієнт з функцією call(). Запустіть два сервери й десять запитів підряд — подивіться, як вони діляться.",
+    "Зупиніть сервер і викличте call() з тайм-аутом 3 секунди. Переконайтесь, що запит лишився в черзі rpc і буде оброблений, щойно сервер підніметься."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ tutorial: RPC (Python)",
+     "url": "https://www.rabbitmq.com/tutorials/tutorial-six-python",
+     "note": "reply_to і correlation_id на pika",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Direct Reply-To",
+     "url": "https://www.rabbitmq.com/docs/direct-reply-to",
+     "note": "коли брати й обмеження"
+    }
+   ]
+  },
+  {
+   "id": "streams",
+   "title": "Стріми: журнал, який читають багато разів",
+   "topic": "stream-черга, зміщення x-stream-offset, зберігання, фільтр, чим стрім не черга завдань",
+   "goal": "Зберігати історію подій і читати її з будь-якого місця кількома сервісами",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 8: навіщо RPC-клієнту тайм-аут?",
+     "a": "Сервер може впасти, а відповідь — загубитись (direct reply-to її не зберігає). Без тайм-ауту клієнт чекатиме вічно."
+    },
+    {
+     "p": "Звичайна черга видаляє повідомлення, щойно його підтвердили: прочитав — і нема. **Стрім** (stream) — журнал, який дописується в кінець і **нічого не видаляє** під час читання. Кожен споживач сам каже, звідки читати: з початку, з потрібного номера чи лише нові. Це як стріми в Redis або Kafka ([Streams](https://www.rabbitmq.com/docs/streams))."
+    },
+    {
+     "table": [
+      [
+       "Черга (quorum)",
+       "Стрім"
+      ],
+      [
+       "прочитав — видалено",
+       "прочитане лишається"
+      ],
+      [
+       "одне повідомлення — одному воркеру",
+       "кожен читач бачить усе"
+      ],
+      [
+       "черга завдань",
+       "журнал подій, історія"
+      ]
+     ]
+    },
+    {
+     "h": "Читання зі зміщення"
+    },
+    {
+     "p": "Кожне повідомлення має **зміщення** (offset) — номер від 0. Звідки читати, задає аргумент споживача `x-stream-offset`:"
+    },
+    {
+     "table": [
+      [
+       "Значення",
+       "Звідки"
+      ],
+      [
+       "first",
+       "з найстарішого"
+      ],
+      [
+       "next (типово)",
+       "лише нові"
+      ],
+      [
+       "last",
+       "з останнього шматка (chunk)"
+      ],
+      [
+       "число",
+       "з цього зміщення"
+      ],
+      [
+       "'10m', '7D'",
+       "за останні 10 хв, 7 днів"
+      ]
+     ]
+    },
+    {
+     "code": "import pika\n\nconn = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = conn.channel()\nch.confirm_delivery()\nch.queue_declare('events', durable=True,\n    arguments={'x-queue-type': 'stream',\n               'x-max-age': '7D'})\nfor i in range(1, 6):\n    ch.basic_publish('', 'events', f'e{i}')\n\n\ndef read(offset):\n    ch.basic_qos(prefetch_count=100)\n    args = {'x-stream-offset': offset}\n    out = []\n    for m, props, body in ch.consume(\n            'events', arguments=args,\n            inactivity_timeout=1):\n        if m is None:\n            break\n        out.append(body.decode())\n        ch.basic_ack(m.delivery_tag)\n    ch.cancel()\n    return out\n\n\nprint('first:', *read('first'))\nprint('ще раз:', *read('first'))\nprint('з 3:', *read(3))\nprint('next:', *read('next'))",
+     "lang": "python",
+     "title": "stream.py",
+     "hl": [
+      8,
+      15,
+      16
+     ]
+    },
+    {
+     "code": "first: e1 e2 e3 e4 e5\nще раз: e1 e2 e3 e4 e5\nз 3: e4 e5\nnext:",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Друге читання з `first` знову віддало все — стрім нічого не видалив. `next` чекає лише нових, тож тут порожньо. `ch.cancel()` скасовує споживача генератора, щоб наступний `consume` на тому самому каналі стартував з нового зміщення."
+    },
+    {
+     "warn": "❌ читати стрім як звичайну чергу → ✅ через AMQP 0-9-1 стрім вимагає `basic_qos` (інакше `406 consumer prefetch count is not set`) і ручного ack; `auto_ack=True` і `basic_get` — `540 NOT_IMPLEMENTED`. Ack тут нічого не видаляє — лише дозволяє брокеру слати далі."
+    },
+    {
+     "h": "Де запам'ятати, докуди дочитав"
+    },
+    {
+     "p": "Номер поточного повідомлення приходить у заголовку `props.headers['x-stream-offset']`. Через AMQP 0-9-1 брокер не пам'ятає, докуди дочитав споживач, — зберігайте зміщення самі (у базі, разом з результатом обробки) і після перезапуску читайте з `збережене + 1`. Окремий протокол стрімів (порт 5552) вміє зберігати зміщення на брокері."
+    },
+    {
+     "h": "Зберігання і фільтр"
+    },
+    {
+     "p": "Стрім росте, поки не скінчиться диск, тому обмежте його: `x-max-age` (наприклад `'7D'`) або `x-max-length-bytes`. Видаляються цілі сегменти файлів — старі повідомлення зникають шматками, а не по одному, і хоча б один сегмент лишається завжди."
+    },
+    {
+     "p": "**Фільтр**: видавець ставить заголовок `x-stream-filter-value` (наприклад, `north`), споживач — аргумент `x-stream-filter`. Брокер відсіює шматки за фільтром Блума — ймовірнісним: зайве інколи проскакує, тож споживач перевіряє заголовок ще раз. SQL-фільтри стрімів з 4.2 є лише в AMQP 1.0."
+    },
+    {
+     "tip": "Стрім не замінює чергу завдань: тут кожен читач отримує **все**, а не «одне — одному з воркерів». Події «акт підписано» — у стрім, щоб їх читали аудит, звітність і пошта; завдання «надрукуй акт» — у quorum-чергу."
+    },
+    {
+     "recall": "Пригадайте: чому друге читання стріму з first повертає ті самі повідомлення, і що треба зберігати застосунку, щоб після рестарту не почати спочатку?",
+     "a": "Стрім не видаляє прочитане — ack лише керує потоком. Застосунок зберігає останнє оброблене x-stream-offset і читає з нього + 1."
+    }
+   ],
+   "examples": [
+    {
+     "w": "arguments={'x-queue-type': 'stream'}",
+     "note": "стрім, durable обов'язково"
+    },
+    {
+     "w": "ch.basic_qos(prefetch_count=100)",
+     "note": "без нього споживача не створить"
+    },
+    {
+     "w": "arguments={'x-stream-offset': 'first'}",
+     "note": "читати з початку"
+    },
+    {
+     "w": "arguments={'x-stream-offset': 1042}",
+     "note": "продовжити зі збереженого"
+    },
+    {
+     "w": "props.headers['x-stream-offset']",
+     "note": "номер повідомлення"
+    },
+    {
+     "w": "'x-max-age': '7D'",
+     "note": "тримати тиждень"
+    },
+    {
+     "w": "headers={'x-stream-filter-value': 'north'}",
+     "note": "мітка для фільтра"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Черга events — стрім.",
+     "code": "import pika\nimport pika.exceptions as E\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = c.channel()\nch.queue_declare('events', durable=True,\n    arguments={'x-queue-type': 'stream'})\ntry:\n    next(ch.consume('events'))\nexcept E.ChannelClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "406",
+      "540",
+      "404",
+      "541"
+     ],
+     "a": 0,
+     "why": "Стрім через AMQP 0-9-1 вимагає basic_qos — consumer prefetch count is not set."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Черга events — стрім.",
+     "code": "import pika\nimport pika.exceptions as E\n\nc = pika.BlockingConnection(\n    pika.ConnectionParameters('localhost'))\nch = c.channel()\nch.queue_declare('events', durable=True,\n    arguments={'x-queue-type': 'stream'})\ntry:\n    ch.basic_get('events')\nexcept E.ConnectionClosedByBroker as e:\n    print(e.reply_code)",
+     "lang": "python",
+     "options": [
+      "540",
+      "406",
+      "404",
+      "541"
+     ],
+     "a": 0,
+     "why": "basic_get стрім не підтримує — NOT_IMPLEMENTED 540, і брокер закриває все з'єднання, а не лише канал."
+    },
+    {
+     "type": "choice",
+     "q": "Споживач стріму не вказав x-stream-offset. Що він отримає?",
+     "options": [
+      "Лише нові повідомлення",
+      "Усе з початку",
+      "Останнє повідомлення",
+      "Помилку"
+     ],
+     "a": 0,
+     "why": "Типове зміщення — next."
+    },
+    {
+     "type": "choice",
+     "q": "Два сервіси читають той самий стрім з first. Скільки повідомлень отримає кожен, якщо в стрімі 5?",
+     "options": [
+      "По 5",
+      "Разом 5, порівну",
+      "Перший — 5, другий — 0",
+      "По 2–3"
+     ],
+     "a": 0,
+     "why": "Стрім не ділить повідомлення між читачами й не видаляє прочитане."
+    },
+    {
+     "type": "number",
+     "q": "У стрімі e1…e5 зі зміщеннями 0…4. Скільки повідомлень прочитає споживач з x-stream-offset = 3?",
+     "a": 2,
+     "tol": 0,
+     "why": "Зміщення 3 і 4 — e4 і e5."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить ack у стрімі?",
+     "options": [
+      "Дозволяє брокеру слати далі; нічого не видаляє",
+      "Видаляє повідомлення",
+      "Зберігає зміщення на брокері",
+      "Переносить повідомлення в DLX"
+     ],
+     "a": 0,
+     "why": "Стрім — незмінний журнал; ack лише керує потоком."
+    },
+    {
+     "type": "choice",
+     "q": "Воркер звітності перезапустився. Як через AMQP 0-9-1 продовжити з того місця, де зупинився?",
+     "options": [
+      "Зберігати останнє x-stream-offset у своїй базі й читати з нього + 1",
+      "Брокер пам'ятає сам",
+      "Читати з next",
+      "Читати з last"
+     ],
+     "a": 0,
+     "why": "Через AMQP 0-9-1 брокер зміщень споживачів не зберігає."
+    },
+    {
+     "type": "choice",
+     "q": "Чому споживач стріму з x-stream-filter все одно перевіряє фільтр сам?",
+     "options": [
+      "Фільтр Блума ймовірнісний — зайве інколи проскакує",
+      "Брокер не фільтрує зовсім",
+      "Через x-max-age",
+      "Фільтр працює лише з quorum"
+     ],
+     "a": 0,
+     "why": "Брокер відсіює цілі шматки; у шматку можуть бути й чужі повідомлення."
+    },
+    {
+     "type": "choice",
+     "q": "Завдання «надрукуй акт» мають ділитися між трьома воркерами. Що взяти?",
+     "options": [
+      "quorum-чергу",
+      "stream",
+      "три стріми",
+      "stream з фільтром"
+     ],
+     "a": 0,
+     "why": "У стрімі кожен читач отримує все — акт надрукувався б тричі."
+    },
+    {
+     "type": "choice",
+     "q": "Як обмежити розмір стріму?",
+     "options": [
+      "x-max-age або x-max-length-bytes",
+      "x-max-length",
+      "x-message-ttl",
+      "x-expires"
+     ],
+     "a": 0,
+     "why": "Видаляються цілі сегменти — за віком або обсягом."
+    },
+    {
+     "type": "gap",
+     "q": "Читати стрім з найстарішого повідомлення: x-stream-offset = ◻.",
+     "a": [
+      "first"
+     ],
+     "why": "first — з початку, next — лише нові, last — з останнього шматка."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 8: що надрукує клієнт, який підписався на amq.rabbitmq.reply-to без auto_ack?",
+     "options": [
+      "406 — reply consumer cannot acknowledge",
+      "ok",
+      "540",
+      "404"
+     ],
+     "a": 0,
+     "why": "Direct reply-to приймає лише auto_ack=True."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 8: куди сервер RPC публікує відповідь?",
+     "options": [
+      "У '' з ключем reply_to",
+      "У чергу rpc",
+      "У стрім",
+      "У DLX"
+     ],
+     "a": 0,
+     "why": "reply_to — ім'я черги чи псевдочерги, а '' кладе за ім'ям ключа."
+    }
+   ],
+   "typing": [
+    "Стрім дописується в кінець і не видаляє прочитане.",
+    "Кожен читач стріму отримує всі повідомлення.",
+    "Зміщення каже, з якого місця читати стрім.",
+    "Через AMQP 0-9-1 стріму потрібен prefetch і ручний ack.",
+    "Завдання для воркерів кладуть у чергу, а події — у стрім."
+   ],
+   "tasks": [
+    "Створіть стрім events з x-max-age 7D, надішліть десять подій і прочитайте їх двома скриптами з first, а третім — з 5.",
+    "Напишіть читача, який зберігає останнє x-stream-offset у файл і після перезапуску продовжує з наступного. Перевірте, що жодна подія не обробилась двічі."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ: Streams",
+     "url": "https://www.rabbitmq.com/docs/streams",
+     "note": "зміщення, зберігання, обмеження AMQP 0-9-1",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ 4.2.0 release notes",
+     "url": "https://github.com/rabbitmq/rabbitmq-server/releases/tag/v4.2.0",
+     "note": "SQL-фільтри стрімів для AMQP 1.0"
+    }
+   ]
+  },
+  {
+   "id": "app-reliability",
+   "title": "Надійність у застосунку: дублі, база, з'єднання",
+   "topic": "ідемпотентний споживач, відправка після коміту й outbox, heartbeat і довгі завдання, перепідключення, потоки",
+   "goal": "Зв'язати брокер з базою так, щоб подія не губилась і не оброблялась двічі",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 9: що треба зберігати застосунку, щоб після рестарту продовжити читати стрім, а не почати спочатку?",
+     "a": "Останнє оброблене x-stream-offset — у своїй базі, разом з результатом обробки; читати з нього + 1."
+    },
+    {
+     "p": "З ручним ack і підтвердженнями публікації брокер гарантує доставку **щонайменше один раз** (at-least-once), а не «рівно один». Дубль приходить, коли воркер упав до ack, коли спрацював тайм-аут споживача (тема 2), коли видавець повторив публікацію, не дочекавшись підтвердження, чи RPC-клієнт повторив запит після тайм-ауту (тема 8). Тому споживач має бути **ідемпотентним**: повторна обробка нічого не змінює."
+    },
+    {
+     "h": "Ідемпотентний споживач"
+    },
+    {
+     "p": "Видавець дає кожній події незмінний `message_id`. Споживач у **тій самій транзакції**, що й робота, записує цей id у таблицю з унікальним ключем. Не записався — отже, уже оброблено: пропускаємо, але ack робимо."
+    },
+    {
+     "code": "import sqlite3\nfrom pika import BasicProperties\nfrom rmq import channel\n\ndb = sqlite3.connect(':memory:')\ndb.execute('CREATE TABLE done (id TEXT '\n           'PRIMARY KEY)')\nSQL = ('INSERT OR IGNORE INTO done '\n       'VALUES (?)')\nch = channel()\nprops = BasicProperties(message_id='act-7')\nfor _ in range(2):  # видавець повторив\n    ch.basic_publish('', 'acts', 'акт 7',\n                     properties=props)\n\n\ndef handle(props, body):\n    with db:  # одна транзакція\n        key = (props.message_id,)\n        cur = db.execute(SQL, key)\n        if cur.rowcount == 0:\n            return 'дубль, пропускаю'\n        # ... друк і записи в базу ...\n        return 'надруковано'\n\n\nfor m, props, body in ch.consume(\n        'acts', inactivity_timeout=1):\n    if m is None:\n        break\n    print(handle(props, body))\n    ch.basic_ack(m.delivery_tag)",
+     "lang": "python",
+     "title": "idempotent.py",
+     "hl": [
+      11,
+      20,
+      21
+     ]
+    },
+    {
+     "code": "надруковано\nдубль, пропускаю",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "note": "У PostgreSQL те саме — `INSERT … ON CONFLICT DO NOTHING` і перевірка кількості вставлених рядків. Таблицю `done` періодично чистять від записів, старших за кілька днів. Таблиця `done` захищає лише записи в базі: друк, лист чи HTTP-запит транзакція не відкотить. Упав воркер після друку, але до коміту — акт надрукується вдруге. Такі дії роблять після коміту або теж ідемпотентними на боці отримувача."
+    },
+    {
+     "h": "База і брокер: що першим"
+    },
+    {
+     "p": "Зберегти акт у базі й надіслати подію «акт підписано» атомарно не можна: це дві різні системи. Від порядку залежить, що піде не так, коли процес упаде посередині."
+    },
+    {
+     "table": [
+      [
+       "Коли надсилати",
+       "Що, якщо впали"
+      ],
+      [
+       "до коміту",
+       "подія про те, чого немає"
+      ],
+      [
+       "після коміту",
+       "подію загублено"
+      ],
+      [
+       "outbox",
+       "вийде пізніше, можливий дубль"
+      ]
+     ]
+    },
+    {
+     "p": "**До коміту** — найгірше: транзакція відкотилась, а воркер уже друкує акт, якого нема, або читає базу раніше, ніж запис видно. **Після коміту** — у Odoo це `cr.postcommit`, у SQLAlchemy — подія `after_commit`: просто й часто достатньо, але подія загубиться, якщо процес упаде одразу після коміту або брокер буде недоступний. Виняток з postcommit вилітає вже після коміту — обгортайте публікацію в try/except з логуванням."
+    },
+    {
+     "code": "def action_sign(self):\n    self.write({'state': 'signed'})\n    ids = self.ids\n\n    @self.env.cr.postcommit.add\n    def publish():\n        send_event('act.signed', ids)",
+     "lang": "python",
+     "title": "Odoo: після коміту",
+     "hl": [
+      5
+     ]
+    },
+    {
+     "p": "**Transactional outbox** (вихідна таблиця) — подію пишуть у таблицю `outbox` **в тій самій транзакції**, що й акт. Окремий процес-ретранслятор читає невідправлені рядки, публікує з підтвердженнями й позначає відправленими. Подія не загубиться ніколи, зате може вийти двічі (упав між публікацією й позначкою) — тому outbox завжди в парі з ідемпотентним споживачем."
+    },
+    {
+     "code": "for id_, key, body in pending(db):\n    ch.basic_publish(\n        'events', key, body, mandatory=True,\n        properties=BasicProperties(\n            message_id=f'outbox-{id_}'))\n    mark_sent(db, id_)",
+     "lang": "python",
+     "title": "ретранслятор outbox",
+     "hl": [
+      5
+     ]
+    },
+    {
+     "h": "Довгі завдання і heartbeat"
+    },
+    {
+     "p": "**Heartbeat** — сигнали «я живий», якими клієнт і брокер обмінюються раз на пів тайм-ауту (типовий тайм-аут брокера 60 с — сигнал приблизно раз на 30 с). `BlockingConnection` шле їх лише тоді, коли pika отримує керування. Колбек, що рахує звіт довше за кілька інтервалів, блокує pika — брокер вважає клієнта мертвим і рве з'єднання."
+    },
+    {
+     "code": "import time\nimport pika\n\nparams = pika.ConnectionParameters(\n    'localhost', heartbeat=1)\nconn = pika.BlockingConnection(params)\nch = conn.channel()\nch.queue_declare('acts', durable=True,\n    arguments={'x-queue-type': 'quorum'})\nch.basic_publish('', 'acts', 'довгий звіт')\nfor m, props, body in ch.consume('acts'):\n    time.sleep(5)  # «рахуємо звіт»\n    try:\n        ch.basic_ack(m.delivery_tag)\n    except pika.exceptions.StreamLostError:\n        print(\"з'єднання вже розірвано\")\n    break",
+     "lang": "python",
+     "title": "пастка heartbeat",
+     "hl": [
+      12,
+      15
+     ]
+    },
+    {
+     "code": "з'єднання вже розірвано",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Звіт пораховано, а ack не дійшов — повідомлення повернеться й звіт рахуватиметься знову. Ліки: довгу роботу — в окремий потік, а ack — назад у потік pika через `add_callback_threadsafe`. Перевірено: з heartbeat 1 с і роботою 5 с з'єднання вижило, ack пройшов."
+    },
+    {
+     "code": "def work(tag, body):\n    build_report(body)  # довго\n    ack = partial(ch.basic_ack, tag)\n    conn.add_callback_threadsafe(ack)\n\n\ndef on_msg(ch, method, props, body):\n    tag = method.delivery_tag\n    t = threading.Thread(target=work,\n                         args=(tag, body))\n    t.start()",
+     "lang": "python",
+     "title": "робота в потоці",
+     "hl": [
+      4
+     ]
+    },
+    {
+     "warn": "❌ одне з'єднання pika на кілька потоків → ✅ pika не потокобезпечна: з чужого потоку можна лише `add_callback_threadsafe`. Кожному потоку, що сам публікує чи читає, — своє з'єднання."
+    },
+    {
+     "h": "Перепідключення"
+    },
+    {
+     "p": "`BlockingConnection` сам не перепідключається. Брокер перезапустили — `ConnectionClosedByBroker` (320 CONNECTION_FORCED), мережа впала — `StreamLostError`; обидва — підкласи `AMQPConnectionError`. Їх ловлять у зовнішньому циклі воркера (`E` — це `import pika.exceptions as E`) й підключаються знову з паузою. А от `ChannelClosedByBroker` — це помилка в коді (406, 404): тут перепідключення не допоможе."
+    },
+    {
+     "code": "while True:\n    try:\n        ch = channel()\n        ch.basic_qos(prefetch_count=1)\n        ch.basic_consume('acts', on_msg)\n        ch.start_consuming()\n    except E.AMQPConnectionError:\n        time.sleep(5)  # брокер повернеться",
+     "lang": "python",
+     "title": "воркер з перепідключенням",
+     "hl": [
+      7
+     ]
+    },
+    {
+     "recall": "Пригадайте: чому outbox завжди йде в парі з ідемпотентним споживачем і чим він кращий за відправку в cr.postcommit?",
+     "a": "Ретранслятор може впасти між публікацією й позначкою «відправлено» — подія вийде двічі. Зате подія записана в тій самій транзакції, що й дані, і не загубиться, а з postcommit вона пропаде, якщо процес упаде одразу після коміту чи брокер буде недоступний."
+    }
+   ],
+   "examples": [
+    {
+     "w": "BasicProperties(message_id='act-7')",
+     "note": "стійкий id події"
+    },
+    {
+     "w": "INSERT … ON CONFLICT DO NOTHING",
+     "note": "перевірка дубля в тій самій транзакції"
+    },
+    {
+     "w": "self.env.cr.postcommit.add(publish)",
+     "note": "Odoo: надіслати після коміту"
+    },
+    {
+     "w": "outbox + ретранслятор",
+     "note": "подія не губиться, можливий дубль"
+    },
+    {
+     "w": "conn.add_callback_threadsafe(ack)",
+     "note": "ack з робочого потоку"
+    },
+    {
+     "w": "except pika.exceptions.AMQPConnectionError:",
+     "note": "перепідключитись"
+    },
+    {
+     "w": "ConnectionParameters(heartbeat=60)",
+     "note": "тайм-аут heartbeat"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Те саме повідомлення прийшло тричі.",
+     "code": "import sqlite3\n\ndb = sqlite3.connect(':memory:')\ndb.execute('CREATE TABLE done (id TEXT '\n           'PRIMARY KEY)')\nSQL = ('INSERT OR IGNORE INTO done '\n       'VALUES (?)')\nprinted = 0\nfor _ in range(3):\n    with db:\n        cur = db.execute(SQL, ('act-7',))\n        if cur.rowcount:\n            printed += 1\nprint(printed)",
+     "lang": "python",
+     "options": [
+      "1",
+      "3",
+      "0",
+      "2"
+     ],
+     "a": 0,
+     "why": "Повторна вставка того самого id ігнорується — робота виконується один раз."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import pika.exceptions as E\n\nprint(issubclass(E.StreamLostError,\n                 E.AMQPConnectionError),\n      issubclass(E.ChannelClosedByBroker,\n                 E.AMQPConnectionError))",
+     "lang": "python",
+     "options": [
+      "True False",
+      "True True",
+      "False True",
+      "False False"
+     ],
+     "a": 0,
+     "why": "Обрив з'єднання — привід перепідключитись; закритий брокером канал — помилка в коді."
+    },
+    {
+     "type": "choice",
+     "q": "Що з переліченого НЕ призводить до повторної доставки?",
+     "options": [
+      "prefetch_count=1",
+      "Воркер упав до ack",
+      "Спрацював тайм-аут споживача quorum",
+      "Видавець повторив публікацію без підтвердження"
+     ],
+     "a": 0,
+     "why": "prefetch лише обмежує невизнані повідомлення; решта — типові джерела дублів."
+    },
+    {
+     "type": "choice",
+     "q": "Подію «акт підписано» надіслали до коміту, а транзакція відкотилась. Що побачить воркер?",
+     "options": [
+      "Подію про акт, якого в базі немає",
+      "Нічого — брокер відкотить подію",
+      "Помилку від брокера",
+      "Подію з прапорцем redelivered"
+     ],
+     "a": 0,
+     "why": "Брокер про транзакції бази нічого не знає."
+    },
+    {
+     "type": "choice",
+     "q": "Подію шлють у cr.postcommit, і процес упав одразу після коміту. Що з подією?",
+     "options": [
+      "Загублена",
+      "Вийде після рестарту",
+      "Вийде двічі",
+      "Лежить у DLX"
+     ],
+     "a": 0,
+     "why": "Коміт пройшов, а до публікації справа не дійшла — і ніде цього не записано."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо transactional outbox?",
+     "options": [
+      "Подія записується в тій самій транзакції, що й дані, і не губиться",
+      "Щоб не було дублів",
+      "Щоб не потрібен був брокер",
+      "Щоб пришвидшити коміт"
+     ],
+     "a": 0,
+     "why": "Дублі якраз можливі — тому outbox в парі з ідемпотентним споживачем."
+    },
+    {
+     "type": "choice",
+     "q": "Колбек BlockingConnection рахує звіт 10 хвилин, heartbeat 60 с. Що станеться?",
+     "options": [
+      "Брокер розірве з'єднання, ack не пройде",
+      "Усе гаразд",
+      "Брокер подовжить heartbeat",
+      "Повідомлення піде в DLX"
+     ],
+     "a": 0,
+     "why": "Поки колбек працює, pika не шле heartbeat; брокер вважає клієнта мертвим."
+    },
+    {
+     "type": "choice",
+     "q": "Як правильно підтвердити повідомлення з робочого потоку pika?",
+     "options": [
+      "conn.add_callback_threadsafe(ack)",
+      "Викликати ch.basic_ack у потоці напряму",
+      "Відкрити нове з'єднання й там ack",
+      "Не підтверджувати — auto_ack"
+     ],
+     "a": 0,
+     "why": "pika не потокобезпечна; delivery_tag дійсний лише на своєму каналі."
+    },
+    {
+     "type": "choice",
+     "q": "Воркер ловить AMQPConnectionError і перепідключається. Що буде в разі ChannelClosedByBroker 406?",
+     "options": [
+      "Він не перехопиться — і це правильно: помилка в коді",
+      "Воркер перепідключиться",
+      "Pika виправить параметри",
+      "Повідомлення піде в DLX"
+     ],
+     "a": 0,
+     "why": "406 — невідповідні параметри чи подвійний ack; перепідключення повторить ту саму помилку."
+    },
+    {
+     "type": "order",
+     "q": "Transactional outbox",
+     "items": [
+      "Транзакція: акт і рядок outbox",
+      "Коміт",
+      "Ретранслятор публікує з підтвердженням",
+      "Позначає рядок відправленим",
+      "Споживач перевіряє message_id на дубль"
+     ],
+     "why": "Подія не губиться завдяки спільній транзакції, а дубль відсіює споживач."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 9: що робить ack у стрімі?",
+     "options": [
+      "Дозволяє брокеру слати далі; нічого не видаляє",
+      "Видаляє повідомлення",
+      "Зберігає зміщення",
+      "Переносить у DLX"
+     ],
+     "a": 0,
+     "why": "Стрім — незмінний журнал."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 9: завдання мають ділитися між воркерами. Стрім чи quorum-черга?",
+     "options": [
+      "quorum-черга",
+      "стрім",
+      "стрім з фільтром",
+      "будь-що"
+     ],
+     "a": 0,
+     "why": "У стрімі кожен читач отримує все."
+    }
+   ],
+   "typing": [
+    "Брокер доставляє щонайменше один раз, тому дублі неминучі.",
+    "Ідемпотентний споживач перевіряє id події в тій самій транзакції.",
+    "Подію до коміту надсилати не можна.",
+    "Outbox пише подію в тій самій транзакції, що й дані.",
+    "Довгу роботу виносять у потік, щоб не зупинити heartbeat."
+   ],
+   "tasks": [
+    "Додайте до свого воркера таблицю оброблених message_id і надішліть ту саму подію двічі. Переконайтесь, що робота виконалась один раз, а обидва повідомлення підтверджені.",
+    "Запустіть воркер з циклом перепідключення, перезапустіть контейнер брокера (docker restart rabbit) і подивіться, як воркер відновився."
+   ],
+   "media": [
+    {
+     "title": "RabbitMQ: Reliability Guide",
+     "url": "https://www.rabbitmq.com/docs/reliability",
+     "note": "дублі, підтвердження, перепідключення",
+     "main": true
+    },
+    {
+     "title": "RabbitMQ: Detecting Dead TCP Connections with Heartbeats",
+     "url": "https://www.rabbitmq.com/docs/heartbeats",
+     "note": "як працює heartbeat"
+    },
+    {
+     "title": "pika: BlockingConnection",
+     "url": "https://pika.readthedocs.io/en/stable/modules/adapters/blocking.html",
+     "note": "add_callback_threadsafe"
+    },
+    {
+     "title": "Transactional outbox (microservices.io)",
+     "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+     "note": "шаблон outbox"
+    }
+   ]
+  },
+  {
+   "id": "aio-pika-fastapi",
+   "title": "aio-pika і FastAPI",
+   "topic": "асинхронний клієнт, connect_robust, message.process(), повернені повідомлення, публікація з ендпоінта через lifespan",
+   "goal": "Ставити завдання в RabbitMQ з FastAPI і писати асинхронний воркер без пасток aio-pika",
+   "theory": [
+    {
+     "recall": "Пригадайте з теми 10: чому довгий колбек BlockingConnection рве з'єднання?",
+     "a": "Поки колбек працює, pika не отримує керування й не шле heartbeat; брокер вважає клієнта мертвим і закриває з'єднання — ack уже не пройде."
+    },
+    {
+     "p": "`BlockingConnection` з pika блокує потік, поки чекає брокера. У FastAPI `async def`-ендпоінти крутяться в одному циклі подій asyncio — заблокуєте його, і зупиняться всі такі запити. Звичайні `def` FastAPI виконує в пулі потоків, але тоді одне з'єднання pika ділили б кілька потоків. Для async-коду беруть **aio-pika** (курс перевірено на 10.2): ті самі черги, обмінники й підтвердження, але через `await` ([aio-pika](https://docs.aio-pika.com/))."
+    },
+    {
+     "table": [
+      [
+       "pika",
+       "aio-pika"
+      ],
+      [
+       "BlockingConnection",
+       "connect_robust"
+      ],
+      [
+       "basic_qos",
+       "set_qos"
+      ],
+      [
+       "basic_publish",
+       "default_exchange.publish"
+      ],
+      [
+       "basic_ack, basic_reject",
+       "msg.process()"
+      ]
+     ]
+    },
+    {
+     "h": "Асинхронний воркер"
+    },
+    {
+     "code": "import asyncio\nfrom contextlib import suppress\n\nfrom aio_pika import Message, connect_robust\n\nURL = 'amqp://guest:guest@localhost/'\nQUORUM = {'x-queue-type': 'quorum'}\n\n\nasync def handle(msg):\n    async with msg.process():\n        print('друк:', msg.body.decode())\n\n\nasync def main():\n    conn = await connect_robust(URL)\n    ch = await conn.channel()\n    await ch.set_qos(prefetch_count=1)\n    q = await ch.declare_queue(\n        'acts', durable=True,\n        arguments=QUORUM)\n    ex = ch.default_exchange\n    msg = Message('акт 7'.encode())\n    await ex.publish(msg, 'acts')\n    async with q.iterator(timeout=1) as it:\n        with suppress(TimeoutError):\n            async for m in it:\n                await handle(m)\n    await conn.close()\n\n\nasyncio.run(main())",
+     "lang": "python",
+     "title": "worker.py",
+     "hl": [
+      11,
+      16
+     ]
+    },
+    {
+     "code": "друк: акт 7",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`connect_robust` сам перепідключається після розриву й відновлює канали, черги, прив'язки й споживачів. `conn.channel()` в aio-pika типово вмикає підтвердження публікації. Справжній воркер не чекає тиші, а слухає вічно: `await q.consume(handle)` і `await asyncio.Future()`."
+    },
+    {
+     "h": "Пастки msg.process()"
+    },
+    {
+     "table": [
+      [
+       "Блок завершився",
+       "Що робить process()"
+      ],
+      [
+       "без винятку",
+       "ack"
+      ],
+      [
+       "з винятком",
+       "reject без повернення"
+      ],
+      [
+       "з винятком, requeue=True",
+       "reject з поверненням, лічильник +1"
+      ]
+     ]
+    },
+    {
+     "warn": "❌ `async with msg.process():` і виняток у разі тимчасової помилки → ✅ типово process() **відхиляє без повернення**: є DLX — повідомлення в мертвих листах з причиною `rejected`, немає — воно просто зникло. Перевірено обидва випадки. Для тимчасових помилок — `msg.process(requeue=True)` (це reject: лічильник доставок росте, а якщо черзі задано `x-delayed-retry-type`, спрацює й відкладений повтор)."
+    },
+    {
+     "warn": "❌ покладатись на `mandatory` → ✅ в aio-pika `publish` типово йде з `mandatory=True`, але повідомлення без черги просто повертається результатом — винятку немає. Щоб отримати `aio_pika.exceptions.PublishError` (`312 NO_ROUTE`), відкрийте канал з `on_return_raises=True`."
+    },
+    {
+     "note": "`aio_pika.Message` типово має `delivery_mode` 1 (звичайне). Для самої quorum-черги це неважливо, для класичної — `delivery_mode=aio_pika.DeliveryMode.PERSISTENT` (і для quorum, якщо її мертві листи йдуть у класичну чергу). Оголошення `declare_queue('hello')` з типовими параметрами на 4.4 дає ту саму 541 з теми 1 — robust-з'єднання впаде й підніметься знову через кілька секунд."
+    },
+    {
+     "h": "Публікація з FastAPI"
+    },
+    {
+     "p": "З'єднання відкривають один раз на процес у **lifespan** — функції, яку FastAPI виконує на старті (до `yield`) і під час зупинки (після). Обмінник (`ch.default_exchange`) кладуть в `app.state`, ендпоінт лише публікує й одразу відповідає **202 Accepted** — «прийнято до роботи»."
+    },
+    {
+     "code": "from contextlib import asynccontextmanager\n\nfrom aio_pika import Message, connect_robust\nfrom fastapi import FastAPI\n\nURL = 'amqp://guest:guest@localhost/'\nQUORUM = {'x-queue-type': 'quorum'}\n\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    conn = await connect_robust(URL)\n    ch = await conn.channel(\n        on_return_raises=True)\n    await ch.declare_queue(\n        'acts', durable=True,\n        arguments=QUORUM)\n    app.state.ex = ch.default_exchange\n    yield\n    await conn.close()\n\n\napp = FastAPI(lifespan=lifespan)\n\n\n@app.post('/acts/{act_id}/print',\n          status_code=202)\nasync def print_act(act_id: int):\n    msg = Message(\n        str(act_id).encode(),\n        message_id=f'print-{act_id}')\n    await app.state.ex.publish(msg, 'acts')\n    return {'queued': act_id}",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      12,
+      14,
+      32
+     ]
+    },
+    {
+     "code": "from fastapi.testclient import TestClient\nfrom main import app\n\nwith TestClient(app) as client:\n    r = client.post('/acts/7/print')\n    print(r.status_code, r.json())",
+     "lang": "python",
+     "title": "test_main.py"
+    },
+    {
+     "code": "202 {'queued': 7}",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`TestClient` у блоці `with` запускає lifespan — без нього `app.state.ex` не існувало б. `message_id` — для ідемпотентного воркера з теми 10. Якщо подія має відповідати запису в базі, публікуйте через outbox, а не прямо з ендпоінта: інакше коміт і публікація розійдуться."
+    },
+    {
+     "tip": "Воркер — окремий процес (`python worker.py`), не всередині вебзастосунку: його масштабують і перезапускають незалежно від API."
+    },
+    {
+     "recall": "Пригадайте: що зробить async with msg.process(), якщо всередині вилетить виняток, і як зробити, щоб тимчасова помилка повторювалась?",
+     "a": "Відхилить без повернення: у DLX, якщо він налаштований, інакше повідомлення пропаде. Для повтору — msg.process(requeue=True): reject з поверненням, лічильник доставок +1."
+    }
+   ],
+   "examples": [
+    {
+     "w": "await connect_robust(URL)",
+     "note": "перепідключається сам"
+    },
+    {
+     "w": "await conn.channel(on_return_raises=True)",
+     "note": "повідомлення без черги — PublishError"
+    },
+    {
+     "w": "await ch.default_exchange.publish(msg, 'acts')",
+     "note": "у чергу acts"
+    },
+    {
+     "w": "async with msg.process(requeue=True):",
+     "note": "виняток — повторити"
+    },
+    {
+     "w": "await q.consume(handle)",
+     "note": "воркер слухає вічно"
+    },
+    {
+     "w": "@asynccontextmanager async def lifespan(app)",
+     "note": "з'єднання на старті, закрити при зупинці"
+    },
+    {
+     "w": "status_code=202",
+     "note": "прийнято до роботи"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код? DLX у черги немає.",
+     "code": "import asyncio\nfrom aio_pika import Message, connect_robust\n\nURL = 'amqp://guest:guest@localhost/'\nQ = {'x-queue-type': 'quorum'}\n\n\nasync def main():\n    conn = await connect_robust(URL)\n    ch = await conn.channel()\n    q = await ch.declare_queue(\n        'acts', durable=True, arguments=Q)\n    ex = ch.default_exchange\n    await ex.publish(Message(b'x'), 'acts')\n    m = await q.get(timeout=5)\n    try:\n        async with m.process():\n            raise ValueError\n    except ValueError:\n        pass\n    q = await ch.declare_queue(\n        'acts', durable=True, arguments=Q)\n    res = q.declaration_result\n    print(res.message_count)\n    await conn.close()\n\nasyncio.run(main())",
+     "lang": "python",
+     "options": [
+      "0",
+      "1"
+     ],
+     "a": 0,
+     "why": "process() типово відхиляє без повернення — без DLX повідомлення зникає."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Черги nope немає.",
+     "code": "import asyncio\nfrom aio_pika import Message, connect_robust\nfrom aio_pika.exceptions import PublishError\n\nURL = 'amqp://guest:guest@localhost/'\n\n\nasync def main():\n    conn = await connect_robust(URL)\n    ch = await conn.channel()\n    try:\n        await ch.default_exchange.publish(\n            Message(b'x'), 'nope')\n        print('ok')\n    except PublishError:\n        print('PublishError')\n    await conn.close()\n\nasyncio.run(main())",
+     "lang": "python",
+     "options": [
+      "ok",
+      "PublishError"
+     ],
+     "a": 0,
+     "why": "Без on_return_raises=True повернене повідомлення не стає винятком."
+    },
+    {
+     "type": "choice",
+     "q": "Як змусити aio-pika кидати виняток на повідомлення, для якого немає черги?",
+     "options": [
+      "conn.channel(on_return_raises=True)",
+      "publish(mandatory=True)",
+      "connect_robust(strict=True)",
+      "set_qos(prefetch_count=0)"
+     ],
+     "a": 0,
+     "why": "mandatory і так типово True; бракує саме on_return_raises."
+    },
+    {
+     "type": "choice",
+     "q": "Принтер тимчасово зайнятий, обробник кидає виняток. Яким process() скористатися, щоб повідомлення повторилось і лічильник доставок зріс?",
+     "options": [
+      "msg.process(requeue=True)",
+      "msg.process()",
+      "msg.process(ignore_processed=True)",
+      "msg.ack() у finally"
+     ],
+     "a": 0,
+     "why": "requeue=True — reject з поверненням; без нього — reject без повернення."
+    },
+    {
+     "type": "choice",
+     "q": "Чому в async-ендпоінті FastAPI не беруть pika BlockingConnection?",
+     "options": [
+      "Вона блокує цикл подій — стануть усі запити",
+      "Вона не вміє quorum",
+      "Вона не вміє підтвердження",
+      "FastAPI забороняє pika"
+     ],
+     "a": 0,
+     "why": "Блокувальний виклик у корутині зупиняє весь event loop процесу."
+    },
+    {
+     "type": "choice",
+     "q": "Де у FastAPI відкривати з'єднання з RabbitMQ?",
+     "options": [
+      "У lifespan — один раз на процес",
+      "У кожному ендпоінті",
+      "На рівні модуля під час імпорту, без закриття",
+      "У воркері, а API бере його через HTTP"
+     ],
+     "a": 0,
+     "why": "Lifespan відкриває на старті й закриває під час зупинки; з'єднання дороге."
+    },
+    {
+     "type": "choice",
+     "q": "Що відновлює connect_robust після розриву?",
+     "options": [
+      "З'єднання, канали, черги, прив'язки й споживачів",
+      "Лише з'єднання",
+      "Повідомлення, що були в дорозі",
+      "Нічого — це просто псевдонім connect"
+     ],
+     "a": 0,
+     "why": "Robust-об'єкти пам'ятають, що було оголошено, і повторюють це після перепідключення."
+    },
+    {
+     "type": "choice",
+     "q": "Який delivery_mode має aio_pika.Message без параметрів?",
+     "options": [
+      "1 — звичайне",
+      "2 — persistent",
+      "0",
+      "Залежить від черги"
+     ],
+     "a": 0,
+     "why": "Для класичної черги задайте DeliveryMode.PERSISTENT; quorum зберігає все."
+    },
+    {
+     "type": "choice",
+     "q": "Що означає відповідь 202 Accepted з ендпоінта, що поставив друк у чергу?",
+     "options": [
+      "Завдання прийнято, але ще не виконано",
+      "Акт надруковано",
+      "Помилка, повторіть",
+      "Ресурс створено"
+     ],
+     "a": 0,
+     "why": "Роботу виконає воркер пізніше; 201 — коли ресурс уже створено."
+    },
+    {
+     "type": "order",
+     "q": "Життя FastAPI-застосунку з aio-pika",
+     "items": [
+      "lifespan: connect_robust",
+      "lifespan: канал і declare_queue",
+      "yield — застосунок приймає запити",
+      "Ендпоінт: publish і 202",
+      "Зупинка: conn.close()"
+     ],
+     "why": "Усе до yield — на старті, після — під час зупинки."
+    },
+    {
+     "type": "choice",
+     "q": "Чи вмикає aio-pika підтвердження публікації на новому каналі?",
+     "options": [
+      "Так, типово publisher_confirms=True",
+      "Ні, треба confirm_delivery()",
+      "Лише для quorum",
+      "Лише з on_return_raises"
+     ],
+     "a": 0,
+     "why": "publish чекає підтвердження брокера, якщо канал не відкрито з publisher_confirms=False."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 10: що робить ідемпотентний споживач з повідомленням, чий message_id уже оброблено?",
+     "options": [
+      "Пропускає роботу, але робить ack",
+      "Відхиляє в DLX",
+      "Обробляє знову",
+      "Не робить ack"
+     ],
+     "a": 0,
+     "why": "Дубль — не помилка: його треба прибрати з черги, нічого не змінюючи."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з теми 10: що ловити в циклі перепідключення pika-воркера?",
+     "options": [
+      "AMQPConnectionError",
+      "ChannelClosedByBroker",
+      "Exception",
+      "KeyboardInterrupt"
+     ],
+     "a": 0,
+     "why": "Обрив з'єднання — привід перепідключитись; закритий канал — помилка в коді."
+    }
+   ],
+   "typing": [
+    "У FastAPI з'єднання з брокером відкривають у lifespan.",
+    "connect_robust сам перепідключається й відновлює черги.",
+    "process без requeue відхиляє повідомлення без повернення.",
+    "Без on_return_raises повідомлення без черги не дає винятку.",
+    "Ендпоінт ставить завдання в чергу й відповідає 202."
+   ],
+   "tasks": [
+    "Зробіть FastAPI-застосунок з ендпоінтом POST /acts/{id}/print, що ставить завдання в чергу, і окремий worker.py на aio-pika з q.consume(handle). Запустіть два воркери й надішліть десять запитів.",
+    "Змусьте handle кидати виняток для акта 13. Подивіться, куди піде повідомлення з process() і з process(requeue=True), коли в черги є DLX і x-delivery-limit 3."
+   ],
+   "media": [
+    {
+     "title": "aio-pika: Quick start",
+     "url": "https://docs.aio-pika.com/quick-start.html",
+     "note": "з'єднання, публікація, споживач",
+     "main": true
+    },
+    {
+     "title": "aio-pika: документація",
+     "url": "https://docs.aio-pika.com/",
+     "note": "connect_robust, process(), on_return_raises"
+    },
+    {
+     "title": "FastAPI: Lifespan Events",
+     "url": "https://fastapi.tiangolo.com/advanced/events/",
+     "note": "ресурси на старті й при зупинці"
+    }
+   ]
+  }
+ ]
+}
