@@ -1,5 +1,5 @@
 // Блок коду в курсах: підсвітка без бібліотек — коментарі, рядки, ключові слова, числа, декоратори.
-// Мови: python, js, json, bash, sql, console (термінал: «$ команда» і вивід), text (без підсвітки).
+// Мови: python, js, json, bash, sql, console (термінал: «$ команда» чи «> команда» REPL і вивід), text (без підсвітки).
 
 export const CODE_LANGS = ['python', 'js', 'json', 'bash', 'sql', 'console', 'text'];
 
@@ -40,7 +40,9 @@ function tokens(code, lang) {
   if (lang === 'console') {
     return code.split('\n').flatMap((line, i) => {
       const nl = i ? [['\n', '']] : [];
-      return line.startsWith('$ ') ? [...nl, ['$ ', 'prompt'], [line.slice(2), 'cmd']] : [...nl, [line, '']];
+      // «$ » — оболонка, «> » — REPL (redis-cli)
+      const p = line.slice(0, 2);
+      return p === '$ ' || p === '> ' ? [...nl, [p, 'prompt'], [line.slice(2), 'cmd']] : [...nl, [line, '']];
     });
   }
   const r = RULES[lang];

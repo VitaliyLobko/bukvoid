@@ -1,0 +1,4020 @@
+{
+ "format": "bukvoid-course",
+ "v": 1,
+ "id": "redis",
+ "version": 2,
+ "title": "Redis для розробника",
+ "short": "Redis",
+ "subtitle": "Ключі й TTL, хеші, списки, множини, кеш з інвалідацією, лічильники й обмеження частоти, блокування, транзакції й Lua, черги, Pub/Sub і Streams, пам'ять і збереження, redis-py та FastAPI — на прикладі API «Складу спорядження». Redis 8",
+ "lang": "uk",
+ "pass": 0.8,
+ "icon": "code",
+ "group": "Програмування й дизайн",
+ "author": "Буквоїд",
+ "source": {
+  "title": "Документація Redis",
+  "url": "https://redis.io/docs/latest/develop/data-types/"
+ },
+ "reference": [
+  {
+   "id": "glossary",
+   "title": "Словник",
+   "theory": [
+    {
+     "p": "Терміни курсу коротко. Подробиці — у темі, де термін з'явився."
+    },
+    {
+     "table": [
+      [
+       "Термін",
+       "Що це"
+      ],
+      [
+       "TTL",
+       "скільки секунд ключу лишилось жити"
+      ],
+      [
+       "NX / XX",
+       "записати, якщо ключа немає / є"
+      ],
+      [
+       "KEEPTTL",
+       "перезаписати, не скидаючи терміну"
+      ],
+      [
+       "SCAN",
+       "обхід ключів порціями за курсором"
+      ],
+      [
+       "Hash",
+       "поля й значення під одним ключем"
+      ],
+      [
+       "Sorted set",
+       "елементи з числовою оцінкою"
+      ],
+      [
+       "decode_responses",
+       "відповіді рядками, а не байтами"
+      ],
+      [
+       "Pipeline",
+       "кілька команд за одну поїздку мережею"
+      ],
+      [
+       "Cache-aside",
+       "кеш збоку: промах — база й SET"
+      ],
+      [
+       "Інвалідація",
+       "DEL ключа кешу після коміту"
+      ],
+      [
+       "Лавина промахів",
+       "сто запитів у базу на один ключ"
+      ],
+      [
+       "Фіксоване вікно",
+       "лічильник з терміном на хвилину"
+      ],
+      [
+       "Ковзне вікно",
+       "запити за останні N секунд"
+      ],
+      [
+       "Токен блокування",
+       "випадкове значення власника"
+      ],
+      [
+       "MULTI / EXEC",
+       "черга команд, підряд без чужих"
+      ],
+      [
+       "WATCH",
+       "скасувати EXEC, якщо ключ змінили"
+      ],
+      [
+       "Lua",
+       "скрипт, що виконується цілком"
+      ],
+      [
+       "Надійна черга",
+       "BLMOVE у список «в роботі»"
+      ],
+      [
+       "Pub/Sub",
+       "лише тим, хто слухає зараз"
+      ],
+      [
+       "Stream",
+       "журнал подій з ID"
+      ],
+      [
+       "Група споживачів",
+       "запис отримує один з групи"
+      ],
+      [
+       "PEL",
+       "видані, але не підтверджені записи"
+      ],
+      [
+       "Щонайменше раз",
+       "запис може прийти повторно"
+      ],
+      [
+       "LRU / LFU / LRM",
+       "давно не використані / рідко / давно не змінені"
+      ],
+      [
+       "RDB / AOF",
+       "знімок / журнал записів"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cheatsheet",
+   "title": "Шпаргалка: прийоми курсу",
+   "theory": [
+    {
+     "p": "Найчастіші прийоми разом. Версія Redis у дужках — з якої працює."
+    },
+    {
+     "table": [
+      [
+       "Задача",
+       "Команда"
+      ],
+      [
+       "Кеш на 5 хв",
+       "SET item:42 <json> EX 300"
+      ],
+      [
+       "Скинути кеш",
+       "COMMIT, потім DEL item:42"
+      ],
+      [
+       "Лічильник",
+       "INCR / HINCRBY / ZINCRBY"
+      ],
+      [
+       "Ліміт (7.0+)",
+       "INCR + EXPIRE … NX у MULTI"
+      ],
+      [
+       "Ліміт (8.8+)",
+       "INCREX k UBOUND 10 EX 60 ENX"
+      ],
+      [
+       "Взяти блокування",
+       "SET lock <uuid> NX PX 30000"
+      ],
+      [
+       "Зняти своє (8.4+)",
+       "DELEX lock IFEQ <uuid>"
+      ],
+      [
+       "Перевірити й змінити",
+       "скрипт Lua або WATCH"
+      ],
+      [
+       "Черга",
+       "RPUSH jobs … / BLMOVE jobs work"
+      ],
+      [
+       "Пачка з черги (8.10+)",
+       "LMOVEM jobs work LEFT RIGHT COUNT 10 OBO"
+      ],
+      [
+       "Подія",
+       "XADD moves * … після коміту"
+      ],
+      [
+       "Без дубля (8.6+)",
+       "XADD m IDMP shop <id> * …"
+      ],
+      [
+       "Обробник",
+       "XREADGROUP … > ; XACK"
+      ],
+      [
+       "Завислі записи",
+       "XAUTOCLAIM … 60000 0-0"
+      ],
+      [
+       "Redis лише під кеш",
+       "maxmemory + allkeys-lru"
+      ]
+     ]
+    },
+    {
+     "h": "redis-py: що пам'ятати"
+    },
+    {
+     "ul": [
+      "`decode_responses=True`, один клієнт на процес.",
+      "Значення приходять рядками — `int(...)` самі.",
+      "`pipeline()` типово — транзакція MULTI/EXEC.",
+      "Блокуючі команди коротші за `socket_timeout` (типово 5 с).",
+      "`r.lock(name, timeout=…)` — завжди з timeout.",
+      "У FastAPI — `redis.asyncio`, клієнт у lifespan, `await r.aclose()`."
+     ]
+    }
+   ]
+  }
+ ],
+ "units": [
+  {
+   "id": "strings",
+   "title": "Ключі, рядки й TTL",
+   "topic": "SET і GET, іменування ключів, EX і TTL, NX і XX, INCR, KEYS проти SCAN",
+   "goal": "Класти й читати значення, задавати їм термін життя, атомарно рахувати й не вішати сервер пошуком ключів",
+   "theory": [
+    {
+     "recall": "Пригадайте з курсу PostgreSQL: де живуть дані таблиць і що з ними після перезапуску сервера?",
+     "a": "На диску (файли таблиць і WAL). Після перезапуску все на місці."
+    },
+    {
+     "p": "**Redis** — сервер «ключ → значення», що тримає всі дані **в оперативній пам'яті**. Тому відповідь приходить за десятки мікросекунд, а не мілісекунд. Ціна — даних не може бути більше, ніж пам'яті, і SQL-запитів немає: ви звертаєтесь лише за ключем."
+    },
+    {
+     "p": "Команди виконує **один потік, по черзі**. Поки йде одна команда, інша чекає. Звідси головна властивість: **кожна команда атомарна** — ніхто не вклиниться посередині `INCR`."
+    },
+    {
+     "table": [
+      [
+       "Для чого Redis",
+       "Приклад у «Складі»"
+      ],
+      [
+       "Кеш",
+       "картка речі на 5 хвилин"
+      ],
+      [
+       "Лічильник",
+       "звернень до API за хвилину"
+      ],
+      [
+       "Блокування",
+       "одна видача шолома за раз"
+      ],
+      [
+       "Черга",
+       "завдання «друк акта»"
+      ],
+      [
+       "Потік подій",
+       "зміни залишків для іншої бази"
+      ]
+     ]
+    },
+    {
+     "p": "PostgreSQL лишається джерелом правди: залишки, документи, історія. Redis — швидкий помічник поруч, втрата якого неприємна, але не фатальна."
+    },
+    {
+     "h": "Перші команди"
+    },
+    {
+     "p": "Значення найпростішого типу — **рядок** (до 512 МБ): текст, число, JSON. `SET` кладе, `GET` читає, `DEL` видаляє, `EXISTS` рахує, скільки з переліку ключів є ([SET](https://redis.io/docs/latest/commands/set/)):"
+    },
+    {
+     "code": "> SET item:42:name helmet\nOK\n> GET item:42:name\n\"helmet\"\n> EXISTS item:42:name item:43:name\n(integer) 1\n> DEL item:42:name\n(integer) 1\n> GET item:42:name\n(nil)",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "`(nil)` — ключа немає. Ім'я ключа — теж рядок; домовленість — частини через двокрапку від загального до конкретного: `item:42:name`, `stock:helmet`, `rate:alice`. Так ключі одного виду легко знайти за шаблоном `item:*`."
+    },
+    {
+     "h": "Термін життя: EX і TTL"
+    },
+    {
+     "p": "`EX 60` — ключ сам зникне через 60 секунд. `TTL` показує, скільки лишилось. Два особливі значення: **−1** — ключ є, але вічний; **−2** — ключа немає ([EXPIRE](https://redis.io/docs/latest/commands/expire/))."
+    },
+    {
+     "code": "> SET otp:alice 4711 EX 60\nOK\n> TTL otp:alice\n(integer) 60\n> SET draft:7 text\nOK\n> TTL draft:7\n(integer) -1\n> TTL nothing\n(integer) -2\n> PERSIST otp:alice\n(integer) 1\n> TTL otp:alice\n(integer) -1",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "warn": "❌ Перезаписати ключ звичайним `SET` і думати, що термін лишився → ✅ `SET` без опцій **стирає TTL**: ключ стає вічним. Щоб зберегти термін, додайте `KEEPTTL`."
+    },
+    {
+     "code": "> SET a 1 EX 100\nOK\n> SET a 2\nOK\n> TTL a\n(integer) -1\n> SET b 1 EX 100\nOK\n> SET b 2 KEEPTTL\nOK\n> TTL b\n(integer) 100",
+     "lang": "console",
+     "title": "redis-cli",
+     "hl": [
+      6,
+      12
+     ]
+    },
+    {
+     "h": "Умовний запис: NX, XX, GET"
+    },
+    {
+     "table": [
+      [
+       "Опція",
+       "Запише, якщо"
+      ],
+      [
+       "NX",
+       "ключа ще немає"
+      ],
+      [
+       "XX",
+       "ключ уже є"
+      ],
+      [
+       "GET",
+       "завжди; поверне старе"
+      ]
+     ]
+    },
+    {
+     "code": "> SET stock:helmet 5\nOK\n> SET stock:helmet 9 NX\n(nil)\n> SET stock:vest 3 XX\n(nil)\n> SET stock:helmet 7 GET\n\"5\"\n> GET stock:helmet\n\"7\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "`(nil)` у відповідь на `SET … NX` означає «не записано». Саме на `SET … NX EX` будуються блокування (тема 6): записати може лише перший."
+    },
+    {
+     "h": "Лічильники: INCR"
+    },
+    {
+     "p": "`INCR` збільшує число на 1 і повертає нове значення; `INCRBY` — на будь-яке ціле, `DECR` — зменшує. Ключа немає — рахує від 0. Значення не число — помилка ([INCR](https://redis.io/docs/latest/commands/incr/))."
+    },
+    {
+     "code": "> SET stock:helmet 5\nOK\n> INCRBY stock:helmet -2\n(integer) 3\n> DECR stock:helmet\n(integer) 2\n> INCR visits\n(integer) 1\n> SET name helmet\nOK\n> INCR name\n(error) ERR value is not an integer or out of range",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "Чому не `GET`, додати в Python і `SET`? Два процеси прочитають 5, обидва запишуть 6 — одне збільшення загубилось. Це **втрачене оновлення** з курсу PostgreSQL. `INCR` робить читання й запис однією атомарною командою."
+    },
+    {
+     "h": "Пошук ключів: SCAN, а не KEYS"
+    },
+    {
+     "p": "`KEYS item:*` перебирає **всі** ключі бази за раз. Поки він іде — а на мільйонах ключів це секунди — сервер не виконує жодної іншої команди: один потік ([KEYS](https://redis.io/docs/latest/commands/keys/)). `SCAN` віддає ключі порціями: повертає курсор і частину ключів, наступний виклик продовжує з курсора, `0` — кінець обходу ([SCAN](https://redis.io/docs/latest/commands/scan/))."
+    },
+    {
+     "code": "> SET item:42:name helmet\nOK\n> SET user:7 alice\nOK\n> SCAN 0 MATCH item:* COUNT 100\n1) \"0\"\n2) 1) \"item:42:name\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "tip": "`KEYS` — лише на своєму ноутбуці. У коді — `SCAN`, а в redis-py — `scan_iter('item:*')`, який сам ганяє курсор."
+    },
+    {
+     "note": "Ключ і значення в redis-cli краще писати латиницею: кирилицю redis-cli показує байтами на кшталт `\\xd1\\x88`. Із Python, з `decode_responses=True`, кирилиця читається нормально (тема 3)."
+    },
+    {
+     "recall": "Пригадайте: ключ мав TTL 100, його перезаписали звичайним SET. Що покаже TTL і як цього уникнути?",
+     "a": "−1: SET без опцій стирає термін. Зберегти його — SET … KEEPTTL."
+    }
+   ],
+   "examples": [
+    {
+     "w": "SET item:42:name helmet",
+     "note": "покласти рядок"
+    },
+    {
+     "w": "SET otp:alice 4711 EX 60",
+     "note": "із терміном 60 секунд"
+    },
+    {
+     "w": "TTL key → -1 / -2",
+     "note": "вічний / ключа немає"
+    },
+    {
+     "w": "SET key v KEEPTTL",
+     "note": "перезаписати, лишивши термін"
+    },
+    {
+     "w": "SET key v NX",
+     "note": "записати, лише якщо ключа немає"
+    },
+    {
+     "w": "SET key v GET",
+     "note": "записати й отримати старе"
+    },
+    {
+     "w": "INCRBY stock:helmet -2",
+     "note": "атомарно змінити число"
+    },
+    {
+     "w": "SCAN 0 MATCH item:* COUNT 100",
+     "note": "шукати ключі порціями"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Чому команди Redis атомарні без жодних транзакцій?",
+     "options": [
+      "Команди виконує один потік по черзі",
+      "Кожна команда пишеться на диск",
+      "Redis блокує ключ на час команди",
+      "Клієнт чекає підтвердження реплік"
+     ],
+     "a": 0,
+     "why": "Поки виконується одна команда, інші чекають: ніщо не вклиниться посередині."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET draft:7 text\n> TTL draft:7",
+     "lang": "console",
+     "options": [
+      "(integer) -1",
+      "(integer) -2",
+      "(integer) 0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "Ключ є, але терміну не має: TTL повертає −1."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> TTL nothing",
+     "lang": "console",
+     "options": [
+      "(integer) -2",
+      "(integer) -1",
+      "(integer) 0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "−2 означає, що ключа немає зовсім."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET a 1 EX 100\n> SET a 2\n> TTL a",
+     "lang": "console",
+     "options": [
+      "(integer) -1",
+      "(integer) 100",
+      "(integer) 99",
+      "(integer) -2"
+     ],
+     "a": 0,
+     "why": "SET без опцій стирає термін: ключ став вічним. Зберегти термін — KEEPTTL."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET stock:helmet 5\n> SET stock:helmet 9 NX",
+     "lang": "console",
+     "options": [
+      "(nil)",
+      "OK",
+      "\"5\"",
+      "(integer) 0"
+     ],
+     "a": 0,
+     "why": "NX пише лише в порожній ключ; (nil) означає «не записано»."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET stock:helmet 5\n> SET stock:helmet 7 GET",
+     "lang": "console",
+     "options": [
+      "\"5\"",
+      "\"7\"",
+      "OK",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "GET записує нове значення й повертає попереднє."
+    },
+    {
+     "type": "number",
+     "q": "Ключа visits немає. Яке число поверне INCRBY visits 5?",
+     "a": 5,
+     "tol": 0,
+     "why": "Відсутній ключ INCR-команди рахують від 0."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET name helmet\n> INCR name",
+     "lang": "console",
+     "options": [
+      "(error) ERR value is not an integer or out of range",
+      "(integer) 1",
+      "\"helmet1\"",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "INCR працює лише з рядком, що містить ціле число."
+    },
+    {
+     "type": "choice",
+     "q": "Два процеси збільшують лічильник так: v = r.get(k); r.set(k, int(v) + 1). Було 5. Що може лишитися після обох?",
+     "options": [
+      "6 — одне збільшення загубиться",
+      "7 — Redis атомарний",
+      "Помилка — ключ зайнятий",
+      "5 — обидва відкотяться"
+     ],
+     "a": 0,
+     "why": "Обидва прочитали 5 і записали 6. Атомарно — однією командою INCR."
+    },
+    {
+     "type": "choice",
+     "q": "Чому в робочому коді не можна KEYS item:*?",
+     "options": [
+      "Поки він іде, сервер не виконує інших команд",
+      "Він видаляє знайдені ключі",
+      "Він не бачить ключі з TTL",
+      "Він працює лише в redis-cli"
+     ],
+     "a": 0,
+     "why": "KEYS обходить усю базу за раз, а потік у Redis один. Замість нього — SCAN порціями."
+    },
+    {
+     "type": "gap",
+     "q": "Перезаписати значення, не скидаючи терміну життя: SET key value ◻",
+     "a": [
+      "KEEPTTL"
+     ],
+     "why": "KEEPTTL зберігає наявний TTL; без нього SET робить ключ вічним."
+    },
+    {
+     "type": "gap",
+     "q": "SCAN повернув курсор ◻ — обхід ключів закінчено.",
+     "a": [
+      "0"
+     ],
+     "why": "Обхід починають з курсора 0 і закінчують, коли сервер знову повертає 0."
+    },
+    {
+     "type": "order",
+     "q": "Як зміниться TTL ключа за ці команди",
+     "items": [
+      "SET otp 1 EX 60 → TTL 60",
+      "PERSIST otp → TTL −1",
+      "DEL otp → TTL −2"
+     ],
+     "why": "PERSIST знімає термін (−1, вічний), DEL прибирає ключ (−2, немає)."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення з курсу PostgreSQL: як списати 4 шоломи так, щоб паралельний видавач не довів залишок до мінуса?",
+     "options": [
+      "Один UPDATE з умовою qty >= 4 у WHERE",
+      "SELECT, перевірка в Python, потім UPDATE",
+      "Два UPDATE в автокоміті",
+      "INSERT нового рядка з −4"
+     ],
+     "a": 0,
+     "why": "Перевірка й зміна в одній команді — атомарно. У Redis ту саму роль грає одна команда або скрипт Lua."
+    }
+   ],
+   "typing": [
+    "Redis тримає всі дані в оперативній пам'яті.",
+    "Команди виконує один потік, тому кожна атомарна.",
+    "TTL мінус один означає вічний ключ, мінус два — ключа немає.",
+    "SET без опцій стирає термін життя ключа.",
+    "SET з NX записує, лише якщо ключа ще немає.",
+    "Замість KEYS у робочому коді пишуть SCAN."
+   ],
+   "tasks": [
+    "Запустіть Redis у Docker: docker run -d --name r -p 6379:6379 redis:8, потім docker exec -it r redis-cli. Повторіть усі приклади теми й подивіться TTL через 10 секунд.",
+    "Покладіть 5 ключів item:1 … item:5 і 3 ключі user:1 … user:3. Знайдіть лише item:* через SCAN 0 MATCH item:* і порахуйте, скільки викликів знадобилось до курсора 0."
+   ],
+   "media": [
+    {
+     "title": "Redis: SET",
+     "url": "https://redis.io/docs/latest/commands/set/",
+     "note": "усі опції: NX, XX, GET, EX, KEEPTTL",
+     "main": true
+    },
+    {
+     "title": "Redis: EXPIRE",
+     "url": "https://redis.io/docs/latest/commands/expire/",
+     "note": "як і коли ключ зникає"
+    },
+    {
+     "title": "Redis: SCAN",
+     "url": "https://redis.io/docs/latest/commands/scan/",
+     "note": "курсор і гарантії обходу"
+    }
+   ]
+  },
+  {
+   "id": "types",
+   "title": "Хеші, списки, множини",
+   "topic": "hash, list, set, sorted set, TTL поля хеша, WRONGTYPE",
+   "goal": "Обрати тип під задачу: картка речі, журнал, теги, рейтинг — і працювати з ним командами без читання всього значення",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим INCR кращий за GET, +1 у Python і SET?",
+     "a": "INCR атомарний: читання й запис — одна команда, паралельне збільшення не загубиться."
+    },
+    {
+     "p": "Значення ключа — не лише рядок. Кожен тип має свої команди, що змінюють **частину** значення на сервері: не треба читати все, правити в Python і записувати назад ([Data types](https://redis.io/docs/latest/develop/data-types/))."
+    },
+    {
+     "table": [
+      [
+       "Тип",
+       "Що всередині",
+       "Для чого"
+      ],
+      [
+       "hash",
+       "поле → значення",
+       "картка речі"
+      ],
+      [
+       "list",
+       "впорядкований ряд",
+       "журнал, черга"
+      ],
+      [
+       "set",
+       "унікальні елементи",
+       "теги, хто вже був"
+      ],
+      [
+       "sorted set",
+       "елемент + число",
+       "рейтинг, розклад"
+      ]
+     ]
+    },
+    {
+     "h": "Hash: картка речі"
+    },
+    {
+     "p": "Хеш — маленький словник під одним ключем. Перевага перед JSON-рядком: можна прочитати чи змінити одне поле, а `HINCRBY` атомарно змінює число в полі ([HSET](https://redis.io/docs/latest/commands/hset/))."
+    },
+    {
+     "code": "> HSET item:42 name helmet size L qty 5\n(integer) 3\n> HGET item:42 size\n\"L\"\n> HINCRBY item:42 qty -2\n(integer) 3\n> HGETALL item:42\n1) \"name\"\n2) \"helmet\"\n3) \"size\"\n4) \"L\"\n5) \"qty\"\n6) \"3\"\n> HDEL item:42 size\n(integer) 1\n> HLEN item:42\n(integer) 2",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "`HSET` повертає кількість **нових** полів, а не всіх записаних. `HGETALL` віддає пари плоским списком: поле, значення, поле, значення."
+    },
+    {
+     "h": "List: журнал і черга"
+    },
+    {
+     "p": "Список зберігає порядок. `LPUSH` додає зліва, `RPUSH` — справа, `LPOP`/`RPOP` забирають з країв, `LRANGE 0 -1` показує все (−1 — останній). `LTRIM` обрізає список до діапазону — так тримають «останні N подій»."
+    },
+    {
+     "code": "> RPUSH log:helmet in:5 out:2\n(integer) 2\n> LPUSH log:helmet first\n(integer) 3\n> RPUSH log:helmet out:1\n(integer) 4\n> LRANGE log:helmet 0 -1\n1) \"first\"\n2) \"in:5\"\n3) \"out:2\"\n4) \"out:1\"\n> LTRIM log:helmet -2 -1\nOK\n> LRANGE log:helmet 0 -1\n1) \"out:2\"\n2) \"out:1\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "tip": "`RPUSH` + `LPOP` — черга «перший прийшов — перший пішов». Надійну чергу з блокуючим очікуванням розберемо в темі 8."
+    },
+    {
+     "h": "Set: теги й унікальність"
+    },
+    {
+     "p": "Множина тримає кожен елемент один раз: повторний `SADD` нічого не додає. Порядку немає. Можна перевірити належність, порахувати й перетнути множини."
+    },
+    {
+     "code": "> SADD tags:42 army winter army\n(integer) 2\n> SCARD tags:42\n(integer) 2\n> SISMEMBER tags:42 winter\n(integer) 1\n> SADD tags:43 winter summer\n(integer) 2\n> SINTER tags:42 tags:43\n1) \"winter\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "h": "Sorted set: рейтинг"
+    },
+    {
+     "p": "Кожен елемент має **оцінку** (score) — число, за яким множина відсортована. `ZINCRBY` атомарно додає до оцінки, `ZRANGE … REV` віддає від більшого. Однакові оцінки сортуються за назвою ([ZADD](https://redis.io/docs/latest/commands/zadd/))."
+    },
+    {
+     "code": "> ZADD issued 12 helmet 30 vest 7 boots\n(integer) 3\n> ZINCRBY issued 20 helmet\n\"32\"\n> ZRANGE issued 0 1 REV WITHSCORES\n1) \"helmet\"\n2) \"32\"\n3) \"vest\"\n4) \"30\"\n> ZRANK issued boots\n(integer) 0",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "Оцінкою часто роблять час у секундах: тоді sorted set — це розклад чи журнал, з якого `ZRANGE … BYSCORE` дістає події за проміжок. На цьому побудоване ковзне вікно в темі 5."
+    },
+    {
+     "h": "Термін життя окремого поля"
+    },
+    {
+     "p": "З Redis 7.4 TTL можна ставити **полю хеша**: `HEXPIRE` задає термін, `HTTL` показує. З 8.0 `HGETEX` читає поле й одразу ставить йому термін ([HEXPIRE](https://redis.io/docs/latest/commands/hexpire/))."
+    },
+    {
+     "code": "> HSET session:7 user alice otp 4711\n(integer) 2\n> HEXPIRE session:7 60 FIELDS 1 otp\n1) (integer) 1\n> HTTL session:7 FIELDS 2 otp user\n1) (integer) 60\n2) (integer) -1\n> HGETEX session:7 EX 300 FIELDS 1 user\n1) \"alice\"\n> TTL session:7\n(integer) -1",
+     "lang": "console",
+     "title": "redis-cli",
+     "hl": [
+      3,
+      8
+     ]
+    },
+    {
+     "p": "Термін поля — не термін ключа: `TTL session:7` досі −1. Коли зникнуть усі поля, зникне й ключ."
+    },
+    {
+     "warn": "❌ Застосувати команду чужого типу → ✅ ключ має один тип назавжди: `LPUSH` на рядок дає `WRONGTYPE Operation against a key holding the wrong kind of value`. `TYPE key` підкаже, що там лежить."
+    },
+    {
+     "code": "> SET name helmet\nOK\n> LPUSH name x\n(error) WRONGTYPE Operation against a key holding the wrong kind of value\n> TYPE name\nstring",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "recall": "Пригадайте: який тип узяти для «топ-10 найчастіше виданих речей» і якою командою додати одну видачу?",
+     "a": "Sorted set: ZINCRBY issued 1 helmet; топ — ZRANGE issued 0 9 REV WITHSCORES."
+    }
+   ],
+   "examples": [
+    {
+     "w": "HSET item:42 name helmet qty 5",
+     "note": "картка речі хешем"
+    },
+    {
+     "w": "HINCRBY item:42 qty -2",
+     "note": "атомарно змінити поле"
+    },
+    {
+     "w": "RPUSH log:helmet out:2",
+     "note": "дописати в кінець журналу"
+    },
+    {
+     "w": "LTRIM log:helmet -100 -1",
+     "note": "лишити 100 останніх"
+    },
+    {
+     "w": "SADD tags:42 army winter",
+     "note": "теги без повторів"
+    },
+    {
+     "w": "SINTER tags:42 tags:43",
+     "note": "спільні теги"
+    },
+    {
+     "w": "ZINCRBY issued 1 helmet",
+     "note": "+1 до рейтингу"
+    },
+    {
+     "w": "ZRANGE issued 0 9 REV WITHSCORES",
+     "note": "топ-10"
+    },
+    {
+     "w": "HEXPIRE session:7 60 FIELDS 1 otp",
+     "note": "термін одному полю"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Картку речі з п'ятьма полями часто змінюють по одному полю. Який тип узяти?",
+     "options": [
+      "hash",
+      "list",
+      "set",
+      "рядок з JSON"
+     ],
+     "a": 0,
+     "why": "Хеш дає читати й змінювати окремі поля, HINCRBY — атомарно змінювати число в полі."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> HSET item:42 name helmet qty 5\n> HSET item:42 qty 3 size L",
+     "lang": "console",
+     "options": [
+      "(integer) 1",
+      "(integer) 2",
+      "(integer) 4",
+      "OK"
+     ],
+     "a": 0,
+     "why": "HSET рахує лише нові поля: qty уже був, новий — тільки size."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> RPUSH log a b\n> LPUSH log c\n> LPOP log",
+     "lang": "console",
+     "options": [
+      "\"c\"",
+      "\"a\"",
+      "\"b\"",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "LPUSH поставив c зліва, LPOP забирає зліва."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SADD tags army winter army\n> SCARD tags",
+     "lang": "console",
+     "options": [
+      "(integer) 2",
+      "(integer) 3",
+      "(integer) 1",
+      "(integer) 0"
+     ],
+     "a": 0,
+     "why": "Множина зберігає кожен елемент один раз."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> ZADD issued 12 helmet 30 vest\n> ZINCRBY issued 20 helmet",
+     "lang": "console",
+     "options": [
+      "\"32\"",
+      "(integer) 32",
+      "\"20\"",
+      "(integer) 1"
+     ],
+     "a": 0,
+     "why": "ZINCRBY повертає нову оцінку рядком: 12 + 20 = 32."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET name helmet\n> LPUSH name x",
+     "lang": "console",
+     "options": [
+      "(error) WRONGTYPE Operation against a key holding the wrong kind of value",
+      "(integer) 1",
+      "(integer) 2",
+      "OK"
+     ],
+     "a": 0,
+     "why": "Ключ має один тип: на рядок списочні команди не діють."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> HSET s user alice otp 4711\n> HEXPIRE s 60 FIELDS 1 otp\n> TTL s",
+     "lang": "console",
+     "options": [
+      "(integer) -1",
+      "(integer) 60",
+      "(integer) -2",
+      "(integer) 0"
+     ],
+     "a": 0,
+     "why": "HEXPIRE ставить термін полю, а не ключу: сам ключ вічний."
+    },
+    {
+     "type": "choice",
+     "q": "Як тримати в списку лише 100 останніх подій?",
+     "options": [
+      "Після RPUSH — LTRIM key -100 -1",
+      "LLEN і LPOP у циклі в Python",
+      "EXPIRE на список",
+      "SADD замість RPUSH"
+     ],
+     "a": 0,
+     "why": "LTRIM обрізає список до діапазону однією командою: −100…−1 — сто останніх."
+    },
+    {
+     "type": "choice",
+     "q": "Треба перевіряти, чи запит з таким id уже оброблено, щоб не обробити його двічі. Який тип?",
+     "options": [
+      "set",
+      "list",
+      "sorted set",
+      "hash"
+     ],
+     "a": 0,
+     "why": "SADD повертає 1 для нового елемента й 0 для вже наявного — готова перевірка унікальності."
+    },
+    {
+     "type": "gap",
+     "q": "Отримати топ-3 від більшої оцінки: ZRANGE issued 0 2 ◻",
+     "a": [
+      "REV",
+      "REV WITHSCORES"
+     ],
+     "why": "REV перевертає порядок: від найбільшої оцінки до найменшої."
+    },
+    {
+     "type": "order",
+     "q": "Від найменшої до найбільшої оцінки після ZADD issued 7 boots 12 helmet 7 belt",
+     "items": [
+      "belt",
+      "boots",
+      "helmet"
+     ],
+     "why": "Сортування за оцінкою, а однакові оцінки (7) — за назвою: belt раніше boots."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне TTL ключа, якого немає?",
+     "options": [
+      "−2",
+      "−1",
+      "0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "−2 — ключа немає, −1 — ключ вічний."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як записати ключ, лише якщо його ще немає?",
+     "options": [
+      "SET key v NX",
+      "SET key v XX",
+      "SET key v KEEPTTL",
+      "SET key v GET"
+     ],
+     "a": 0,
+     "why": "NX — «not exists»: записати лише в порожній ключ."
+    }
+   ],
+   "typing": [
+    "Хеш зберігає поля речі під одним ключем.",
+    "HINCRBY атомарно змінює число в полі хеша.",
+    "LTRIM лишає в списку лише останні події.",
+    "Множина тримає кожен елемент один раз.",
+    "Sorted set упорядковує елементи за оцінкою.",
+    "Термін поля хеша не змінює TTL ключа."
+   ],
+   "tasks": [
+    "Зробіть картку item:1 хешем з полями name, size, qty і журнал log:1 списком. Видайте 2 штуки: зменшіть qty через HINCRBY і допишіть подію в журнал. Лишіть у журналі 3 останні події.",
+    "Заведіть sorted set issued і додайте 10 видач різних речей через ZINCRBY. Виведіть топ-3 з оцінками."
+   ],
+   "media": [
+    {
+     "title": "Redis: Data types",
+     "url": "https://redis.io/docs/latest/develop/data-types/",
+     "note": "огляд усіх типів і коли який брати",
+     "main": true
+    },
+    {
+     "title": "Redis: HEXPIRE",
+     "url": "https://redis.io/docs/latest/commands/hexpire/",
+     "note": "термін окремих полів хеша"
+    },
+    {
+     "title": "Redis: ZADD",
+     "url": "https://redis.io/docs/latest/commands/zadd/",
+     "note": "опції NX, XX, GT, LT, INCR"
+    }
+   ]
+  },
+  {
+   "id": "redis-py",
+   "title": "Redis з Python: redis-py",
+   "topic": "клієнт і пул, decode_responses, типи відповідей, pipeline, scan_iter, помилки й тайм-аути",
+   "goal": "Підключатися з Python правильно — один клієнт на застосунок, рядки замість байтів, кілька команд за один обмін — і знати, що повертає кожна команда",
+   "theory": [
+    {
+     "recall": "Пригадайте: що поверне HSET item:42 qty 3 size L, якщо поле qty уже було?",
+     "a": "(integer) 1 — HSET рахує лише нові поля."
+    },
+    {
+     "p": "Офіційний клієнт — **redis-py**: `pip install redis` ([redis-py guide](https://redis.io/docs/latest/develop/clients/redis-py/)). Методи названі як команди: `r.set`, `r.hincrby`, `r.zrange`. Курс перевірено на redis-py 8.1."
+    },
+    {
+     "code": "import redis\n\nraw = redis.Redis()\nraw.set('item:42:name', 'шолом')\nprint(raw.get('item:42:name'))\n\nr = redis.Redis(decode_responses=True)\nprint(r.get('item:42:name'))",
+     "lang": "python",
+     "title": "connect.py",
+     "hl": [
+      7
+     ]
+    },
+    {
+     "code": "b'\\xd1\\x88\\xd0\\xbe\\xd0\\xbb\\xd0\\xbe\\xd0\\xbc'\nшолом",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Без `decode_responses=True` усе приходить **байтами** — і доведеться всюди писати `.decode()`. З ним — звичайні рядки `str`, кирилиця теж. Типово клієнт іде на `localhost:6379`, база 0; інше — `host=`, `port=`, `db=` або `redis.Redis.from_url('redis://host:6379/0')`."
+    },
+    {
+     "h": "Що повертають команди"
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nprint(r.set('k', 'v'))\nprint(r.set('k', 'v', nx=True))\nprint(r.incr('n'), repr(r.get('n')))\nr.hset('item:42', mapping={\n    'name': 'шолом', 'qty': 5})\nprint(r.hgetall('item:42'))\nprint(repr(r.hget('item:42', 'qty')))\nr.zadd('issued', {'helmet': 12})\nprint(r.zrange('issued', 0, -1,\n               withscores=True))",
+     "lang": "python",
+     "title": "types.py"
+    },
+    {
+     "code": "True\nNone\n1 '1'\n{'name': 'шолом', 'qty': '5'}\n'5'\n[('helmet', 12.0)]",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "table": [
+      [
+       "Команда",
+       "Python отримує"
+      ],
+      [
+       "SET",
+       "True; з nx — None"
+      ],
+      [
+       "GET, HGET",
+       "str або None"
+      ],
+      [
+       "INCR, HINCRBY",
+       "int"
+      ],
+      [
+       "HGETALL",
+       "dict рядків"
+      ],
+      [
+       "ZRANGE withscores",
+       "список (str, float)"
+      ]
+     ]
+    },
+    {
+     "warn": "❌ `if r.hget('item:42', 'qty') > 3:` → ✅ Redis зберігає рядки: `'5' > 3` дає `TypeError`. Числа перетворюйте самі: `int(r.hget(...) or 0)`. Числом приходить лише відповідь команд-лічильників."
+    },
+    {
+     "h": "Один клієнт і пул з'єднань"
+    },
+    {
+     "p": "`redis.Redis()` не відкриває з'єднання одразу: всередині він має **пул** — набір з'єднань, що видаються командам і повертаються назад (як пул з курсу PostgreSQL). Тому клієнт створюють **один раз на застосунок** — у модулі чи при старті — і використовують усюди. Клієнт на кожен запит — нове з'єднання щоразу."
+    },
+    {
+     "p": "У redis-py 8.1 пул типово до 100 з'єднань, тайм-аут сокета 5 секунд, а при обриві чи тайм-ауті команда сама повторюється до 10 разів з паузою від 10 мс до 1 с. Межі задають `max_connections=`, `socket_timeout=`, `retry=`."
+    },
+    {
+     "h": "Pipeline: багато команд за один обмін"
+    },
+    {
+     "p": "Кожна команда — це поїздка запиту по мережі й назад. 1000 команд по 0,3 мс мережі — вже 0,3 с лише на очікування. **Pipeline** накопичує команди і шле їх разом: одна поїздка, список відповідей у тому ж порядку."
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nr.hset('item:42', 'qty', 5)\nwith r.pipeline() as p:\n    p.incr('n')\n    p.hincrby('item:42', 'qty', -1)\n    p.expire('n', 60)\n    print(p.execute())",
+     "lang": "python",
+     "title": "pipeline.py",
+     "hl": [
+      5,
+      9
+     ]
+    },
+    {
+     "code": "[1, 4, True]",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "warn": "❌ Вважати, що `pipeline()` — лише пакет → ✅ у redis-py `pipeline()` типово ще й **транзакція**: команди загортаються в `MULTI`/`EXEC` і виконуються підряд, без чужих команд посередині (тема 7). Просто пакет без транзакції — `pipeline(transaction=False)`."
+    },
+    {
+     "h": "Обхід ключів і помилки"
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nfor i in range(3):\n    r.set(f'item:{i}', i)\nr.set('user:1', 'alice')\nprint(sorted(r.scan_iter('item:*')))\ntry:\n    r.lpush('user:1', 'x')\nexcept redis.ResponseError as e:\n    print(e)",
+     "lang": "python",
+     "title": "scan.py"
+    },
+    {
+     "code": "['item:0', 'item:1', 'item:2']\nWRONGTYPE Operation against a key holding the wrong kind of value",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`scan_iter` ганяє курсор `SCAN` сам; порядок ключів не гарантовано, тому `sorted`. Помилка команди — `redis.ResponseError`; сервер недоступний — `redis.ConnectionError`; не відповів вчасно — `redis.TimeoutError`."
+    },
+    {
+     "tip": "Redis — помічник, а не джерело правди. Якщо він ліг, кеш і лічильники мають тихо пропускатися (`except redis.ConnectionError`), а не валити видачу шолома."
+    },
+    {
+     "recall": "Пригадайте: що надрукує print(r.hget('item:42', 'qty') + 1), якщо qty = 5, і як це виправити?",
+     "a": "TypeError: hget повертає рядок '5'. Правильно — int(r.hget('item:42', 'qty')) + 1, а для атомарного +1 — r.hincrby."
+    }
+   ],
+   "examples": [
+    {
+     "w": "r = redis.Redis(decode_responses=True)",
+     "note": "рядки замість байтів"
+    },
+    {
+     "w": "redis.Redis.from_url('redis://host:6379/0')",
+     "note": "підключення за адресою"
+    },
+    {
+     "w": "r.set('k', 'v', nx=True, ex=60)",
+     "note": "SET k v NX EX 60"
+    },
+    {
+     "w": "r.hset('item:42', mapping={...})",
+     "note": "кілька полів за раз"
+    },
+    {
+     "w": "int(r.hget('item:42', 'qty') or 0)",
+     "note": "рядок → число"
+    },
+    {
+     "w": "with r.pipeline() as p: … p.execute()",
+     "note": "пакет у транзакції"
+    },
+    {
+     "w": "r.pipeline(transaction=False)",
+     "note": "просто пакет"
+    },
+    {
+     "w": "for k in r.scan_iter('item:*'):",
+     "note": "обхід без KEYS"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis()\nr.set('k', 'v')\nprint(r.get('k'))",
+     "lang": "python",
+     "options": [
+      "b'v'",
+      "v",
+      "'v'",
+      "None"
+     ],
+     "a": 0,
+     "why": "Без decode_responses=True redis-py повертає байти."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis(decode_responses=True)\nr.hset('item:1', 'qty', 5)\nprint(repr(r.hget('item:1', 'qty')))",
+     "lang": "python",
+     "options": [
+      "'5'",
+      "5",
+      "b'5'",
+      "5.0"
+     ],
+     "a": 0,
+     "why": "Redis зберігає значення рядками; числом приходять лише відповіді лічильників."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis(decode_responses=True)\nr.set('k', 'v')\nprint(r.set('k', 'w', nx=True))",
+     "lang": "python",
+     "options": [
+      "None",
+      "False",
+      "True",
+      "0"
+     ],
+     "a": 0,
+     "why": "SET з NX не записав — redis-py повертає None."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis(decode_responses=True)\nwith r.pipeline() as p:\n    p.set('a', 1)\n    p.incr('a')\n    p.get('a')\n    print(p.execute())",
+     "lang": "python",
+     "options": [
+      "[True, 2, '2']",
+      "[True, 2, 2]",
+      "['OK', 2, '2']",
+      "None"
+     ],
+     "a": 0,
+     "why": "execute() повертає відповіді всіх команд у порядку: True, int від INCR, рядок від GET."
+    },
+    {
+     "type": "choice",
+     "q": "Де створювати redis.Redis у вебзастосунку?",
+     "options": [
+      "Один раз на застосунок і використовувати всюди",
+      "Новий у кожному запиті",
+      "Новий на кожну команду",
+      "Окремий на кожен ключ"
+     ],
+     "a": 0,
+     "why": "Клієнт тримає пул з'єднань; новий клієнт щоразу — нові з'єднання й зайва робота."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо pipeline, якщо команди Redis і так швидкі?",
+     "options": [
+      "Економить поїздки по мережі: одна на всі команди",
+      "Робить команди атомарними на диску",
+      "Стискає дані",
+      "Обходить ліміт пам'яті"
+     ],
+     "a": 0,
+     "why": "Основний час на кожну команду — мережа туди й назад; pipeline шле пакет за раз."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить r.pipeline() у redis-py без аргументів?",
+     "options": [
+      "Пакет у транзакції MULTI/EXEC",
+      "Пакет без транзакції",
+      "Окреме з'єднання на кожну команду",
+      "Блокує всі ключі пакета"
+     ],
+     "a": 0,
+     "why": "transaction=True типово; простий пакет — pipeline(transaction=False)."
+    },
+    {
+     "type": "choice",
+     "q": "Який виняток ловити, коли команда застосована до ключа чужого типу?",
+     "options": [
+      "redis.ResponseError",
+      "redis.ConnectionError",
+      "redis.TimeoutError",
+      "TypeError"
+     ],
+     "a": 0,
+     "why": "Помилку виконання команди сервер повертає відповіддю — у redis-py це ResponseError."
+    },
+    {
+     "type": "choice",
+     "q": "Redis недоступний. Як має повестися кеш картки речі?",
+     "options": [
+      "Тихо прочитати з PostgreSQL",
+      "Повернути 500 користувачу",
+      "Чекати, поки Redis підніметься",
+      "Віддати порожню картку"
+     ],
+     "a": 0,
+     "why": "Redis — помічник: без кешу повільніше, але правильно. Ловлять redis.ConnectionError."
+    },
+    {
+     "type": "gap",
+     "q": "Щоб redis-py повертав str, а не bytes: redis.Redis(◻=True)",
+     "a": [
+      "decode_responses"
+     ],
+     "why": "decode_responses=True декодує відповіді в рядки (UTF-8)."
+    },
+    {
+     "type": "gap",
+     "q": "Обійти ключі item:* без KEYS: for k in r.◻('item:*')",
+     "a": [
+      "scan_iter"
+     ],
+     "why": "scan_iter сам викликає SCAN, доки курсор не стане 0."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне HTTL для поля без терміну?",
+     "options": [
+      "−1",
+      "−2",
+      "0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "Як і в TTL: −1 — поле є, але вічне; −2 — поля немає."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: топ-10 видач. Яка команда додасть одну видачу шолома?",
+     "options": [
+      "ZINCRBY issued 1 helmet",
+      "HINCRBY issued helmet 1",
+      "SADD issued helmet",
+      "RPUSH issued helmet"
+     ],
+     "a": 0,
+     "why": "Sorted set з оцінкою-лічильником: ZINCRBY додає до оцінки."
+    }
+   ],
+   "typing": [
+    "Клієнт Redis створюють один раз на застосунок.",
+    "З decode_responses відповіді приходять рядками.",
+    "HGET повертає рядок, а не число.",
+    "Pipeline шле кілька команд за одну поїздку мережею.",
+    "У redis-py pipeline типово загортає команди в транзакцію.",
+    "Якщо Redis ліг, кеш тихо пропускають."
+   ],
+   "tasks": [
+    "Напишіть функцію issue(item_id, n), яка через pipeline зменшує qty у хеші item:<id>, дописує подію в журнал log:<id> і обрізає його до 50 останніх. Виведіть результат execute().",
+    "Заповніть 10 000 ключів item:N у циклі без pipeline і з pipeline(transaction=False). Порівняйте час через time.perf_counter()."
+   ],
+   "media": [
+    {
+     "title": "Redis: redis-py guide",
+     "url": "https://redis.io/docs/latest/develop/clients/redis-py/",
+     "note": "підключення, pipeline, пул, async",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "cache",
+   "title": "Кеш: cache-aside та інвалідація",
+   "topic": "читання через кеш, JSON, TTL і розкид, кеш «нічого немає», скидання після коміту, лавина промахів",
+   "goal": "Прискорити читання карток речей кешем і не віддавати застарілі дані після зміни в базі",
+   "theory": [
+    {
+     "recall": "Пригадайте: що поверне r.get для відсутнього ключа і що — r.hget('item:1', 'qty'), якщо qty = 5?",
+     "a": "None; і рядок '5', а не число."
+    },
+    {
+     "p": "**Кеш** — копія результату повільної операції, яку тримають поруч, щоб наступного разу не рахувати знову. Найпоширеніша схема — **cache-aside** (кеш збоку): застосунок сам дивиться в кеш, а при **промаху** (miss) читає базу й кладе результат у кеш з терміном."
+    },
+    {
+     "code": "import json\nimport redis\n\nr = redis.Redis(decode_responses=True)\nDB = {42: {'name': 'шолом', 'qty': 5}}\ncalls = 0\n\ndef load(item_id):\n    global calls\n    calls += 1\n    return DB.get(item_id)\n\ndef get_item(item_id):\n    key = f'item:{item_id}'\n    hit = r.get(key)\n    if hit is not None:\n        return json.loads(hit)\n    item = load(item_id)\n    r.set(key, json.dumps(item), ex=300)\n    return item\n\na = get_item(42)\nb = get_item(42)\nprint(a)\nprint(a == b, 'до бази:', calls)",
+     "lang": "python",
+     "title": "cache.py",
+     "hl": [
+      15,
+      18,
+      19
+     ]
+    },
+    {
+     "code": "{'name': 'шолом', 'qty': 5}\nTrue до бази: 1",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`DB` і `load` тут — замість PostgreSQL. Другий виклик узяв картку з Redis: до бази пішов лише один запит. Словник у рядок перетворює `json.dumps`, назад — `json.loads`."
+    },
+    {
+     "h": "Термін і розкид"
+    },
+    {
+     "p": "**TTL** — страховка: навіть якщо скидання десь забули, застаріле значення проживе не довше терміну. Короткий TTL — свіжіше, але більше промахів; довгий — навпаки. Для картки речі 5–15 хвилин — розумний початок."
+    },
+    {
+     "p": "Якщо тисячу ключів покласти одночасно з однаковим TTL, вони одночасно й зникнуть — і база отримає тисячу запитів за секунду. Тому до терміну додають **випадковий розкид**:"
+    },
+    {
+     "code": "ex = 300 + random.randint(0, 60)\nr.set(key, json.dumps(item), ex=ex)",
+     "lang": "python",
+     "title": "jitter.py"
+    },
+    {
+     "h": "Кеш «нічого немає»"
+    },
+    {
+     "p": "Запит неіснуючої речі щоразу йде в базу: кешувати нічого. Це вразливість — тисяча запитів `item:999999` пройде повз кеш. Рішення — кешувати **й порожню відповідь**, з коротшим терміном: `json.dumps(None)` — це рядок `'null'`, він не `None`, тож перевірка `hit is not None` спрацює."
+    },
+    {
+     "code": "r.set(key, json.dumps(item),\n      ex=300 if item else 30)",
+     "lang": "python",
+     "title": "negative.py"
+    },
+    {
+     "h": "Скидання при зміні"
+    },
+    {
+     "p": "Змінили кількість у базі — кеш тепер бреше. Правило: **спершу коміт у базу, потім `DEL` ключа кешу**. Наступне читання промахнеться й покладе свіже значення."
+    },
+    {
+     "code": "def set_qty(item_id, qty):\n    DB[item_id]['qty'] = qty  # коміт\n    r.delete(f'item:{item_id}')",
+     "lang": "python",
+     "title": "invalidate.py",
+     "hl": [
+      3
+     ]
+    },
+    {
+     "table": [
+      [
+       "Помилка",
+       "Що станеться"
+      ],
+      [
+       "DEL до коміту",
+       "сусід закешує старе"
+      ],
+      [
+       "SET нового в кеш",
+       "два записи — гонка"
+      ],
+      [
+       "без DEL взагалі",
+       "старе до кінця TTL"
+      ]
+     ]
+    },
+    {
+     "p": "Чому `DEL`, а не `SET` нового значення: два паралельні записи можуть покласти свої значення в кеш у зворотному порядку, і в кеші залишиться старіше. `DEL` такого не робить: свіже значення покладе наступне читання. Мінімальне вікно гонки все одно лишається — від нього страхує TTL."
+    },
+    {
+     "warn": "❌ `r.delete(key)` усередині транзакції бази, до `COMMIT` → ✅ між `DEL` і комітом інший запит прочитає з бази ще **старе** значення й покладе його в кеш на весь TTL. Скидайте після коміту."
+    },
+    {
+     "h": "Лавина промахів"
+    },
+    {
+     "p": "Популярний ключ зник — і сто запитів, що прийшли в ту ж мить, усі промахнулися й пішли в базу (cache stampede). Захист: перерахунок під блокуванням `SET lock:item:42 1 NX EX 5` — рахує лише той, хто взяв блокування, решта коротко чекають і читають кеш знову. Як правильно будувати блокування — тема 6."
+    },
+    {
+     "note": "Для Odoo-розробника: `@ormcache` (`odoo/tools/cache.py`) — теж кеш, але в пам'яті кожного воркера. Скидання (`registry.clear_cache()`) інші воркери дізнаються через послідовності PostgreSQL `base_cache_signaling_*` на початку запиту (`odoo/modules/registry.py`). Redis-кеш — один на всіх, тож скидання бачать усі одразу."
+    },
+    {
+     "recall": "Пригадайте: у якому порядку оновити кількість у PostgreSQL і скинути кеш картки — і чому саме так?",
+     "a": "Спершу COMMIT у базі, потім DEL ключа. Інакше між DEL і комітом сусідній запит закешує старе значення на весь TTL."
+    }
+   ],
+   "examples": [
+    {
+     "w": "hit = r.get(key)",
+     "note": "спершу кеш"
+    },
+    {
+     "w": "r.set(key, json.dumps(item), ex=300)",
+     "note": "промах — покласти з терміном"
+    },
+    {
+     "w": "ex = 300 + random.randint(0, 60)",
+     "note": "розкид терміну"
+    },
+    {
+     "w": "ex=300 if item else 30",
+     "note": "порожню відповідь — коротше"
+    },
+    {
+     "w": "commit(); r.delete(key)",
+     "note": "скидання після коміту"
+    },
+    {
+     "w": "SET lock:item:42 1 NX EX 5",
+     "note": "перераховує лише один"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import json, redis\nr = redis.Redis(decode_responses=True)\ncalls = 0\ndef get(k):\n    global calls\n    hit = r.get(k)\n    if hit is not None:\n        return json.loads(hit)\n    calls += 1\n    r.set(k, json.dumps(None), ex=30)\n    return None\nget('item:9'); get('item:9'); get('item:9')\nprint(calls)",
+     "lang": "python",
+     "options": [
+      "1",
+      "3",
+      "0",
+      "2"
+     ],
+     "a": 0,
+     "why": "json.dumps(None) — рядок 'null', він не None: другий і третій виклики — влучання в кеш."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import json, redis\nr = redis.Redis(decode_responses=True)\nr.set('item:1', json.dumps({'qty': 5}))\nitem = json.loads(r.get('item:1'))\nprint(item['qty'] + 1)",
+     "lang": "python",
+     "options": [
+      "6",
+      "51",
+      "TypeError",
+      "'6'"
+     ],
+     "a": 0,
+     "why": "JSON зберігає тип: після json.loads qty знову число."
+    },
+    {
+     "type": "choice",
+     "q": "Як зветься схема: застосунок дивиться в кеш, при промаху читає базу й кладе результат у кеш?",
+     "options": [
+      "Cache-aside",
+      "Write-through",
+      "Pub/Sub",
+      "Sharding"
+     ],
+     "a": 0,
+     "why": "Кеш «збоку»: керує ним сам застосунок, база про кеш не знає."
+    },
+    {
+     "type": "choice",
+     "q": "Кількість шолома змінили. Що робити з ключем item:42?",
+     "options": [
+      "Після COMMIT видалити його",
+      "До COMMIT видалити його",
+      "Після COMMIT записати нове значення через SET",
+      "Нічого — TTL усе виправить"
+     ],
+     "a": 0,
+     "why": "DEL після коміту: наступне читання візьме свіже значення з бази. SET може програти гонку, а лише TTL — довго віддавати старе."
+    },
+    {
+     "type": "choice",
+     "q": "Чим небезпечний DEL кешу до коміту в базу?",
+     "options": [
+      "Сусідній запит закешує старе значення на весь TTL",
+      "Redis відкотить DEL разом з базою",
+      "Ключ не видалиться",
+      "База заблокує рядок"
+     ],
+     "a": 0,
+     "why": "До коміту база ще віддає старе — його й покладе в кеш перший, хто промахнеться."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо додавати до TTL випадкові 0–60 секунд?",
+     "options": [
+      "Щоб ключі не зникали всі одночасно",
+      "Щоб Redis економив пам'ять",
+      "Щоб обійти обмеження TTL",
+      "Щоб кеш був свіжішим"
+     ],
+     "a": 0,
+     "why": "Однаковий термін — одночасний промах тисяч ключів і пік запитів до бази."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо кешувати відповідь «речі не знайдено»?",
+     "options": [
+      "Щоб запити неіснуючих id не били щоразу в базу",
+      "Щоб видалені речі повернулись",
+      "Щоб TTL став довшим",
+      "Щоб зберегти місце в базі"
+     ],
+     "a": 0,
+     "why": "Без цього кожен запит неіснуючого id — промах і запит до бази."
+    },
+    {
+     "type": "choice",
+     "q": "Популярний ключ щойно зник, сто запитів одночасно пішли в базу. Як це зветься?",
+     "options": [
+      "Лавина промахів (cache stampede)",
+      "Втрачене оновлення",
+      "Deadlock",
+      "Вичерпання пулу"
+     ],
+     "a": 0,
+     "why": "Перерахунок під блокуванням SET … NX дає рахувати лише одному."
+    },
+    {
+     "type": "choice",
+     "q": "Чим @ormcache в Odoo відрізняється від кешу в Redis?",
+     "options": [
+      "Він у пам'яті кожного воркера окремо",
+      "Він зберігається на диску",
+      "Він не має скидання",
+      "Він спільний для всіх баз"
+     ],
+     "a": 0,
+     "why": "ormcache живе в процесі; скидання воркери дізнаються через послідовності base_cache_signaling_*."
+    },
+    {
+     "type": "order",
+     "q": "Читання картки через cache-aside",
+     "items": [
+      "GET item:42",
+      "Промах — SELECT з бази",
+      "SET item:42 … EX 300",
+      "Повернути картку"
+     ],
+     "why": "Спершу кеш; лише при промаху база й заповнення кешу з терміном."
+    },
+    {
+     "type": "gap",
+     "q": "Рядок JSON → словник Python: json.◻(hit)",
+     "a": [
+      "loads"
+     ],
+     "why": "loads читає рядок, dumps — робить рядок."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що типово робить r.pipeline() у redis-py?",
+     "options": [
+      "Пакет команд у MULTI/EXEC",
+      "Пакет без транзакції",
+      "Нове з'єднання на команду",
+      "Нічого до .close()"
+     ],
+     "a": 0,
+     "why": "transaction=True типово; простий пакет — transaction=False."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: картку перезаписали SET без опцій. Що з її терміном?",
+     "options": [
+      "Стерся — ключ вічний",
+      "Лишився, як був",
+      "Почався заново",
+      "Ключ видалився"
+     ],
+     "a": 0,
+     "why": "SET без KEEPTTL скидає TTL — у кеші це вічний ключ."
+    }
+   ],
+   "typing": [
+    "При промаху застосунок читає базу й кладе результат у кеш.",
+    "TTL обмежує, скільки житиме застаріле значення.",
+    "До терміну кешу додають випадковий розкид.",
+    "Кешують і відповідь, що нічого не знайдено.",
+    "Спершу коміт у базу, потім видалення ключа кешу."
+   ],
+   "tasks": [
+    "Додайте до свого FastAPI-застосунку з курсу FastAPI кеш картки GET /items/{id}: cache-aside з TTL 300 + розкид. Перевірте через redis-cli MONITOR, що другий запит не йде в базу.",
+    "Додайте скидання ключа в PATCH /items/{id} після коміту. Змініть кількість і переконайтеся, що наступний GET повертає нове значення."
+   ],
+   "media": [
+    {
+     "title": "Redis: redis-py guide",
+     "url": "https://redis.io/docs/latest/develop/clients/redis-py/",
+     "note": "клієнт, на якому побудовано кеш",
+     "main": true
+    },
+    {
+     "title": "Redis: SET",
+     "url": "https://redis.io/docs/latest/commands/set/",
+     "note": "EX, NX для заповнення кешу й блокування"
+    }
+   ]
+  },
+  {
+   "id": "rate-limit",
+   "title": "Лічильники й обмеження частоти",
+   "topic": "фіксоване вікно INCR + EXPIRE NX, INCREX з межею, ковзне вікно на sorted set, статистика за день",
+   "goal": "Обмежити кількість запитів до API на користувача так, щоб ліміт не ламався від гонок і падіння процесу",
+   "theory": [
+    {
+     "recall": "Пригадайте: у якому порядку оновити базу й скинути кеш картки?",
+     "a": "Спершу COMMIT у базі, потім DEL ключа кешу."
+    },
+    {
+     "p": "**Обмеження частоти** (rate limit) — «не більше 10 запитів на хвилину від одного користувача». Захищає API від скриптів, що зациклились, і від перебору паролів. Лічильник має бути спільним для всіх процесів застосунку — тому він у Redis, а не в пам'яті процесу."
+    },
+    {
+     "h": "Фіксоване вікно"
+    },
+    {
+     "p": "Найпростіше: ключ `rate:<user>` з терміном 60 секунд. Кожен запит — `INCR`; перший запит вікна ставить термін. Більше ліміту — відмова, `429 Too Many Requests`."
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\n\ndef allow(user, limit=10, window=60):\n    key = f'rate:{user}'\n    with r.pipeline() as p:\n        p.incr(key)\n        p.expire(key, window, nx=True)\n        n, _ = p.execute()\n    return n <= limit\n\nprint([allow('alice', 3) for _ in range(5)])",
+     "lang": "python",
+     "title": "fixed.py",
+     "hl": [
+      9
+     ]
+    },
+    {
+     "code": "[True, True, True, False, False]",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`EXPIRE … NX` (з Redis 7.0) ставить термін, **лише якщо його ще немає**: вікно не подовжується з кожним запитом. А `pipeline()` у redis-py — транзакція: `INCR` і `EXPIRE` виконуються разом."
+    },
+    {
+     "warn": "❌ `n = r.incr(key)`, потім `if n == 1: r.expire(key, 60)` двома окремими командами → ✅ якщо процес упав між ними, ключ лишився **без терміну**, і користувач заблокований назавжди. Обидві команди — в одній транзакції або одною командою."
+    },
+    {
+     "h": "INCREX: одна команда з межею"
+    },
+    {
+     "p": "З Redis 8.8 є `INCREX` — інкремент з межами й терміном в одній команді ([INCREX](https://redis.io/docs/latest/commands/increx/)). Повертає пару: нове значення і **фактичний** приріст. `UBOUND 3` — верхня межа: якщо приріст її перевищить, значення не змінюється, а фактичний приріст — 0. `ENX` — ставити термін, лише якщо його немає."
+    },
+    {
+     "code": "> INCREX rate:bob UBOUND 3 EX 60 ENX\n1) (integer) 1\n2) (integer) 1\n> INCREX rate:bob UBOUND 3 EX 60 ENX\n1) (integer) 2\n2) (integer) 1\n> INCREX rate:bob UBOUND 3 EX 60 ENX\n1) (integer) 3\n2) (integer) 1\n> INCREX rate:bob UBOUND 3 EX 60 ENX\n1) (integer) 3\n2) (integer) 0\n> TTL rate:bob\n(integer) 60",
+     "lang": "console",
+     "title": "redis-cli",
+     "hl": [
+      11,
+      12
+     ]
+    },
+    {
+     "code": "def allow(user, limit=10, window=60):\n    n, applied = r.increx(\n        f'rate:{user}', ubound=limit,\n        ex=window, enx=True)\n    return applied == 1",
+     "lang": "python",
+     "title": "increx.py"
+    },
+    {
+     "p": "З `SATURATE` значення не відкидається, а впирається в межу: `INCREX c BYINT 5 UBOUND 3 SATURATE` дасть 3 і фактичний приріст 3. Для ліміту запитів це не потрібно, для «залишок не нижче нуля» — зручно (`LBOUND 0`)."
+    },
+    {
+     "tip": "Сервер на роботі може бути старішим за 8.8. Тоді — `INCR` + `EXPIRE NX` у транзакції: це працює з Redis 7.0."
+    },
+    {
+     "h": "Ковзне вікно"
+    },
+    {
+     "p": "Фіксоване вікно пропускає сплеск на межі: 10 запитів о 12:00:59 і ще 10 о 12:01:00 — двадцять за дві секунди. **Ковзне вікно** рахує запити за останні 60 секунд від «зараз»: кожен запит — елемент sorted set з оцінкою-часом, старі видаляються."
+    },
+    {
+     "code": "import time\n\ndef allow(user, limit=10, window=60):\n    key = f'slide:{user}'\n    now = time.time()\n    with r.pipeline() as p:\n        p.zremrangebyscore(\n            key, 0, now - window)\n        m = str(time.time_ns())\n        p.zadd(key, {m: now})\n        p.zcard(key)\n        p.expire(key, window)\n        n = p.execute()[2]\n    return n <= limit",
+     "lang": "python",
+     "title": "sliding.py"
+    },
+    {
+     "table": [
+      [
+       "Спосіб",
+       "Плюс",
+       "Мінус"
+      ],
+      [
+       "INCR + EXPIRE NX",
+       "1 ключ, просто",
+       "сплеск на межі"
+      ],
+      [
+       "INCREX",
+       "одна команда",
+       "Redis 8.8+"
+      ],
+      [
+       "sorted set",
+       "точно",
+       "елемент на запит"
+      ]
+     ]
+    },
+    {
+     "p": "У ковзному вікні відмовлені запити теж записуються — хто продовжує стукати, той і далі заблокований. Іноді це саме те, що треба."
+    },
+    {
+     "h": "Статистика"
+    },
+    {
+     "p": "Для звітів «скільки видач за день» — хеш на день з `HINCRBY` і терміном, щоб старі дні самі прибирались: `HINCRBY stats:2026-11-16 helmet 1`, потім `EXPIRE stats:2026-11-16 2592000 NX` (30 днів)."
+    },
+    {
+     "recall": "Пригадайте: чому не можна робити INCR, а потім окремою командою EXPIRE, якщо результат 1?",
+     "a": "Процес може впасти між ними: ключ лишиться без терміну, і користувач заблокований назавжди. Треба транзакцію (INCR + EXPIRE NX) або INCREX."
+    }
+   ],
+   "examples": [
+    {
+     "w": "INCR rate:alice + EXPIRE rate:alice 60 NX",
+     "note": "фіксоване вікно"
+    },
+    {
+     "w": "p.expire(key, 60, nx=True)",
+     "note": "те саме в redis-py"
+    },
+    {
+     "w": "INCREX rate:bob UBOUND 10 EX 60 ENX",
+     "note": "ліміт однією командою, 8.8+"
+    },
+    {
+     "w": "applied == 0",
+     "note": "межу досягнуто — відмова"
+    },
+    {
+     "w": "INCREX stock BYINT -4 LBOUND 0",
+     "note": "не нижче нуля"
+    },
+    {
+     "w": "ZREMRANGEBYSCORE slide:alice 0 <now−60>",
+     "note": "ковзне вікно: прибрати старі"
+    },
+    {
+     "w": "HINCRBY stats:2026-11-16 helmet 1",
+     "note": "статистика за день"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis(decode_responses=True)\ndef allow(u, limit):\n    with r.pipeline() as p:\n        p.incr(f'rate:{u}')\n        p.expire(f'rate:{u}', 60, nx=True)\n        n, _ = p.execute()\n    return n <= limit\nprint([allow('a', 2) for _ in range(4)])",
+     "lang": "python",
+     "options": [
+      "[True, True, False, False]",
+      "[True, True, True, False]",
+      "[True, False, False, False]",
+      "[True, True, True, True]"
+     ],
+     "a": 0,
+     "why": "Лічильник 1, 2 — дозволено; 3, 4 — більше ліміту 2."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET rate:bob 3\n> INCREX rate:bob UBOUND 3",
+     "lang": "console",
+     "options": [
+      "3, приріст 0",
+      "4, приріст 1",
+      "помилка: поза межею",
+      "3, приріст 1"
+     ],
+     "a": 0,
+     "why": "Приріст вивів би за UBOUND — значення не змінилось, фактичний приріст 0."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET stock 2\n> INCREX stock BYINT -5 LBOUND 0 SATURATE",
+     "lang": "console",
+     "options": [
+      "0, приріст −2",
+      "2, приріст 0",
+      "−3, приріст −5",
+      "0, приріст −5"
+     ],
+     "a": 0,
+     "why": "SATURATE упирає значення в межу: 2 − 5 → 0, фактично знято 2."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET rate:a 1 EX 100\n> EXPIRE rate:a 60 NX\n> TTL rate:a",
+     "lang": "console",
+     "options": [
+      "(integer) 100",
+      "(integer) 60",
+      "(integer) -1",
+      "(integer) 160"
+     ],
+     "a": 0,
+     "why": "EXPIRE … NX не чіпає ключ, у якого вже є термін."
+    },
+    {
+     "type": "choice",
+     "q": "Чим небезпечні INCR і окремий EXPIRE після нього, якщо результат 1?",
+     "options": [
+      "Падіння між ними лишить ключ без терміну",
+      "INCR скине термін",
+      "EXPIRE обнулить лічильник",
+      "Нічим, це надійно"
+     ],
+     "a": 0,
+     "why": "Без терміну лічильник не обнулиться ніколи — користувач заблокований назавжди."
+    },
+    {
+     "type": "choice",
+     "q": "Що дає ENX в INCREX … EX 60 ENX?",
+     "options": [
+      "Термін ставиться лише першим інкрементом",
+      "Ключ створюється, лише якщо його немає",
+      "Інкремент лише для наявного ключа",
+      "Термін подовжується щоразу"
+     ],
+     "a": 0,
+     "why": "ENX — поставити термін, лише якщо його ще немає: вікно не ковзає з кожним запитом."
+    },
+    {
+     "type": "choice",
+     "q": "У чому слабкість фіксованого вікна?",
+     "options": [
+      "На межі вікон пройде вдвічі більше запитів",
+      "Він не працює з кількома процесами",
+      "Він потребує елемент на кожен запит",
+      "Він не має терміну"
+     ],
+     "a": 0,
+     "why": "Кінець одного вікна й початок наступного дають подвійний ліміт за пару секунд."
+    },
+    {
+     "type": "choice",
+     "q": "Чому ковзне вікно на sorted set дорожче за INCR?",
+     "options": [
+      "Елемент на кожен запит у вікні",
+      "Воно не атомарне",
+      "Воно потребує Lua",
+      "Воно працює лише з 8.8"
+     ],
+     "a": 0,
+     "why": "Точність коштує пам'яті: зберігається кожен запит за останні 60 секунд."
+    },
+    {
+     "type": "choice",
+     "q": "Який HTTP-статус повертати, коли ліміт перевищено?",
+     "options": [
+      "429 Too Many Requests",
+      "403 Forbidden",
+      "503 Service Unavailable",
+      "400 Bad Request"
+     ],
+     "a": 0,
+     "why": "429 означає саме «забагато запитів, спробуйте пізніше»."
+    },
+    {
+     "type": "gap",
+     "q": "Поставити термін, лише якщо його ще немає: EXPIRE rate:alice 60 ◻",
+     "a": [
+      "NX"
+     ],
+     "why": "NX — not exists: термін ставиться лише ключу без терміну."
+    },
+    {
+     "type": "order",
+     "q": "Ковзне вікно в одній транзакції",
+     "items": [
+      "ZREMRANGEBYSCORE — прибрати старші за вікно",
+      "ZADD — записати поточний запит",
+      "ZCARD — порахувати запити у вікні",
+      "EXPIRE — прибрати ключ, якщо запитів більше не буде"
+     ],
+     "why": "Спершу чистка, потім запис і підрахунок; термін — щоб ключ не жив вічно."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: у якому порядку оновити базу й скинути кеш?",
+     "options": [
+      "COMMIT, потім DEL ключа",
+      "DEL ключа, потім COMMIT",
+      "SET нового значення, потім COMMIT",
+      "Лише чекати TTL"
+     ],
+     "a": 0,
+     "why": "DEL до коміту дає сусідові закешувати старе значення."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне r.incr('n') у redis-py з decode_responses=True?",
+     "options": [
+      "int",
+      "str",
+      "bytes",
+      "float"
+     ],
+     "a": 0,
+     "why": "Відповіді лічильників приходять числами, а GET того ж ключа — рядком."
+    }
+   ],
+   "typing": [
+    "Лічильник ліміту має бути спільним для всіх процесів.",
+    "EXPIRE з NX ставить термін лише ключу без терміну.",
+    "INCR і EXPIRE виконують в одній транзакції.",
+    "INCREX повертає нове значення і фактичний приріст.",
+    "Фіксоване вікно пропускає сплеск на межі.",
+    "Перевищений ліміт — відповідь 429."
+   ],
+   "tasks": [
+    "Додайте до свого FastAPI-застосунку залежність, що пускає не більше 5 запитів на хвилину з однієї IP-адреси (request.client.host) і відповідає 429. Перевірте шістьма запитами поспіль.",
+    "Перепишіть ту саму залежність на INCREX і порівняйте кількість команд у redis-cli MONITOR."
+   ],
+   "media": [
+    {
+     "title": "Redis: INCREX",
+     "url": "https://redis.io/docs/latest/commands/increx/",
+     "note": "межі, SATURATE, ENX",
+     "main": true
+    },
+    {
+     "title": "Redis: INCR",
+     "url": "https://redis.io/docs/latest/commands/incr/",
+     "note": "розділ про шаблон обмеження частоти"
+    },
+    {
+     "title": "Redis: EXPIRE",
+     "url": "https://redis.io/docs/latest/commands/expire/",
+     "note": "опції NX, XX, GT, LT"
+    }
+   ]
+  },
+  {
+   "id": "locks",
+   "title": "Блокування в Redis",
+   "topic": "SET NX PX з токеном, зняття через DELEX чи Lua, термін і продовження, r.lock у redis-py, межі надійності",
+   "goal": "Не дати двом процесам одночасно робити одну роботу і не зняти випадково чуже блокування",
+   "theory": [
+    {
+     "recall": "Пригадайте: що поверне SET key v NX, якщо ключ уже є, і що — redis-py у тому ж випадку?",
+     "a": "(nil) — не записано; redis-py поверне None."
+    },
+    {
+     "p": "Блокування рядків PostgreSQL (`FOR UPDATE`) охороняють дані в базі. Але буває робота **поза базою**: сформувати PDF акта, викликати зовнішній API, надіслати звіт. Якщо її запустять два воркери одночасно — акт вийде двічі. Тут потрібне блокування, спільне для всіх процесів, — ключ у Redis ([Distributed locks](https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/))."
+    },
+    {
+     "h": "Взяти: SET NX PX з токеном"
+    },
+    {
+     "p": "Одна команда: `SET lock:act:7 <токен> NX PX 30000`. `NX` — запише лише перший, хто прийшов. `PX 30000` — блокування саме зникне через 30 секунд, якщо власник упав. **Токен** — випадковий рядок, унікальний для кожного взяття: за ним власник потім доведе, що блокування його."
+    },
+    {
+     "code": "> SET lock:act:7 tok-a NX PX 30000\nOK\n> SET lock:act:7 tok-b NX PX 30000\n(nil)\n> DELEX lock:act:7 IFEQ tok-b\n(integer) 0\n> DELEX lock:act:7 IFEQ tok-a\n(integer) 1",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "h": "Зняти: лише своє"
+    },
+    {
+     "p": "Чому не просто `DEL`? Сценарій: А взяла блокування на 30 с і завмерла (довга пауза збирача сміття, повільна мережа). Через 30 с ключ зник, блокування взяв Б. А прокинулась і робить `DEL` — видаляє **блокування Б**. Тепер заходить В, і Б з В працюють одночасно."
+    },
+    {
+     "table": [
+      [
+       "Час",
+       "Що відбувається"
+      ],
+      [
+       "0 с",
+       "А: SET … NX PX 30000"
+      ],
+      [
+       "30 с",
+       "ключ зник за терміном"
+      ],
+      [
+       "31 с",
+       "Б: SET … NX — узяла"
+      ],
+      [
+       "35 с",
+       "А: DEL — зняла чуже"
+      ],
+      [
+       "36 с",
+       "В: SET … NX — теж узяла"
+      ]
+     ]
+    },
+    {
+     "p": "Тому знімають **з перевіркою токена**: «видали, лише якщо значення моє». З Redis 8.4 для цього є `DELEX key IFEQ токен`. На старіших версіях — скрипт Lua: він виконується на сервері цілком, без чужих команд посередині (тема 7)."
+    },
+    {
+     "code": "import uuid\nimport redis\n\nr = redis.Redis(decode_responses=True)\nRELEASE = r.register_script(\"\"\"\nif redis.call('GET', KEYS[1]) == ARGV[1]\nthen return redis.call('DEL', KEYS[1]) end\nreturn 0\"\"\")\n\ndef acquire(name, ttl=30000):\n    token = uuid.uuid4().hex\n    if r.set(name, token, nx=True, px=ttl):\n        return token\n    return None\n\nkey = 'lock:act:7'\na = acquire(key)\nb = acquire(key)\nprint(a is not None, b)\nprint(RELEASE(keys=[key], args=['x']))\nprint(RELEASE(keys=[key], args=[a]))",
+     "lang": "python",
+     "title": "lock.py",
+     "hl": [
+      6,
+      7,
+      12
+     ]
+    },
+    {
+     "code": "True None\n0\n1",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "warn": "❌ `r.delete('lock:act:7')` у `finally` → ✅ так знімається й **чуже** блокування, якщо своє вже вийшло за терміном. Лише перевірка токена: `DELEX … IFEQ` або Lua."
+    },
+    {
+     "h": "Готове: r.lock у redis-py"
+    },
+    {
+     "p": "redis-py має клас блокування, що робить усе вище сам: токен, `SET NX PX`, зняття скриптом Lua з перевіркою токена. Використовується як `with`:"
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nlock = r.lock('lock:act:7', timeout=30,\n              blocking_timeout=2)\nwith lock:\n    print(r.pttl('lock:act:7') > 0)\nprint(r.exists('lock:act:7'))",
+     "lang": "python",
+     "title": "rlock.py",
+     "hl": [
+      4
+     ]
+    },
+    {
+     "code": "True\n0",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "warn": "❌ `r.lock('lock:act:7')` без `timeout` → ✅ типово `timeout=None`: блокування **без терміну**. Процес упав — ключ висить вічно, і акт більше не сформує ніхто. Завжди задавайте `timeout`."
+    },
+    {
+     "p": "`blocking_timeout=2` — скільки секунд чекати чуже блокування; не дочекались — `redis.exceptions.LockError`. Якщо робота затяглась довше `timeout`, а ви знімаєте вже не своє блокування, — `LockNotOwnedError`. Довгу роботу продовжують: `lock.extend(30)` додає 30 секунд, поки блокування ще ваше."
+    },
+    {
+     "h": "Межі надійності"
+    },
+    {
+     "p": "Навіть з токеном лишається проблема завмирання: А прокинулась після закінчення терміну й **уже** робить роботу, а Б теж її робить. Токен рятує лише від зняття чужого. Тому блокування в Redis — для **ефективності** (не робити роботу двічі), а не для коректності грошей і залишків. Залишок списують у PostgreSQL з умовою в `UPDATE` чи `FOR UPDATE` — там гарантії транзакцій."
+    },
+    {
+     "tip": "Термін блокування — із запасом від найдовшої роботи, а для дуже довгої — `extend` у циклі. Якщо дві паралельні роботи — це втрата грошей, обмеження ставлять у базі (унікальний індекс, умова в `UPDATE`)."
+    },
+    {
+     "recall": "Пригадайте: навіщо токен у блокуванні і чому DEL у finally небезпечний?",
+     "a": "Токен доводить, що блокування твоє. DEL зніме й чуже, якщо твоє вже вийшло за терміном і ключ узяв інший процес."
+    }
+   ],
+   "examples": [
+    {
+     "w": "SET lock:act:7 <uuid> NX PX 30000",
+     "note": "взяти з терміном"
+    },
+    {
+     "w": "DELEX lock:act:7 IFEQ <uuid>",
+     "note": "зняти своє, Redis 8.4+"
+    },
+    {
+     "w": "if GET == token then DEL",
+     "note": "те саме скриптом Lua"
+    },
+    {
+     "w": "r.register_script(RELEASE)",
+     "note": "скрипт як функція Python"
+    },
+    {
+     "w": "r.lock(name, timeout=30, blocking_timeout=2)",
+     "note": "готове блокування"
+    },
+    {
+     "w": "lock.extend(30)",
+     "note": "продовжити своє"
+    },
+    {
+     "w": "LockNotOwnedError",
+     "note": "знімаємо вже не своє"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET lock:a tok-a NX PX 30000\n> SET lock:a tok-b NX PX 30000",
+     "lang": "console",
+     "options": [
+      "(nil)",
+      "OK",
+      "\"tok-a\"",
+      "(integer) 0"
+     ],
+     "a": 0,
+     "why": "Ключ уже є — NX не записав: блокування в іншого."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> SET lock:a tok-a NX PX 30000\n> DELEX lock:a IFEQ tok-b",
+     "lang": "console",
+     "options": [
+      "(integer) 0",
+      "(integer) 1",
+      "OK",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "Значення tok-a, а не tok-b — ключ не видалено."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis(decode_responses=True)\nwith r.lock('lock:a', timeout=30):\n    pass\nprint(r.exists('lock:a'))",
+     "lang": "python",
+     "options": [
+      "0",
+      "1",
+      "True",
+      "None"
+     ],
+     "a": 0,
+     "why": "Вихід з with знімає блокування — ключа немає."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо PX 30000 у SET lock … NX?",
+     "options": [
+      "Щоб блокування зникло, якщо власник упав",
+      "Щоб чекати 30 секунд",
+      "Щоб інші чекали 30 секунд",
+      "Щоб заблокувати ключ на запис"
+     ],
+     "a": 0,
+     "why": "Без терміну блокування мертвого процесу висіло б вічно."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо в значенні блокування випадковий токен?",
+     "options": [
+      "Щоб зняти лише своє блокування",
+      "Щоб ключі не повторювались",
+      "Щоб Redis шифрував ключ",
+      "Щоб продовжувався термін"
+     ],
+     "a": 0,
+     "why": "Перевірка токена при знятті не дає видалити блокування, яке вже взяв інший."
+    },
+    {
+     "type": "choice",
+     "q": "Процес А тримав блокування довше терміну, тепер ним володіє Б. Що зробить DEL від А?",
+     "options": [
+      "Видалить блокування Б",
+      "Нічого — ключ уже не А",
+      "Поверне помилку",
+      "Подовжить блокування А"
+     ],
+     "a": 0,
+     "why": "DEL не перевіряє власника. Тому знімають через DELEX IFEQ або Lua."
+    },
+    {
+     "type": "choice",
+     "q": "Що не так з r.lock('lock:act:7') без аргументів?",
+     "options": [
+      "Блокування без терміну — після падіння висітиме вічно",
+      "Воно не блокує інших",
+      "Воно не має токена",
+      "Воно працює лише в async"
+     ],
+     "a": 0,
+     "why": "Типово timeout=None: ключ без TTL."
+    },
+    {
+     "type": "choice",
+     "q": "Для чого блокування в Redis, а для чого — PostgreSQL?",
+     "options": [
+      "Redis — не робити роботу двічі; PostgreSQL — коректність залишків",
+      "Redis — для залишків, PostgreSQL — для кешу",
+      "Однаково для обох задач",
+      "Redis — лише для читання"
+     ],
+     "a": 0,
+     "why": "Блокування в Redis може «протекти» при завмиранні процесу; гарантії транзакцій — у базі."
+    },
+    {
+     "type": "choice",
+     "q": "Що зробить lock.extend(30)?",
+     "options": [
+      "Додасть 30 секунд, якщо блокування ще своє",
+      "Візьме нове блокування на 30 секунд",
+      "Зачекає 30 секунд",
+      "Зніме блокування через 30 секунд"
+     ],
+     "a": 0,
+     "why": "extend перевіряє токен і подовжує термін — для довгої роботи."
+    },
+    {
+     "type": "gap",
+     "q": "Зняти блокування, лише якщо значення моє (Redis 8.4+): ◻ lock:act:7 IFEQ tok-a",
+     "a": [
+      "DELEX"
+     ],
+     "why": "DELEX — умовне видалення: IFEQ видаляє, лише якщо значення збігається."
+    },
+    {
+     "type": "order",
+     "q": "Робота під блокуванням",
+     "items": [
+      "Згенерувати токен",
+      "SET lock … NX PX",
+      "Виконати роботу",
+      "Зняти з перевіркою токена"
+     ],
+     "why": "Токен до взяття, зняття — лише своє."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як обмежити 10 запитів на хвилину однією командою в Redis 8.8+?",
+     "options": [
+      "INCREX rate:u UBOUND 10 EX 60 ENX",
+      "INCR rate:u EX 60",
+      "SET rate:u 10 NX EX 60",
+      "EXPIRE rate:u 60 NX"
+     ],
+     "a": 0,
+     "why": "INCREX з межею й терміном; фактичний приріст 0 — ліміт вичерпано."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як у PostgreSQL кілька обробників беруть різні завдання з таблиці?",
+     "options": [
+      "FOR UPDATE SKIP LOCKED",
+      "FOR UPDATE NOWAIT",
+      "LOCK TABLE",
+      "SERIALIZABLE"
+     ],
+     "a": 0,
+     "why": "SKIP LOCKED пропускає рядки, вже заблоковані іншими."
+    }
+   ],
+   "typing": [
+    "Блокування беруть однією командою SET з NX і PX.",
+    "Токен доводить, що блокування твоє.",
+    "Звичайний DEL може зняти чуже блокування.",
+    "У redis-py блокуванню завжди задають timeout.",
+    "Блокування в Redis не замінює транзакцій бази."
+   ],
+   "tasks": [
+    "Запустіть два Python-процеси, що одночасно намагаються сформувати «акт 7» під r.lock('lock:act:7', timeout=10, blocking=False). Переконайтеся, що працює лише один.",
+    "Відтворіть LockNotOwnedError: візьміть блокування з timeout=1, засніть на 2 секунди й спробуйте зняти."
+   ],
+   "media": [
+    {
+     "title": "Redis: Distributed locks",
+     "url": "https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/",
+     "note": "один сервер, токен, Redlock і його межі",
+     "main": true
+    },
+    {
+     "title": "Redis: SET",
+     "url": "https://redis.io/docs/latest/commands/set/",
+     "note": "NX, PX, IFEQ"
+    }
+   ]
+  },
+  {
+   "id": "transactions",
+   "title": "Транзакції й Lua",
+   "topic": "MULTI/EXEC, відсутність відкату, EXECABORT, WATCH і WatchError, скрипти Lua, register_script",
+   "goal": "Виконувати кілька команд разом, безпечно міняти значення за принципом «прочитав — вирішив — записав» і писати атомарні скрипти на сервері",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим небезпечний r.delete(lock) у finally і як зняти блокування правильно?",
+     "a": "DEL зніме й чуже блокування, якщо своє вийшло за терміном. Правильно — DELEX … IFEQ токен (8.4+) або скрипт Lua з перевіркою токена."
+    },
+    {
+     "p": "Транзакція в Redis — це не транзакція PostgreSQL. `MULTI` починає накопичувати команди (кожна відповідає `QUEUED`), `EXEC` виконує їх **підряд, без чужих команд посередині**. Ізоляція є, а **відкату немає** ([Transactions](https://redis.io/docs/latest/develop/using-commands/transactions/))."
+    },
+    {
+     "code": "> SET stock:helmet 5\nOK\n> MULTI\nOK\n> DECRBY stock:helmet 2\nQUEUED\n> INCR issued:helmet\nQUEUED\n> EXEC\n1) (integer) 3\n2) (integer) 1",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "h": "Помилка всередині — інші команди виконуються"
+    },
+    {
+     "p": "Якщо команда впала **під час виконання** (`INCR` на тексті), решта транзакції все одно виконається, а помилка буде одним з елементів відповіді `EXEC`. Скасувати вже виконане Redis не вміє."
+    },
+    {
+     "code": "> SET name helmet\nOK\n> MULTI\nOK\n> INCR name\nQUEUED\n> SET other 1\nQUEUED\n> EXEC\n1) (error) ERR value is not an integer or out of range\n2) OK",
+     "lang": "console",
+     "title": "redis-cli",
+     "hl": [
+      10,
+      11
+     ]
+    },
+    {
+     "p": "Інша справа — помилка **при постановці в чергу**: неіснуюча команда, не та кількість аргументів. Тоді `EXEC` відкидає всю транзакцію: `EXECABORT`."
+    },
+    {
+     "code": "> MULTI\nOK\n> SET a\n(error) ERR wrong number of arguments for 'set' command\n> EXEC\n(error) EXECABORT Transaction discarded because of previous errors.",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "warn": "❌ Чекати від `MULTI` відкату, як `ROLLBACK` у PostgreSQL → ✅ відкату немає. Перевіряйте умови **до** `EXEC` (через `WATCH`) або перенесіть логіку в скрипт Lua."
+    },
+    {
+     "h": "WATCH: оптимістичне блокування"
+    },
+    {
+     "p": "Між `MULTI` і `EXEC` не можна прочитати значення й вирішити — команди лише стають у чергу. Тому читають **до** `MULTI`, але спершу кажуть `WATCH key`. Якщо хтось змінив ключ між `WATCH` і `EXEC`, `EXEC` нічого не виконає й поверне `(nil)` — треба повторити спробу."
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "WATCH stock:helmet",
+       ""
+      ],
+      [
+       "GET stock:helmet → \"5\"",
+       ""
+      ],
+      [
+       "",
+       "DECRBY stock:helmet 3"
+      ],
+      [
+       "MULTI; SET stock:helmet 4",
+       ""
+      ],
+      [
+       "EXEC → (nil)",
+       ""
+      ]
+     ]
+    },
+    {
+     "p": "Це **оптимістичне** блокування: нікого не блокуємо, а при конфлікті просто повторюємо. У redis-py `EXEC`, що повернув `(nil)`, стає винятком `redis.WatchError`:"
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nother = redis.Redis(decode_responses=True)\nk = 'stock:helmet'\nr.set(k, 5)\ntries = 0\nwith r.pipeline() as p:\n    while True:\n        tries += 1\n        try:\n            p.watch(k)\n            qty = int(p.get(k))\n            if tries == 1:\n                other.decrby(k, 3)\n            p.multi()\n            p.set(k, qty - 1)\n            p.execute()\n            break\n        except redis.WatchError:\n            print('конфлікт, спроба', tries)\nprint(r.get(k))",
+     "lang": "python",
+     "title": "watch.py",
+     "hl": [
+      12,
+      16,
+      20
+     ]
+    },
+    {
+     "code": "конфлікт, спроба 1\n1",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`other` імітує паралельного видавача, що зняв 3 між читанням і записом. Перша спроба відкинута, друга прочитала 2 і записала 1. Без `WATCH` вийшло б 4 — **втрачене оновлення**."
+    },
+    {
+     "h": "Lua: логіка на сервері"
+    },
+    {
+     "p": "Скрипт Lua виконується на сервері **цілком**, як одна команда: ніхто не вклиниться між його читанням і записом. Тому «перевірити й змінити» простіше написати скриптом, ніж ганяти `WATCH` у циклі. Ключі передають у `KEYS`, інші параметри — в `ARGV` ([Lua scripting](https://redis.io/docs/latest/develop/programmability/eval-intro/))."
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nISSUE = r.register_script(\"\"\"\nlocal q = tonumber(\n  redis.call('GET', KEYS[1]))\nif q and q >= tonumber(ARGV[1]) then\n  return redis.call('DECRBY',\n    KEYS[1], ARGV[1])\nend\nreturn -1\"\"\")\n\nk = 'stock:helmet'\nr.set(k, 5)\nprint(ISSUE(keys=[k], args=[4]))\nprint(ISSUE(keys=[k], args=[4]))",
+     "lang": "python",
+     "title": "issue.py",
+     "hl": [
+      7
+     ]
+    },
+    {
+     "code": "1\n-1",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Це той самий прийом, що `UPDATE … WHERE qty >= 4` з курсу PostgreSQL: перевірка й списання разом. `register_script` один раз завантажує скрипт і далі викликає його за хешем (`EVALSHA`) — тіло скрипта не ганяється мережею щоразу."
+    },
+    {
+     "tip": "Скрипт тримає весь сервер, поки виконується, — пишіть короткі скрипти без циклів по тисячах ключів. І передавайте всі ключі через `KEYS`, а не складайте імена всередині: інакше скрипт не працюватиме в Redis Cluster."
+    },
+    {
+     "recall": "Пригадайте: що станеться з другою командою транзакції, якщо перша впала під час EXEC?",
+     "a": "Виконається: відкату немає, помилка буде лише елементом відповіді EXEC."
+    }
+   ],
+   "examples": [
+    {
+     "w": "MULTI … EXEC",
+     "note": "підряд, без чужих команд"
+    },
+    {
+     "w": "QUEUED",
+     "note": "команду поставлено в чергу"
+    },
+    {
+     "w": "EXECABORT",
+     "note": "помилка в черзі — відкинуто все"
+    },
+    {
+     "w": "WATCH stock:helmet",
+     "note": "стежити за зміною до EXEC"
+    },
+    {
+     "w": "EXEC → (nil)",
+     "note": "ключ змінили — повторити"
+    },
+    {
+     "w": "except redis.WatchError:",
+     "note": "конфлікт у redis-py"
+    },
+    {
+     "w": "r.register_script(LUA)",
+     "note": "скрипт як функція"
+    },
+    {
+     "w": "KEYS[1], ARGV[1]",
+     "note": "ключі й параметри скрипта"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне EXEC?",
+     "code": "> SET stock 5\n> MULTI\n> DECRBY stock 2\n> INCR issued\n> EXEC",
+     "lang": "console",
+     "options": [
+      "Список: 3 і 1",
+      "OK",
+      "QUEUED",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "EXEC повертає відповіді всіх команд черги по порядку: DECRBY дав 3, INCR — 1."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне GET other наприкінці?",
+     "code": "> SET name helmet\n> MULTI\n> INCR name\n> SET other 1\n> EXEC\n> GET other",
+     "lang": "console",
+     "options": [
+      "\"1\"",
+      "(nil)",
+      "(error) EXECABORT",
+      "\"0\""
+     ],
+     "a": 0,
+     "why": "Помилка INCR під час виконання не скасовує інших команд — відкату немає."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне GET a наприкінці?",
+     "code": "> SET a old\n> MULTI\n> SET a new\n> SET b\n> EXEC\n> GET a",
+     "lang": "console",
+     "options": [
+      "\"old\"",
+      "\"new\"",
+      "(nil)",
+      "QUEUED"
+     ],
+     "a": 0,
+     "why": "SET b без значення — помилка ще в черзі: EXECABORT відкинув усю транзакцію."
+    },
+    {
+     "type": "choice",
+     "q": "Сесія А зробила WATCH stock, Б змінила stock, А виконала MULTI … EXEC. Що отримає А?",
+     "options": [
+      "(nil) — нічого не виконано",
+      "Помилку WATCH",
+      "Відповіді команд, як завжди",
+      "Очікування, поки Б завершить"
+     ],
+     "a": 0,
+     "why": "Змінений після WATCH ключ скасовує EXEC: А має повторити спробу."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код?",
+     "code": "import redis\nr = redis.Redis(decode_responses=True)\nS = r.register_script(\n    \"return redis.call('INCRBY',\"\n    \" KEYS[1], ARGV[1])\")\nr.set('n', 10)\nprint(S(keys=['n'], args=[5]))",
+     "lang": "python",
+     "options": [
+      "15",
+      "'15'",
+      "5",
+      "None"
+     ],
+     "a": 0,
+     "why": "Скрипт повертає ціле від INCRBY — у Python це int."
+    },
+    {
+     "type": "choice",
+     "q": "Чим MULTI/EXEC у Redis відрізняється від транзакції PostgreSQL?",
+     "options": [
+      "Немає відкату вже виконаних команд",
+      "Немає ізоляції від інших клієнтів",
+      "Команди виконуються паралельно",
+      "Не можна змінювати кілька ключів"
+     ],
+     "a": 0,
+     "why": "Ізоляцію EXEC дає (підряд, без чужих команд), а ROLLBACK — ні."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо WATCH, якщо є MULTI?",
+     "options": [
+      "Прочитати значення й вирішити, не втративши чужих змін",
+      "Щоб команди виконались швидше",
+      "Щоб увімкнути відкат",
+      "Щоб заблокувати ключ для інших"
+     ],
+     "a": 0,
+     "why": "Усередині MULTI читати не можна; WATCH скасує EXEC, якщо прочитане встигли змінити."
+    },
+    {
+     "type": "choice",
+     "q": "Як redis-py повідомляє, що WATCH-ключ змінили?",
+     "options": [
+      "Виняток redis.WatchError на execute()",
+      "execute() повертає None",
+      "execute() повертає порожній список",
+      "Виняток redis.ResponseError"
+     ],
+     "a": 0,
+     "why": "WatchError — сигнал повторити спробу в циклі."
+    },
+    {
+     "type": "choice",
+     "q": "Чому «перевірити й списати» зручно писати скриптом Lua?",
+     "options": [
+      "Скрипт виконується цілком, як одна команда",
+      "Lua швидший за Python",
+      "Скрипт пише на диск",
+      "Скрипт обходить ліміт пам'яті"
+     ],
+     "a": 0,
+     "why": "Між читанням і записом у скрипті ніхто не вклиниться — без WATCH і повторів."
+    },
+    {
+     "type": "choice",
+     "q": "Що не так з довгим скриптом Lua, який перебирає мільйон ключів?",
+     "options": [
+      "Він блокує весь сервер, поки виконується",
+      "Lua не вміє циклів",
+      "Скрипт обірветься через секунду автоматично без наслідків",
+      "Він не бачить ключів"
+     ],
+     "a": 0,
+     "why": "Скрипт — одна команда в одному потоці: інші клієнти чекають."
+    },
+    {
+     "type": "gap",
+     "q": "Ключі в скрипт Lua передають у масиві ◻, інші параметри — в ARGV.",
+     "a": [
+      "KEYS"
+     ],
+     "why": "KEYS — щоб Redis (і Cluster) знав, які ключі зачіпає скрипт."
+    },
+    {
+     "type": "order",
+     "q": "Оптимістична зміна значення",
+     "items": [
+      "WATCH key",
+      "GET key і рішення в Python",
+      "MULTI",
+      "SET key …",
+      "EXEC; (nil) — повторити"
+     ],
+     "why": "Читання до MULTI під наглядом WATCH; конфлікт — повтор з початку."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: чому блокування в Redis не замінює транзакцій PostgreSQL для залишків?",
+     "options": [
+      "Процес, що завмер, може працювати після закінчення терміну",
+      "Redis не вміє SET NX",
+      "Блокування живе лише секунду",
+      "Redis не має TTL"
+     ],
+     "a": 0,
+     "why": "Блокування з терміном може «протекти»; коректність залишків — у базі."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як не дати всім ключам кешу зникнути одночасно?",
+     "options": [
+      "Додати до TTL випадковий розкид",
+      "Ставити TTL 0",
+      "Не ставити TTL",
+      "Видаляти кеш через SCAN"
+     ],
+     "a": 0,
+     "why": "Розкид терміну розносить промахи в часі."
+    }
+   ],
+   "typing": [
+    "EXEC виконує команди черги підряд, без чужих команд.",
+    "У транзакції Redis немає відкату.",
+    "WATCH скасує EXEC, якщо ключ змінили.",
+    "Скрипт Lua виконується на сервері цілком.",
+    "Ключі передають скрипту в масиві KEYS."
+   ],
+   "tasks": [
+    "У двох вікнах redis-cli відтворіть сценарій з WATCH: у першому WATCH, GET, MULTI, SET; у другому змініть ключ; у першому EXEC. Потім повторіть без зміни в другому вікні.",
+    "Напишіть скрипт Lua «видати n речей кількох видів»: для кожного ключа з KEYS перевірити залишок і списати, лише якщо вистачає всього. Порівняйте з циклом WATCH."
+   ],
+   "media": [
+    {
+     "title": "Redis: Transactions",
+     "url": "https://redis.io/docs/latest/develop/using-commands/transactions/",
+     "note": "MULTI, EXEC, WATCH, чому немає відкату",
+     "main": true
+    },
+    {
+     "title": "Redis: Scripting with Lua",
+     "url": "https://redis.io/docs/latest/develop/programmability/eval-intro/",
+     "note": "EVAL, KEYS і ARGV, кешування скриптів"
+    }
+   ]
+  },
+  {
+   "id": "queues",
+   "title": "Черги на списках",
+   "topic": "RPUSH і BLPOP, надійна черга через BLMOVE, список «в роботі», LMOVEM пачкою, тайм-аут сокета redis-py",
+   "goal": "Роздавати фонові завдання воркерам через Redis і не губити завдання, коли воркер падає посеред роботи",
+   "theory": [
+    {
+     "recall": "Пригадайте: що станеться з рештою команд транзакції MULTI/EXEC, якщо одна з них упала під час виконання?",
+     "a": "Виконаються: відкату в Redis немає, помилка — лише елемент відповіді EXEC."
+    },
+    {
+     "p": "**Черга завдань**: вебзапит не друкує акт сам, а кладе завдання «друк акта 7» у чергу й одразу відповідає. **Воркер** — окремий процес — забирає завдання й виконує. Список Redis — найпростіша черга: `RPUSH` кладе в кінець, `LPOP` забирає з початку."
+    },
+    {
+     "h": "Блокуюче очікування"
+    },
+    {
+     "p": "Опитувати порожню чергу в циклі `LPOP` + `sleep` — марнувати процесор і запізнюватись. `BLPOP jobs 5` **чекає** до 5 секунд, поки в черзі щось з'явиться, і віддає елемент одразу, як тільки він прийшов. Сплив термін — `(nil)`; `0` — чекати вічно."
+    },
+    {
+     "code": "> RPUSH jobs act:1 act:2\n(integer) 2\n> BLPOP jobs 5\n1) \"jobs\"\n2) \"act:1\"\n> BLPOP empty 1\n(nil)",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "`BLPOP` повертає пару: з якого списку взято й що. Можна слухати кілька черг одразу: `BLPOP urgent jobs 5` бере спершу з `urgent`."
+    },
+    {
+     "h": "Надійна черга: BLMOVE"
+    },
+    {
+     "p": "Проблема `BLPOP`: воркер забрав завдання й упав — завдання зникло з черги й ніде не записане. **Надійна черга** перекладає завдання в окремий список «в роботі» **однією атомарною командою** — `BLMOVE` ([BLMOVE](https://redis.io/docs/latest/commands/blmove/)). Виконав — прибрав зі списку «в роботі» через `LREM`."
+    },
+    {
+     "code": "> RPUSH jobs act:1 act:2 act:3\n(integer) 3\n> BLMOVE jobs jobs:work LEFT RIGHT 5\n\"act:1\"\n> LRANGE jobs:work 0 -1\n1) \"act:1\"\n> LREM jobs:work 1 act:1\n(integer) 1\n> LLEN jobs\n(integer) 2",
+     "lang": "console",
+     "title": "redis-cli",
+     "hl": [
+      3,
+      7
+     ]
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nr.rpush('jobs', 'act:1', 'act:2')\n\ndef take():\n    return r.blmove('jobs', 'jobs:work',\n                    1, 'LEFT', 'RIGHT')\n\nwhile job := take():\n    print('друк', job)\n    r.lrem('jobs:work', 1, job)\nprint('в роботі:', r.llen('jobs:work'))",
+     "lang": "python",
+     "title": "worker.py",
+     "hl": [
+      7,
+      12
+     ]
+    },
+    {
+     "code": "друк act:1\nдрук act:2\nв роботі: 0",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Якщо воркер упав між `BLMOVE` і `LREM`, завдання лишилось у `jobs:work`. Окремий «прибиральник» (або сам воркер при старті) повертає такі завдання в чергу. Зручно давати кожному воркеру свій список: `jobs:work:<ім'я воркера>` — тоді при старті він повертає своє без суперечок з іншими."
+    },
+    {
+     "warn": "❌ `BLMOVE … 30` у redis-py з типовими налаштуваннями → ✅ у redis-py 8 тайм-аут сокета — 5 секунд. Якщо команда чекає довше, клієнт вважає з'єднання завислим, кидає `TimeoutError` і **повторює команду** — до 10 разів. На перевірці `blmove(…, 7)` упав з `TimeoutError` лише через ~60 секунд. Очікування в блокуючих командах — менше за `socket_timeout`, або окремий клієнт з `socket_timeout=None`."
+    },
+    {
+     "h": "Пачкою: LMOVEM"
+    },
+    {
+     "p": "З Redis 8.10 `LMOVEM` переносить **кілька** елементів однією командою: `COUNT 3` — до трьох, `EXACTLY 3` — рівно три або нічого (`(nil)`). Повертає перенесені елементи. Воркеру, що друкує акти пачками, це заміна циклу з `LMOVE`. Є й блокуючий варіант `BLMOVEM`."
+    },
+    {
+     "code": "> RPUSH jobs a b c d\n(integer) 4\n> LMOVEM jobs work LEFT RIGHT COUNT 3 OBO\n1) \"a\"\n2) \"b\"\n3) \"c\"\n> LMOVEM jobs work LEFT RIGHT EXACTLY 5 OBO\n(nil)",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "`OBO` (one by one) переносить по одному, `BULK` — блоком; різниця лише в порядку елементів на місці призначення."
+    },
+    {
+     "h": "Коли списку замало"
+    },
+    {
+     "table": [
+      [
+       "Черга",
+       "Що вміє"
+      ],
+      [
+       "список + BLMOVE",
+       "просто, без підтверджень"
+      ],
+      [
+       "Streams (тема 9)",
+       "групи, підтвердження, історія"
+      ],
+      [
+       "PostgreSQL SKIP LOCKED",
+       "у транзакції з даними"
+      ],
+      [
+       "RabbitMQ, Celery",
+       "повторні спроби, маршрутизація"
+      ]
+     ]
+    },
+    {
+     "p": "Список не знає, скільки разів завдання падало, і не повторює його з паузою. Для серйозних фонових задач беруть Streams або окремий брокер — їм присвячені наступні курси."
+    },
+    {
+     "recall": "Пригадайте: чим BLMOVE jobs jobs:work надійніший за BLPOP jobs?",
+     "a": "Завдання атомарно перекладається в список «в роботі» й лишається там, доки воркер не зробить LREM. Упав воркер — завдання не загубилось."
+    }
+   ],
+   "examples": [
+    {
+     "w": "RPUSH jobs act:7",
+     "note": "поставити завдання"
+    },
+    {
+     "w": "BLPOP jobs 5",
+     "note": "чекати до 5 с і забрати"
+    },
+    {
+     "w": "BLMOVE jobs jobs:work LEFT RIGHT 5",
+     "note": "забрати в «в роботі»"
+    },
+    {
+     "w": "LREM jobs:work 1 act:7",
+     "note": "готово — прибрати"
+    },
+    {
+     "w": "LMOVEM jobs work LEFT RIGHT COUNT 10 OBO",
+     "note": "пачка до 10, Redis 8.10+"
+    },
+    {
+     "w": "socket_timeout=None",
+     "note": "клієнт для довгого очікування"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> RPUSH jobs a b\n> BLPOP jobs 5",
+     "lang": "console",
+     "options": [
+      "Пару: jobs і a",
+      "Лише a",
+      "Лише b",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "BLPOP повертає пару: ім'я списку й елемент з лівого краю."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> RPUSH jobs a b\n> BLMOVE jobs work LEFT RIGHT 5\n> LLEN work",
+     "lang": "console",
+     "options": [
+      "(integer) 1",
+      "(integer) 2",
+      "(integer) 0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "BLMOVE переклав одне завдання в work."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> RPUSH jobs a b\n> LMOVEM jobs work LEFT RIGHT EXACTLY 3 OBO",
+     "lang": "console",
+     "options": [
+      "(nil)",
+      "Обидва: a і b",
+      "(integer) 2",
+      "(error) ERR not enough elements"
+     ],
+     "a": 0,
+     "why": "EXACTLY 3, а в черзі 2 — нічого не перенесено."
+    },
+    {
+     "type": "choice",
+     "q": "Воркер узяв завдання через BLPOP і впав. Що з завданням?",
+     "options": [
+      "Загубилось",
+      "Повернулось у чергу",
+      "Лежить у списку «в роботі»",
+      "Redis повторить його"
+     ],
+     "a": 0,
+     "why": "BLPOP просто видаляє елемент; щоб не губити — BLMOVE у список «в роботі»."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо LREM jobs:work 1 act:7 після виконання?",
+     "options": [
+      "Позначити завдання виконаним",
+      "Повернути завдання в чергу",
+      "Взяти наступне завдання",
+      "Продовжити блокування"
+     ],
+     "a": 0,
+     "why": "Що лишилось у jobs:work — те не дороблено; виконане звідти прибирають."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо BLPOP замість LPOP і sleep у циклі?",
+     "options": [
+      "Чекає на сервері й віддає завдання одразу",
+      "Забирає кілька завдань",
+      "Не видаляє завдання",
+      "Працює без з'єднання"
+     ],
+     "a": 0,
+     "why": "Блокуюче очікування не навантажує процесор і не запізнюється на час sleep."
+    },
+    {
+     "type": "choice",
+     "q": "У redis-py 8 з типовими налаштуваннями викликали r.blmove(…, 30). Що станеться при порожній черзі?",
+     "options": [
+      "TimeoutError після кількох повторів",
+      "None через 30 секунд",
+      "None одразу",
+      "Вічне очікування"
+     ],
+     "a": 0,
+     "why": "Типовий socket_timeout 5 с менший за 30 с: клієнт вважає з'єднання завислим і повторює команду."
+    },
+    {
+     "type": "choice",
+     "q": "Що повертає BLPOP, якщо термін очікування сплив?",
+     "options": [
+      "(nil)",
+      "(empty array)",
+      "(integer) 0",
+      "(error) timeout"
+     ],
+     "a": 0,
+     "why": "Нічого не прийшло — nil; воркер просто чекає далі в циклі."
+    },
+    {
+     "type": "choice",
+     "q": "Чого не вміє черга на списку?",
+     "options": [
+      "Рахувати спроби й повторювати з паузою",
+      "Блокуюче очікування",
+      "Список «в роботі»",
+      "Кілька воркерів"
+     ],
+     "a": 0,
+     "why": "Повторні спроби, групи й підтвердження — Streams або окремий брокер."
+    },
+    {
+     "type": "gap",
+     "q": "Атомарно забрати завдання в список «в роботі»: ◻ jobs jobs:work LEFT RIGHT 5",
+     "a": [
+      "BLMOVE"
+     ],
+     "why": "BLMOVE чекає й переносить елемент між списками однією командою."
+    },
+    {
+     "type": "order",
+     "q": "Цикл надійного воркера",
+     "items": [
+      "BLMOVE jobs jobs:work",
+      "Виконати завдання",
+      "LREM jobs:work 1 завдання",
+      "Знову BLMOVE"
+     ],
+     "why": "Завдання завжди або в черзі, або в «в роботі», доки не виконане."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як redis-py повідомляє, що WATCH-ключ змінили до EXEC?",
+     "options": [
+      "redis.WatchError",
+      "execute() поверне None",
+      "redis.ResponseError",
+      "redis.TimeoutError"
+     ],
+     "a": 0,
+     "why": "WatchError — сигнал повторити спробу."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: навіщо PX у SET lock … NX PX 30000?",
+     "options": [
+      "Блокування зникне, якщо власник упав",
+      "Чекати 30 секунд на блокування",
+      "Повторювати спробу 30 разів",
+      "Зберегти блокування на диск"
+     ],
+     "a": 0,
+     "why": "Термін — страховка від блокування, що висить вічно."
+    }
+   ],
+   "typing": [
+    "Воркер забирає завдання з черги й виконує його окремо від запиту.",
+    "BLPOP чекає, поки в черзі з'явиться завдання.",
+    "BLMOVE перекладає завдання в список в роботі.",
+    "Виконане завдання прибирають зі списку в роботі.",
+    "Очікування блокуючої команди має бути коротшим за тайм-аут сокета."
+   ],
+   "tasks": [
+    "Напишіть воркер на BLMOVE зі списком jobs:work:<pid>. При старті воркер повертає в чергу все, що лишилось у його списку. Перевірте: вбийте воркер посеред «друку» (time.sleep(10)) і запустіть знову.",
+    "Відтворіть пастку тайм-ауту: r.blmove('empty', 'w', 7, 'LEFT', 'RIGHT') з типовим клієнтом і з socket_timeout=None. Заміряйте час."
+   ],
+   "media": [
+    {
+     "title": "Redis: BLMOVE",
+     "url": "https://redis.io/docs/latest/commands/blmove/",
+     "note": "блокуюче перенесення й надійна черга",
+     "main": true
+    },
+    {
+     "title": "Redis: LMOVEM",
+     "url": "https://redis.io/docs/latest/commands/lmovem/",
+     "note": "кілька елементів за раз, COUNT і EXACTLY"
+    }
+   ]
+  },
+  {
+   "id": "streams",
+   "title": "Pub/Sub і Streams",
+   "topic": "PUBLISH і SUBSCRIBE, XADD і XRANGE, групи споживачів, XREADGROUP і XACK, XPENDING і XAUTOCLAIM, IDMP, подія після коміту",
+   "goal": "Розсилати миттєві сповіщення і будувати надійний потік подій, який кілька обробників читають без втрат і повторів",
+   "theory": [
+    {
+     "recall": "Пригадайте: чого не вміє черга на списку з BLMOVE?",
+     "a": "Рахувати спроби, повторювати з паузою, роздавати одну подію кільком незалежним групам і зберігати історію."
+    },
+    {
+     "h": "Pub/Sub: миттєво, але без пам'яті"
+    },
+    {
+     "p": "`PUBLISH канал повідомлення` доставляє повідомлення всім, хто **зараз** підписаний (`SUBSCRIBE канал`), і повертає їх кількість. Нікого немає — повідомлення зникло. Підписник був відключений секунду — пропустив усе за цю секунду ([Pub/Sub](https://redis.io/docs/latest/develop/pubsub/))."
+    },
+    {
+     "code": "> PUBLISH cache:drop item:42\n(integer) 0",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\np = r.pubsub(ignore_subscribe_messages=True)\np.subscribe('cache:drop')\nprint(r.publish('cache:drop', 'item:42'))\nmsg = next(p.listen())\nprint(msg['channel'], msg['data'])",
+     "lang": "python",
+     "title": "pubsub.py",
+     "hl": [
+      7
+     ]
+    },
+    {
+     "code": "1\ncache:drop item:42",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "Годиться для того, що не шкода загубити: «скиньте локальний кеш картки 42» усім воркерам, сповіщення в інтерфейсі. Для подій, які **мусять** дійти, — Streams."
+    },
+    {
+     "h": "Streams: журнал подій"
+    },
+    {
+     "p": "**Стрім** — журнал, у який лише дописують. Кожен запис має ID `мілісекунди-номер` і поля. Записи лишаються після читання: їх можна перечитати з будь-якого місця ([Streams](https://redis.io/docs/latest/develop/data-types/streams/)). Тут ID задано вручну (`1-1`) для наочності; у житті пишуть `*` — Redis поставить поточний час."
+    },
+    {
+     "code": "> XADD moves 1-1 item helmet qty -2\n\"1-1\"\n> XADD moves 1-2 item vest qty 1\n\"1-2\"\n> XLEN moves\n(integer) 2\n> XRANGE moves - +\n1) 1) \"1-1\"\n   2) 1) \"item\"\n      2) \"helmet\"\n      3) \"qty\"\n      4) \"-2\"\n2) 1) \"1-2\"\n   2) 1) \"item\"\n      2) \"vest\"\n      3) \"qty\"\n      4) \"1\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "Щоб стрім не ріс вічно, його обрізають при записі: `XADD moves MAXLEN ~ 100000 * …` — тримати приблизно останні 100 тисяч записів (`~` дозволяє Redis різати цілими блоками, це дешевше)."
+    },
+    {
+     "h": "Групи споживачів"
+    },
+    {
+     "p": "**Група** — набір обробників, що ділять потік між собою: кожен запис отримує **один** обробник групи. Різні групи читають той самий стрім незалежно: група `sync` шле зміни в іншу базу, група `stats` рахує статистику."
+    },
+    {
+     "code": "> XADD moves 1-1 item helmet\n\"1-1\"\n> XADD moves 1-2 item vest\n\"1-2\"\n> XGROUP CREATE moves sync 0\nOK\n> XGROUP CREATE moves sync 0\n(error) BUSYGROUP Consumer Group name already exists\n> XREADGROUP GROUP sync w1 COUNT 1 STREAMS moves >\n1) 1) \"moves\"\n   2) 1) 1) \"1-1\"\n         2) 1) \"item\"\n            2) \"helmet\"\n> XREADGROUP GROUP sync w2 COUNT 1 STREAMS moves >\n1) 1) \"moves\"\n   2) 1) 1) \"1-2\"\n         2) 1) \"item\"\n            2) \"vest\"\n> XACK moves sync 1-1\n(integer) 1",
+     "lang": "console",
+     "title": "redis-cli",
+     "hl": [
+      9,
+      14,
+      19
+     ]
+    },
+    {
+     "table": [
+      [
+       "Що",
+       "Значення"
+      ],
+      [
+       "0 у XGROUP CREATE",
+       "читати з початку стріму"
+      ],
+      [
+       "$ у XGROUP CREATE",
+       "лише нові записи"
+      ],
+      [
+       "> у XREADGROUP",
+       "ще нікому не видані"
+      ],
+      [
+       "0 у XREADGROUP",
+       "свої невиконані"
+      ],
+      [
+       "XACK",
+       "запис оброблено"
+      ]
+     ]
+    },
+    {
+     "p": "Виданий, але не підтверджений `XACK` запис висить у **списку очікування** (PEL) свого обробника. Упав обробник — запис не загублено: при старті він читає свої невиконані з ID `0`, а інші можуть забрати чужі завислі через `XAUTOCLAIM`."
+    },
+    {
+     "code": "> XPENDING moves sync\n1) (integer) 1\n2) \"1-2\"\n3) \"1-2\"\n4) 1) 1) \"w2\"\n      2) \"1\"\n> XAUTOCLAIM moves sync w1 0 0-0 COUNT 10\n1) \"0-0\"\n2) 1) 1) \"1-2\"\n      2) 1) \"item\"\n         2) \"vest\"\n3) (empty array)",
+     "lang": "console",
+     "title": "redis-cli, продовження"
+    },
+    {
+     "p": "`XPENDING`: один невиконаний запис 1-2, він у w2. `XAUTOCLAIM … w1 0 …` передав його w1. У житті замість `0` ставлять мінімальний час простою, наприклад `60000` — забирати лише те, що висить довше хвилини."
+    },
+    {
+     "h": "Обробник на Python"
+    },
+    {
+     "code": "import redis\n\nr = redis.Redis(decode_responses=True)\nS, G = 'moves', 'sync'\ntry:\n    r.xgroup_create(S, G, id='0',\n                    mkstream=True)\nexcept redis.ResponseError as e:\n    if 'BUSYGROUP' not in str(e):\n        raise\nr.xadd(S, {'item': 'helmet', 'qty': -2})\nr.xadd(S, {'item': 'vest', 'qty': 1})\nresp = r.xreadgroup(G, 'w1', {S: '>'},\n                    count=100, block=500)\nfor _, entries in resp:\n    for mid, fields in entries:\n        print(fields)\n        r.xack(S, G, mid)\nprint(r.xpending(S, G)['pending'])",
+     "lang": "python",
+     "title": "consumer.py",
+     "hl": [
+      6,
+      13,
+      18
+     ]
+    },
+    {
+     "code": "{'item': 'helmet', 'qty': '-2'}\n{'item': 'vest', 'qty': '1'}\n0",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`mkstream=True` створює стрім, якщо його ще немає, а `BUSYGROUP` при повторному запуску — не помилка: група вже є. `block=500` — чекати нові записи до пів секунди; пам'ятайте про тайм-аут сокета з теми 8."
+    },
+    {
+     "h": "Доставка щонайменше раз"
+    },
+    {
+     "p": "Обробник записав зміну в іншу базу й упав **до** `XACK` — запис буде видано знову. Це доставка **щонайменше раз**: обробка має витримувати повтор (оновлювати за ключем, а не додавати). Повтор буває й з боку того, хто пише: з Redis 8.6 `XADD … IDMP <виробник> <id> *` не додасть запис з тим самим id вдруге — поверне ID першого."
+    },
+    {
+     "code": "> XADD m IDMP shop req-7 * item helmet\n\"1794815653303-0\"\n> XADD m IDMP shop req-7 * item helmet\n\"1794815653303-0\"\n> XLEN m\n(integer) 1",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "warn": "❌ `XADD` подію про зміну залишку до `COMMIT` у PostgreSQL → ✅ транзакція може відкотитись, а подія вже пішла. Пишіть у стрім **після** коміту. В Odoo для цього є `self.env.cr.postcommit.add(функція)` — виклик після успішного коміту (`odoo/sql_db.py`)."
+    },
+    {
+     "recall": "Пригадайте: що робить обробник при старті, щоб не загубити записи, видані йому до падіння?",
+     "a": "Читає свої невиконані: XREADGROUP … STREAMS moves 0, обробляє й робить XACK. Чужі завислі можна забрати XAUTOCLAIM."
+    }
+   ],
+   "examples": [
+    {
+     "w": "PUBLISH cache:drop item:42",
+     "note": "сповістити тих, хто зараз слухає"
+    },
+    {
+     "w": "XADD moves * item helmet qty -2",
+     "note": "дописати подію"
+    },
+    {
+     "w": "XADD moves MAXLEN ~ 100000 * …",
+     "note": "з обрізанням"
+    },
+    {
+     "w": "XGROUP CREATE moves sync 0 MKSTREAM",
+     "note": "група з початку стріму"
+    },
+    {
+     "w": "XREADGROUP GROUP sync w1 COUNT 100 BLOCK 500 STREAMS moves >",
+     "note": "нові записи"
+    },
+    {
+     "w": "XACK moves sync 1-1",
+     "note": "оброблено"
+    },
+    {
+     "w": "XAUTOCLAIM moves sync w1 60000 0-0",
+     "note": "забрати завислі понад хвилину"
+    },
+    {
+     "w": "XADD m IDMP shop req-7 * …",
+     "note": "без дубля при повторі, 8.6+"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне PUBLISH, якщо на канал ніхто не підписаний?",
+     "code": "> PUBLISH cache:drop item:42",
+     "lang": "console",
+     "options": [
+      "(integer) 0",
+      "OK",
+      "(nil)",
+      "(error) no subscribers"
+     ],
+     "a": 0,
+     "why": "PUBLISH повертає кількість отримувачів; повідомлення без отримувачів зникає."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> XADD s 1-1 a 1\n> XGROUP CREATE s g 0\n> XGROUP CREATE s g 0",
+     "lang": "console",
+     "options": [
+      "(error) BUSYGROUP Consumer Group name already exists",
+      "OK",
+      "(integer) 0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "Група вже є. У коді цю помилку ловлять і пропускають."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда?",
+     "code": "> XADD s 1-1 a 1\n> XADD s 1-2 a 2\n> XGROUP CREATE s g 0\n> XREADGROUP GROUP g c1 COUNT 1 STREAMS s >\n> XREADGROUP GROUP g c2 COUNT 1 STREAMS s >\n> XACK s g 1-1\n> XLEN s",
+     "lang": "console",
+     "options": [
+      "(integer) 2",
+      "(integer) 1",
+      "(integer) 0",
+      "(nil)"
+     ],
+     "a": 0,
+     "why": "XACK лише знімає запис з очікування; із самого стріму нічого не видаляється."
+    },
+    {
+     "type": "choice",
+     "q": "Підписник Pub/Sub перезапускався 10 секунд. Що з повідомленнями за цей час?",
+     "options": [
+      "Загубились",
+      "Прийдуть після підключення",
+      "Лежать у стрімі",
+      "Redis поверне помилку видавцю"
+     ],
+     "a": 0,
+     "why": "Pub/Sub нічого не зберігає: доставляє лише тим, хто підписаний зараз."
+    },
+    {
+     "type": "choice",
+     "q": "Що означає > у XREADGROUP … STREAMS moves >?",
+     "options": [
+      "Записи, ще не видані нікому в групі",
+      "Усі записи з початку",
+      "Свої невиконані записи",
+      "Останній запис"
+     ],
+     "a": 0,
+     "why": "> — нові для групи; 0 — свої невиконані."
+    },
+    {
+     "type": "choice",
+     "q": "Обробник узяв запис і впав до XACK. Що з записом?",
+     "options": [
+      "Висить у його списку очікування",
+      "Загублено",
+      "Повернувся як новий для всіх",
+      "Видалено зі стріму"
+     ],
+     "a": 0,
+     "why": "Невиконаний запис чекає в PEL: його перечитають з ID 0 або заберуть XAUTOCLAIM."
+    },
+    {
+     "type": "choice",
+     "q": "Дві групи, sync і stats, читають один стрім. Скільки разів дійде один запис?",
+     "options": [
+      "По разу в кожну групу",
+      "Один раз на обидві",
+      "Двічі в кожну",
+      "Лише в групу, створену першою"
+     ],
+     "a": 0,
+     "why": "Групи незалежні; усередині групи запис отримує один обробник."
+    },
+    {
+     "type": "choice",
+     "q": "Чому обробник стріму має витримувати повторну обробку?",
+     "options": [
+      "Доставка щонайменше раз: падіння до XACK дає повтор",
+      "Redis завжди шле двічі",
+      "XACK не працює з групами",
+      "Так швидше"
+     ],
+     "a": 0,
+     "why": "Запис, не підтверджений до падіння, видадуть знову."
+    },
+    {
+     "type": "choice",
+     "q": "Що зробить другий XADD m IDMP shop req-7 * item helmet у Redis 8.6+?",
+     "options": [
+      "Поверне ID першого запису, нового не додасть",
+      "Додасть другий запис",
+      "Поверне помилку дубля",
+      "Видалить перший запис"
+     ],
+     "a": 0,
+     "why": "IDMP пам'ятає пару виробник + id і відкидає повтор."
+    },
+    {
+     "type": "choice",
+     "q": "Коли в Odoo писати подію про зміну залишку в стрім?",
+     "options": [
+      "Після коміту — через cr.postcommit",
+      "До коміту, щоб не загубити",
+      "У onchange",
+      "У compute-полі"
+     ],
+     "a": 0,
+     "why": "До коміту транзакція ще може відкотитись, а подія вже пішла."
+    },
+    {
+     "type": "gap",
+     "q": "Підтвердити обробку запису 1-1 групою sync: ◻ moves sync 1-1",
+     "a": [
+      "XACK"
+     ],
+     "why": "XACK знімає запис зі списку очікування групи."
+    },
+    {
+     "type": "order",
+     "q": "Цикл обробника стріму",
+     "items": [
+      "XGROUP CREATE … MKSTREAM (BUSYGROUP — пропустити)",
+      "XREADGROUP … STREAMS moves 0 — свої невиконані",
+      "XREADGROUP … STREAMS moves > — нові",
+      "Обробити й XACK"
+     ],
+     "why": "Спершу група, потім добрати своє після падіння, далі нові записи з підтвердженням."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: чим BLMOVE надійніший за BLPOP?",
+     "options": [
+      "Завдання лишається у списку «в роботі»",
+      "Він швидший",
+      "Він повторює завдання",
+      "Він бере пачку"
+     ],
+     "a": 0,
+     "why": "Упав воркер — завдання в jobs:work, а не загублене."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що типово робить r.lock(name) у redis-py без timeout?",
+     "options": [
+      "Бере блокування без терміну",
+      "Бере на 30 секунд",
+      "Не бере, якщо зайнято",
+      "Кидає помилку"
+     ],
+     "a": 0,
+     "why": "timeout=None — ключ без TTL; після падіння висітиме вічно."
+    }
+   ],
+   "typing": [
+    "Pub/Sub доставляє лише тим, хто підписаний зараз.",
+    "Стрім — журнал, у який лише дописують.",
+    "Кожен запис отримує один обробник групи.",
+    "Без XACK запис лишається в списку очікування.",
+    "Обробник має витримувати повторну доставку.",
+    "Подію в стрім пишуть після коміту."
+   ],
+   "tasks": [
+    "Запустіть два обробники consumer.py з іменами w1 і w2 у циклі й допишіть у стрім 10 подій. Подивіться, як вони поділились, через XINFO CONSUMERS moves sync.",
+    "Зупиніть w2 посеред обробки (без XACK), потім з w1 заберіть його записи через XAUTOCLAIM з min-idle 0."
+   ],
+   "media": [
+    {
+     "title": "Redis: Streams",
+     "url": "https://redis.io/docs/latest/develop/data-types/streams/",
+     "note": "групи, PEL, XAUTOCLAIM, обрізання",
+     "main": true
+    },
+    {
+     "title": "Redis: Pub/Sub",
+     "url": "https://redis.io/docs/latest/develop/pubsub/",
+     "note": "семантика «щонайбільше раз»"
+    },
+    {
+     "title": "Redis: XADD",
+     "url": "https://redis.io/docs/latest/commands/xadd/",
+     "note": "MAXLEN, IDMP"
+    }
+   ]
+  },
+  {
+   "id": "memory",
+   "title": "Пам'ять і збереження",
+   "topic": "maxmemory і політики витіснення, LRU, LFU, LRM, OOM, MEMORY USAGE, RDB і AOF, як зникають ключі з TTL",
+   "goal": "Налаштувати Redis так, щоб кеш сам звільняв місце, а черги й блокування не зникали — і знати, що втратиться при перезапуску",
+   "theory": [
+    {
+     "recall": "Пригадайте: чому обробник стріму має витримувати повторну обробку того самого запису?",
+     "a": "Доставка щонайменше раз: якщо обробник упав до XACK, запис видадуть знову."
+    },
+    {
+     "p": "Усі дані Redis — в оперативній пам'яті. Межу задає `maxmemory`; що робити, коли її досягнуто, — `maxmemory-policy`. Типово `maxmemory` дорівнює 0, тобто **межі немає**: Redis росте, доки операційна система не вб'є процес ([Key eviction](https://redis.io/docs/latest/develop/reference/eviction/))."
+    },
+    {
+     "code": "> CONFIG GET maxmemory\n1) \"maxmemory\"\n2) \"0\"\n> CONFIG GET maxmemory-policy\n1) \"maxmemory-policy\"\n2) \"noeviction\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "h": "Політики витіснення"
+    },
+    {
+     "table": [
+      [
+       "Політика",
+       "Що викидає"
+      ],
+      [
+       "noeviction",
+       "нічого — помилка запису"
+      ],
+      [
+       "allkeys-lru",
+       "давно не використані"
+      ],
+      [
+       "allkeys-lfu",
+       "рідко використовувані"
+      ],
+      [
+       "allkeys-lrm",
+       "давно не змінені (8.6+)"
+      ],
+      [
+       "volatile-lru",
+       "давно не використані з TTL"
+      ],
+      [
+       "volatile-ttl",
+       "найближчі до кінця TTL"
+      ]
+     ]
+    },
+    {
+     "p": "**LRU** — least recently used, давно не використані. **LFU** — least frequently used, використовувані рідко. **LRM** — least recently modified, давно не змінені: читання не рятує ключ, лише запис. Префікс `allkeys-` — з усіх ключів, `volatile-` — лише з тих, що мають TTL."
+    },
+    {
+     "p": "Перевірено на живому сервері: з `noeviction` після межі кожен запис отримує `OOM command not allowed when used memory > 'maxmemory'.`, а читання працює. У redis-py це `redis.exceptions.OutOfMemoryError`. З `allkeys-lru` записи йдуть далі, а лічильник `evicted_keys` в `INFO stats` росте."
+    },
+    {
+     "warn": "❌ Кеш, черга й блокування в одному Redis з `allkeys-lru` → ✅ при нестачі пам'яті Redis викине **будь-який** давно не використаний ключ — і завдання з черги чи блокування зникнуть. `volatile-lru` рятує лише ключі **без** TTL (черги, стріми), а блокування й лічильники ліміту мають термін — їх він теж викине. Надійно — окремий Redis під кеш."
+    },
+    {
+     "h": "Скільки займає ключ"
+    },
+    {
+     "code": "> SET item:42:name helmet\nOK\n> MEMORY USAGE item:42:name\n(integer) 48\n> OBJECT ENCODING item:42:name\n\"embstr\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "Шість байтів значення займають 48: решта — службові дані ключа. Значення в 1000 байтів на перевірці зайняло 1044. Мільйон дрібних ключів — це десятки мегабайтів лише службових даних; дрібні значення вигідніше складати в хеш."
+    },
+    {
+     "h": "Як зникають ключі з TTL"
+    },
+    {
+     "p": "Ключ із терміном видаляється двома шляхами: **пасивно** — при зверненні до нього, якщо термін минув, і **активно** — Redis регулярно перевіряє випадкову вибірку ключів з TTL ([EXPIRE](https://redis.io/docs/latest/commands/expire/)). Для клієнта прострочений ключ зникає вчасно, але пам'ять може звільнитися трохи пізніше."
+    },
+    {
+     "h": "Збереження на диск: RDB і AOF"
+    },
+    {
+     "p": "**RDB** — знімок усієї бази в файл раз на якийсь час. Компактний, Redis швидко з нього стартує, але втрачається все після останнього знімка. **AOF** — журнал кожного запису: з `appendfsync everysec` (типово) при аварії губиться до 1 секунди ([Persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/))."
+    },
+    {
+     "code": "> CONFIG GET save\n1) \"save\"\n2) \"3600 1 300 100 60 10000\"\n> CONFIG GET appendonly\n1) \"appendonly\"\n2) \"no\"",
+     "lang": "console",
+     "title": "redis-cli"
+    },
+    {
+     "p": "Так налаштований стандартний образ `redis:8`: знімок, якщо за 3600 с була хоч 1 зміна, за 300 с — 100 змін або за 60 с — 10 000; AOF вимкнено. Отже, при падінні можна втратити хвилини записів."
+    },
+    {
+     "table": [
+      [
+       "Що в Redis",
+       "Збереження"
+      ],
+      [
+       "лише кеш",
+       "можна без нього"
+      ],
+      [
+       "лічильники, ліміти",
+       "RDB вистачить"
+      ],
+      [
+       "черги, стріми",
+       "AOF everysec"
+      ]
+     ]
+    },
+    {
+     "tip": "Навіть з AOF Redis не стає джерелом правди замість PostgreSQL: секунда втрат і асинхронна реплікація лишаються. Те, що не можна втратити, — у базі."
+    },
+    {
+     "recall": "Пригадайте: чим небезпечна allkeys-lru, якщо в тому ж Redis черга завдань?",
+     "a": "При нестачі пам'яті Redis може викинути список черги чи блокування, як будь-який давно не використаний ключ. volatile-lru збереже лише ключі без TTL (черги), а блокування з терміном — ні. Надійно — окремий Redis під кеш."
+    }
+   ],
+   "examples": [
+    {
+     "w": "CONFIG SET maxmemory 512mb",
+     "note": "межа пам'яті"
+    },
+    {
+     "w": "CONFIG SET maxmemory-policy allkeys-lru",
+     "note": "Redis лише під кеш"
+    },
+    {
+     "w": "volatile-lru",
+     "note": "викидати лише ключі з TTL"
+    },
+    {
+     "w": "allkeys-lrm",
+     "note": "давно не змінені, 8.6+"
+    },
+    {
+     "w": "OOM command not allowed …",
+     "note": "межа + noeviction"
+    },
+    {
+     "w": "MEMORY USAGE item:42:name",
+     "note": "байтів на ключ"
+    },
+    {
+     "w": "INFO stats → evicted_keys",
+     "note": "скільки викинуто"
+    },
+    {
+     "w": "appendonly yes, appendfsync everysec",
+     "note": "AOF: втрата до 1 с"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда на стандартному redis:8?",
+     "code": "> CONFIG GET maxmemory-policy",
+     "lang": "console",
+     "options": [
+      "noeviction",
+      "allkeys-lru",
+      "volatile-lru",
+      "allkeys-lfu"
+     ],
+     "a": 0,
+     "why": "Типово Redis нічого не викидає: при нестачі пам'яті запис отримує помилку."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне остання команда на стандартному redis:8?",
+     "code": "> CONFIG GET maxmemory",
+     "lang": "console",
+     "options": [
+      "0",
+      "1gb",
+      "512mb",
+      "половина ОЗП"
+     ],
+     "a": 0,
+     "why": "0 — межі немає: Redis займатиме пам'ять, доки її дає система."
+    },
+    {
+     "type": "choice",
+     "q": "Межу досягнуто, політика noeviction. Що буде з SET і GET?",
+     "options": [
+      "SET — помилка OOM, GET працює",
+      "Обидва — помилка",
+      "Обидва працюють",
+      "Redis перезапуститься"
+     ],
+     "a": 0,
+     "why": "noeviction забороняє лише команди, що збільшують пам'ять."
+    },
+    {
+     "type": "choice",
+     "q": "Redis тримає лише кеш карток. Яку політику взяти?",
+     "options": [
+      "allkeys-lru",
+      "noeviction",
+      "volatile-ttl",
+      "Без maxmemory"
+     ],
+     "a": 0,
+     "why": "Кеш можна викидати будь-який; давно не використані — найменш потрібні."
+    },
+    {
+     "type": "choice",
+     "q": "В одному Redis кеш і черга завдань. Що безпечніше?",
+     "options": [
+      "volatile-lru і TTL лише на ключах кешу",
+      "allkeys-lru",
+      "allkeys-random",
+      "allkeys-lfu"
+     ],
+     "a": 0,
+     "why": "volatile-* викидає лише ключі з терміном — черга без TTL уціліє."
+    },
+    {
+     "type": "choice",
+     "q": "Чим LRM відрізняється від LRU?",
+     "options": [
+      "Рятує ключ лише запис, а не читання",
+      "Рятує ключ лише читання",
+      "Викидає випадкові ключі",
+      "Викидає ключі з найкоротшим TTL"
+     ],
+     "a": 0,
+     "why": "Least recently modified — давно не змінені; читання не рахується."
+    },
+    {
+     "type": "choice",
+     "q": "AOF з appendfsync everysec. Скільки записів можна втратити при аварії?",
+     "options": [
+      "До 1 секунди",
+      "Нічого",
+      "Усе після останнього знімка",
+      "До 1 хвилини"
+     ],
+     "a": 0,
+     "why": "fsync раз на секунду: записане за останню секунду може не дійти до диска."
+    },
+    {
+     "type": "choice",
+     "q": "Чим RDB гірший за AOF?",
+     "options": [
+      "Втрачається все після останнього знімка",
+      "Повільніше стартує",
+      "Займає більше місця",
+      "Не працює з TTL"
+     ],
+     "a": 0,
+     "why": "RDB — знімок раз на якийсь час; AOF пише кожен запис."
+    },
+    {
+     "type": "choice",
+     "q": "Ключ із TTL прострочився, але до нього ніхто не звертається. Чи звільниться пам'ять?",
+     "options": [
+      "Так, активна перевірка знайде його згодом",
+      "Ні, ніколи",
+      "Лише після перезапуску",
+      "Лише через SCAN"
+     ],
+     "a": 0,
+     "why": "Крім пасивного видалення при зверненні, Redis регулярно перевіряє вибірку ключів з TTL."
+    },
+    {
+     "type": "number",
+     "q": "Значення 1000 байтів зайняло 1044 за MEMORY USAGE. Скільки байтів службових даних?",
+     "a": 44,
+     "tol": 0,
+     "unit": " байти",
+     "why": "1044 − 1000 = 44 байти на ключ і обгортку значення."
+    },
+    {
+     "type": "gap",
+     "q": "Викидати лише давно не використані ключі, що мають TTL: maxmemory-policy ◻",
+     "a": [
+      "volatile-lru"
+     ],
+     "why": "volatile- — лише ключі з терміном, lru — давно не використані."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що означає > у XREADGROUP … STREAMS moves >?",
+     "options": [
+      "Записи, ще не видані нікому в групі",
+      "Свої невиконані",
+      "Усі з початку",
+      "Лише останній"
+     ],
+     "a": 0,
+     "why": "> — нові; 0 — свої невиконані після падіння."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: блокуюча команда в redis-py чекає довше за socket_timeout. Що буде?",
+     "options": [
+      "TimeoutError після повторів",
+      "Поверне None вчасно",
+      "Чекатиме вічно",
+      "Помилка OOM"
+     ],
+     "a": 0,
+     "why": "Клієнт вважає з'єднання завислим; очікування має бути коротшим за socket_timeout."
+    }
+   ],
+   "typing": [
+    "Без maxmemory Redis займає пам'ять без межі.",
+    "Типова політика noeviction відмовляє в записі.",
+    "Кеш і черги краще тримати в різних Redis.",
+    "RDB зберігає знімки, AOF — кожен запис.",
+    "Те, що не можна втратити, зберігають у базі."
+   ],
+   "tasks": [
+    "У тестовому Redis поставте CONFIG SET maxmemory 5mb і заповніть його ключами по 1000 байтів у циклі. Подивіться помилку з noeviction, потім перемкніть на allkeys-lru і порівняйте DBSIZE та evicted_keys в INFO stats. Поверніть maxmemory 0.",
+    "Увімкніть AOF (CONFIG SET appendonly yes), запишіть кілька ключів, перезапустіть контейнер і переконайтеся, що ключі на місці."
+   ],
+   "media": [
+    {
+     "title": "Redis: Key eviction",
+     "url": "https://redis.io/docs/latest/develop/reference/eviction/",
+     "note": "усі політики й коли яку брати",
+     "main": true
+    },
+    {
+     "title": "Redis: Persistence",
+     "url": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/",
+     "note": "RDB, AOF, плюси й мінуси"
+    }
+   ]
+  },
+  {
+   "id": "fastapi",
+   "title": "Redis у FastAPI",
+   "topic": "redis.asyncio, клієнт у lifespan, залежність get_redis, кеш і ліміт у застосунку, перевірка TestClient",
+   "goal": "Підключити Redis до FastAPI-застосунку «Складу»: один асинхронний клієнт, кеш картки й обмеження частоти як залежність",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим небезпечна allkeys-lru в Redis, де лежить і кеш, і черга завдань?",
+     "a": "Redis може викинути список черги чи блокування, як будь-який давно не використаний ключ. Надійно — окремий Redis під кеш."
+    },
+    {
+     "p": "Обробники FastAPI — `async def`, і всі вони працюють в **одному циклі подій**. Синхронний `redis.Redis` у такому обробнику блокує цикл, поки чекає мережу: усі інші запити стоять. Тому в асинхронному коді — `redis.asyncio`: ті самі методи, але з `await` ([Async redis-py](https://redis.io/docs/latest/develop/clients/redis-py/async/))."
+    },
+    {
+     "table": [
+      [
+       "Синхронний",
+       "Асинхронний"
+      ],
+      [
+       "import redis",
+       "import redis.asyncio"
+      ],
+      [
+       "r.get(k)",
+       "await r.get(k)"
+      ],
+      [
+       "with r.pipeline()",
+       "async with r.pipeline()"
+      ],
+      [
+       "p.execute()",
+       "await p.execute()"
+      ],
+      [
+       "r.close()",
+       "await r.aclose()"
+      ]
+     ]
+    },
+    {
+     "h": "Один клієнт на застосунок"
+    },
+    {
+     "p": "Клієнт створюють при старті в **lifespan** (курс FastAPI, тема «Залежності з yield і lifespan») і кладуть в `app.state`, а при зупинці закривають. Обробники отримують його через залежність `get_redis` — у тестах її можна підмінити через `app.dependency_overrides`."
+    },
+    {
+     "code": "import json\nfrom contextlib import asynccontextmanager\n\nimport redis.asyncio as aioredis\nfrom fastapi import (Depends, FastAPI,\n                     HTTPException, Request)\n\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    app.state.redis = aioredis.Redis(\n        decode_responses=True)\n    yield\n    await app.state.redis.aclose()\n\napp = FastAPI(lifespan=lifespan)\n\n\ndef get_redis(request: Request):\n    return request.app.state.redis",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      11,
+      14,
+      20
+     ]
+    },
+    {
+     "h": "Ліміт як залежність"
+    },
+    {
+     "p": "Обмеження частоти з теми 5 стає залежністю: FastAPI виконає її **до** обробника, а `HTTPException(429)` зупинить запит. Підключається до маршруту через `dependencies=[…]`."
+    },
+    {
+     "code": "async def rate_limit(request: Request,\n                     r=Depends(get_redis)):\n    key = f'rate:{request.client.host}'\n    async with r.pipeline() as p:\n        p.incr(key)\n        p.expire(key, 60, nx=True)\n        n, _ = await p.execute()\n    if n > 3:\n        raise HTTPException(\n            429, 'Забагато запитів')",
+     "lang": "python",
+     "title": "main.py (далі)"
+    },
+    {
+     "p": "В асинхронному pipeline команди лише ставляться в чергу — без `await`; мережею йде тільки `execute()`, його й чекають. `await p.incr(key)` не впаде, але поверне сам pipeline, а не число: перевірено на redis-py 8.1."
+    },
+    {
+     "h": "Кеш картки"
+    },
+    {
+     "code": "ITEMS = {42: {'name': 'шолом', 'qty': 5}}\n\n\n@app.get('/items/{item_id}',\n         dependencies=[Depends(rate_limit)])\nasync def get_item(item_id: int,\n                   r=Depends(get_redis)):\n    key = f'item:{item_id}'\n    if hit := await r.get(key):\n        return json.loads(hit)\n    item = ITEMS.get(item_id)  # SELECT\n    if item is None:\n        raise HTTPException(404)\n    await r.set(key, json.dumps(item),\n                ex=300)\n    return item",
+     "lang": "python",
+     "title": "main.py (далі)",
+     "hl": [
+      9,
+      14
+     ]
+    },
+    {
+     "p": "`ITEMS` — замість запиту до PostgreSQL з курсу PostgreSQL. Решта — cache-aside з теми 4: спершу Redis, при промаху база й `SET … EX`."
+    },
+    {
+     "h": "Перевірка"
+    },
+    {
+     "code": "import redis\nfrom fastapi.testclient import TestClient\n\nfrom main import app\n\nr = redis.Redis(decode_responses=True)\nwith TestClient(app) as c:\n    codes = [c.get('/items/42').status_code\n             for _ in range(4)]\n    print(codes)\n    print(c.get('/items/42').json())\nprint(r.ttl('item:42') > 0,\n      r.get('rate:testclient'))",
+     "lang": "python",
+     "title": "test_main.py"
+    },
+    {
+     "code": "[200, 200, 200, 429]\n{'detail': 'Забагато запитів'}\nTrue 5",
+     "lang": "text",
+     "title": "вивід"
+    },
+    {
+     "p": "`with TestClient(app)` запускає lifespan — без `with` клієнта Redis в `app.state` не було б. Четвертий запит отримав 429; лічильник `rate:testclient` дорахував до 5, бо відмовлені запити теж рахуються. Картка лежить у кеші з терміном."
+    },
+    {
+     "warn": "❌ `redis.Redis()` (синхронний) усередині `async def` → ✅ кожен виклик зупиняє весь цикл подій на час мережі. В асинхронних обробниках — лише `redis.asyncio`. Синхронний клієнт годиться в звичайних `def`-обробниках і воркерах."
+    },
+    {
+     "tip": "Адреса з налаштувань: `aioredis.Redis.from_url(settings.redis_url, decode_responses=True)`, де в Docker Compose `redis_url = 'redis://redis:6379/0'` — ім'я сервісу замість localhost. З `uvicorn --workers 4` кожен процес має свій клієнт і пул, а лічильники в Redis — спільні."
+    },
+    {
+     "recall": "Пригадайте: чому клієнт Redis створюють у lifespan, а не в кожному обробнику?",
+     "a": "Клієнт тримає пул з'єднань: один на процес — з'єднання використовуються повторно. При зупинці його закривають через await aclose()."
+    }
+   ],
+   "examples": [
+    {
+     "w": "import redis.asyncio as aioredis",
+     "note": "асинхронний клієнт"
+    },
+    {
+     "w": "app.state.redis = aioredis.Redis(…)",
+     "note": "створити в lifespan"
+    },
+    {
+     "w": "await app.state.redis.aclose()",
+     "note": "закрити при зупинці"
+    },
+    {
+     "w": "r=Depends(get_redis)",
+     "note": "клієнт у обробнику"
+    },
+    {
+     "w": "dependencies=[Depends(rate_limit)]",
+     "note": "ліміт до обробника"
+    },
+    {
+     "w": "raise HTTPException(429, …)",
+     "note": "забагато запитів"
+    },
+    {
+     "w": "with TestClient(app) as c:",
+     "note": "тест із lifespan"
+    },
+    {
+     "w": "redis://redis:6379/0",
+     "note": "адреса в Docker Compose"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Чому в async def обробнику FastAPI не беруть синхронний redis.Redis?",
+     "options": [
+      "Він блокує цикл подій, і стоять усі запити",
+      "Він не вміє decode_responses",
+      "Він не працює з pipeline",
+      "Він не підтримує TTL"
+     ],
+     "a": 0,
+     "why": "Усі async-обробники ділять один цикл подій; синхронне очікування мережі зупиняє його."
+    },
+    {
+     "type": "choice",
+     "q": "Де створювати асинхронний клієнт Redis у FastAPI?",
+     "options": [
+      "У lifespan, з закриттям після yield",
+      "У кожному обробнику",
+      "У кожній залежності",
+      "Глобально з закриттям у middleware"
+     ],
+     "a": 0,
+     "why": "Один клієнт на процес; lifespan дає місце і для створення, і для закриття."
+    },
+    {
+     "type": "choice",
+     "q": "Як закрити redis.asyncio.Redis при зупинці застосунку?",
+     "options": [
+      "await r.aclose()",
+      "r.close()",
+      "del r",
+      "await r.shutdown()"
+     ],
+     "a": 0,
+     "why": "aclose — асинхронне закриття клієнта і його пулу."
+    },
+    {
+     "type": "choice",
+     "q": "Що отримає x усередині асинхронного pipeline?",
+     "code": "async with r.pipeline() as p:\n    x = await p.incr('n')\n    res = await p.execute()",
+     "lang": "python",
+     "options": [
+      "Сам pipeline — команда лише в черзі",
+      "Нове значення лічильника",
+      "None",
+      "Помилку: не можна await"
+     ],
+     "a": 0,
+     "why": "До execute() команда нікуди не йде; число буде в res, у списку відповідей."
+    },
+    {
+     "type": "choice",
+     "q": "Ліміт 3 запити на хвилину. Які статуси отримають чотири запити поспіль?",
+     "options": [
+      "200, 200, 200, 429",
+      "200, 200, 429, 429",
+      "429, 200, 200, 200",
+      "200, 200, 200, 200"
+     ],
+     "a": 0,
+     "why": "Лічильник 1–3 у межах ліміту, 4 — більше 3: HTTPException(429)."
+    },
+    {
+     "type": "choice",
+     "q": "Чому тест робить with TestClient(app) as c, а не просто c = TestClient(app)?",
+     "options": [
+      "Щоб виконався lifespan і створився клієнт Redis",
+      "Щоб тест ішов швидше",
+      "Щоб не рахувався ліміт",
+      "Щоб очистити Redis"
+     ],
+     "a": 0,
+     "why": "Без with lifespan не запускається — app.state.redis не існує."
+    },
+    {
+     "type": "choice",
+     "q": "Застосунок у Docker Compose, сервіс Redis зветься redis. Яка адреса?",
+     "options": [
+      "redis://redis:6379/0",
+      "redis://localhost:6379/0",
+      "redis://127.0.0.1:6379/0",
+      "redis://0.0.0.0:6379/0"
+     ],
+     "a": 0,
+     "why": "У мережі Compose сервіси звертаються одне до одного за іменем сервісу."
+    },
+    {
+     "type": "choice",
+     "q": "uvicorn --workers 4. Скільки клієнтів Redis і чи спільний лічильник ліміту?",
+     "options": [
+      "4 клієнти, лічильник спільний у Redis",
+      "1 клієнт на всіх",
+      "4 клієнти й 4 різні лічильники",
+      "Клієнт на кожен запит"
+     ],
+     "a": 0,
+     "why": "Кожен процес має свій lifespan і пул, а дані лежать в одному Redis."
+    },
+    {
+     "type": "choice",
+     "q": "Як підмінити Redis у тестах без змін коду обробників?",
+     "options": [
+      "app.dependency_overrides[get_redis] = …",
+      "Змінити ITEMS",
+      "Видалити lifespan",
+      "Запустити Redis на іншому порту в коді"
+     ],
+     "a": 0,
+     "why": "Обробники отримують клієнт через залежність — її й підміняють."
+    },
+    {
+     "type": "gap",
+     "q": "Асинхронний клієнт: import redis.◻ as aioredis",
+     "a": [
+      "asyncio"
+     ],
+     "why": "redis.asyncio — асинхронна версія клієнта з тими самими методами."
+    },
+    {
+     "type": "order",
+     "q": "Шлях запиту GET /items/42",
+     "items": [
+      "rate_limit: INCR + EXPIRE NX",
+      "get_item: GET item:42",
+      "Промах — читання з бази",
+      "SET item:42 … EX 300 і відповідь"
+     ],
+     "why": "Залежності з dependencies виконуються до обробника; далі cache-aside."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: AOF з appendfsync everysec. Скільки можна втратити при аварії?",
+     "options": [
+      "До 1 секунди",
+      "Нічого",
+      "До 1 хвилини",
+      "Усе з останнього знімка"
+     ],
+     "a": 0,
+     "why": "fsync раз на секунду."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: у якому порядку оновити базу й скинути кеш картки?",
+     "options": [
+      "COMMIT, потім DEL",
+      "DEL, потім COMMIT",
+      "SET нового в кеш, потім COMMIT",
+      "Тільки чекати TTL"
+     ],
+     "a": 0,
+     "why": "DEL до коміту дає сусідньому запиту закешувати старе."
+    }
+   ],
+   "typing": [
+    "В асинхронних обробниках беруть redis.asyncio.",
+    "Клієнт Redis створюють у lifespan і закривають після yield.",
+    "Ліміт частоти підключають як залежність маршруту.",
+    "В асинхронному pipeline чекають лише execute.",
+    "TestClient у with запускає lifespan."
+   ],
+   "tasks": [
+    "Додайте Redis до свого FastAPI-застосунку з курсу FastAPI: клієнт у lifespan, кеш GET /items/{id}, ліміт 30 запитів на хвилину. Додайте сервіс redis:8 у docker-compose.yml і адресу через налаштування.",
+    "Напишіть тест, що підміняє get_redis на клієнт до окремої бази (db=15), очищає її перед тестом і перевіряє 429 на четвертому запиті."
+   ],
+   "media": [
+    {
+     "title": "Redis: Asynchronous operations with redis-py",
+     "url": "https://redis.io/docs/latest/develop/clients/redis-py/async/",
+     "note": "asyncio-клієнт, pipeline, WATCH, aclose",
+     "main": true
+    }
+   ]
+  }
+ ]
+}

@@ -254,6 +254,16 @@
    "icon": "code",
    "group": "Програмування й дизайн",
    "file": "postgresql.json"
+  },
+  {
+   "id": "redis",
+   "version": 2,
+   "title": "Redis для розробника",
+   "subtitle": "Ключі й TTL, хеші, списки, множини, кеш з інвалідацією, лічильники й обмеження частоти, блокування, транзакції й Lua, черги, Pub/Sub і Streams, пам'ять і збереження, redis-py та FastAPI — на прикладі API «Складу спорядження». Redis 8",
+   "units": 11,
+   "icon": "code",
+   "group": "Програмування й дизайн",
+   "file": "redis.json"
   }
  ]
 }
