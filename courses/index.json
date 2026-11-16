@@ -244,6 +244,16 @@
    "icon": "code",
    "group": "Програмування й дизайн",
    "dir": "python-fastapi"
+  },
+  {
+   "id": "postgresql",
+   "version": 1,
+   "title": "PostgreSQL для розробника",
+   "subtitle": "Таблиці з правилами, віконні функції й CTE, індекси та EXPLAIN, транзакції, рівні ізоляції й блокування, JSONB і робота з Python через psycopg 3 — на базі «Складу спорядження». PostgreSQL 18",
+   "units": 11,
+   "icon": "code",
+   "group": "Програмування й дизайн",
+   "file": "postgresql.json"
   }
  ]
 }

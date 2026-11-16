@@ -1,0 +1,4253 @@
+{
+ "format": "bukvoid-course",
+ "v": 1,
+ "id": "postgresql",
+ "version": 1,
+ "title": "PostgreSQL для розробника",
+ "short": "PostgreSQL",
+ "subtitle": "Таблиці з правилами, віконні функції й CTE, індекси та EXPLAIN, транзакції, рівні ізоляції й блокування, JSONB і робота з Python через psycopg 3 — на базі «Складу спорядження». PostgreSQL 18",
+ "lang": "uk",
+ "pass": 0.8,
+ "icon": "code",
+ "group": "Програмування й дизайн",
+ "author": "Буквоїд",
+ "source": {
+  "title": "Документація PostgreSQL 18",
+  "url": "https://www.postgresql.org/docs/18/index.html"
+ },
+ "reference": [
+  {
+   "id": "glossary",
+   "title": "Словник",
+   "theory": [
+    {
+     "p": "Терміни курсу коротко. Подробиці — у темі, де термін з'явився."
+    },
+    {
+     "table": [
+      [
+       "Термін",
+       "Що це"
+      ],
+      [
+       "Транзакція",
+       "команди, що застосовуються всі або жодна"
+      ],
+      [
+       "Автокоміт",
+       "кожна команда — окрема транзакція"
+      ],
+      [
+       "SAVEPOINT",
+       "позначка для часткового відкату"
+      ],
+      [
+       "MVCC",
+       "кожна зміна — нова версія рядка"
+      ],
+      [
+       "VACUUM",
+       "звільняє місце старих версій"
+      ],
+      [
+       "Автоочищення",
+       "VACUUM і ANALYZE у фоні"
+      ],
+      [
+       "Рівень ізоляції",
+       "які чужі зміни бачить транзакція"
+      ],
+      [
+       "Знімок",
+       "стан бази на певну мить"
+      ],
+      [
+       "Втрачене оновлення",
+       "одна транзакція затерла іншу"
+      ],
+      [
+       "Блокування рядка",
+       "інші записи цього рядка чекають"
+      ],
+      [
+       "Deadlock",
+       "транзакції чекають одна на одну"
+      ],
+      [
+       "Upsert",
+       "INSERT … ON CONFLICT DO UPDATE"
+      ],
+      [
+       "CTE",
+       "іменований крок запиту в WITH"
+      ],
+      [
+       "Віконна функція",
+       "рахує по групі, не згортаючи рядки"
+      ],
+      [
+       "Індекс",
+       "впорядкована копія стовпця з адресами"
+      ],
+      [
+       "Частковий індекс",
+       "індекс лише для рядків з умовою"
+      ],
+      [
+       "Індекс за виразом",
+       "індекс по lower(name) чи attrs->>'lot'"
+      ],
+      [
+       "Статистика",
+       "оцінки, з яких планувальник рахує план"
+      ],
+      [
+       "Index Only Scan",
+       "відповідь з самого індексу"
+      ],
+      [
+       "Карта видимості",
+       "сторінки, де все видно всім"
+      ],
+      [
+       "jsonb",
+       "JSON у двійковому вигляді з індексами"
+      ],
+      [
+       "GIN",
+       "індекс для @> і ? у jsonb"
+      ],
+      [
+       "Пул з'єднань",
+       "готові з'єднання, що видаються повторно"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cheatsheet",
+   "title": "Шпаргалка: склад на одному екрані",
+   "theory": [
+    {
+     "p": "Найчастіші прийоми курсу разом: таблиця з правилами, upsert, видача з перевіркою, черга."
+    },
+    {
+     "code": "CREATE TABLE stock (\n  id bigint GENERATED ALWAYS AS IDENTITY\n    PRIMARY KEY,\n  item text NOT NULL UNIQUE,\n  qty int NOT NULL CHECK (qty >= 0),\n  attrs jsonb NOT NULL DEFAULT '{}'\n);\nCREATE INDEX stock_lot\n  ON stock ((attrs ->> 'lot'));\nINSERT INTO stock (item, qty)\nVALUES ('Шолом', 3);\n\n-- додати або збільшити\nINSERT INTO stock (item, qty)\nVALUES ('Шолом', 2)\nON CONFLICT (item) DO UPDATE\n  SET qty = stock.qty + EXCLUDED.qty;\n\n-- видати з перевіркою\nUPDATE stock SET qty = qty - 4\nWHERE item = 'Шолом' AND qty >= 4\nRETURNING qty;\n\n-- взяти незайнятий рядок\nSELECT id FROM stock\nORDER BY id LIMIT 1\nFOR UPDATE SKIP LOCKED;",
+     "lang": "sql",
+     "title": "stock.sql"
+    },
+    {
+     "code": " qty\n-----\n   1\n(1 row)\n\n id\n----\n  1\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "code": "import psycopg\nfrom psycopg.rows import dict_row\n\nDSN = \"postgresql://kurs@localhost/stock\"\nISSUE = (\"UPDATE stock SET qty = qty - %s\"\n         \" WHERE item = %s AND qty >= %s\"\n         \" RETURNING qty\")\n\nwith psycopg.connect(\n        DSN, row_factory=dict_row) as conn:\n    row = conn.execute(\n        ISSUE, (1, \"Шолом\", 1)).fetchone()\n    print(row)",
+     "lang": "python",
+     "title": "issue.py"
+    },
+    {
+     "code": "$ python issue.py\n{'qty': 0}",
+     "lang": "console"
+    },
+    {
+     "table": [
+      [
+       "Задача",
+       "Команда"
+      ],
+      [
+       "план без запуску",
+       "EXPLAIN (COSTS OFF) …"
+      ],
+      [
+       "план з фактом",
+       "EXPLAIN ANALYZE …"
+      ],
+      [
+       "план зміни",
+       "BEGIN; EXPLAIN ANALYZE …; ROLLBACK;"
+      ],
+      [
+       "оновити статистику",
+       "ANALYZE t;"
+      ],
+      [
+       "рівень ізоляції",
+       "SHOW transaction_isolation;"
+      ],
+      [
+       "не чекати блокування",
+       "SET lock_timeout = '1s';"
+      ],
+      [
+       "довгі транзакції",
+       "pg_stat_activity, idle in transaction"
+      ],
+      [
+       "розмір таблиці",
+       "pg_size_pretty(pg_relation_size('t'))"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "errors",
+   "title": "Помилки й що робити",
+   "theory": [
+    {
+     "p": "Текст помилок PostgreSQL англійською — так він виглядає в лозі й у винятках psycopg."
+    },
+    {
+     "table": [
+      [
+       "Помилка",
+       "Що робити"
+      ],
+      [
+       "violates check constraint",
+       "дані порушують CHECK — перевірте умову"
+      ],
+      [
+       "duplicate key value violates unique constraint",
+       "ON CONFLICT або перевірка перед вставкою"
+      ],
+      [
+       "current transaction is aborted",
+       "ROLLBACK (або ROLLBACK TO SAVEPOINT)"
+      ],
+      [
+       "could not serialize access due to concurrent update",
+       "повторити транзакцію з початку"
+      ],
+      [
+       "deadlock detected",
+       "блокувати рядки в однаковому порядку, повторити"
+      ],
+      [
+       "could not obtain lock on row",
+       "NOWAIT: рядок зайнятий, спробувати пізніше"
+      ],
+      [
+       "canceling statement due to lock timeout",
+       "минув lock_timeout"
+      ],
+      [
+       "invalid input syntax for type json",
+       "порівнюєте jsonb з текстом — потрібен ->>"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "odoo",
+   "title": "Odoo → PostgreSQL",
+   "theory": [
+    {
+     "p": "Що з Odoo 18 стоїть за прийомами курсу. Шляхи — у вихідному коді Odoo."
+    },
+    {
+     "table": [
+      [
+       "В Odoo",
+       "У PostgreSQL"
+      ],
+      [
+       "_sql_constraints",
+       "CONSTRAINT … CHECK / UNIQUE"
+      ],
+      [
+       "index=True",
+       "B-tree індекс"
+      ],
+      [
+       "index=\"trigram\"",
+       "GIN-індекс з триграмами"
+      ],
+      [
+       "_parent_store, parent_path",
+       "LIKE '1/2/%' замість рекурсії"
+      ],
+      [
+       "translate=True",
+       "jsonb з мовами-ключами"
+      ],
+      [
+       "company_dependent=True",
+       "jsonb з id компаній"
+      ],
+      [
+       "курсор (sql_db.py)",
+       "REPEATABLE READ"
+      ],
+      [
+       "retrying (service/model.py)",
+       "до 5 повторів при конфлікті"
+      ],
+      [
+       "cr.savepoint()",
+       "SAVEPOINT"
+      ],
+      [
+       "cr.postcommit.add()",
+       "дія після COMMIT"
+      ],
+      [
+       "ir.cron",
+       "FOR NO KEY UPDATE SKIP LOCKED"
+      ],
+      [
+       "db_maxconn",
+       "розмір пулу на процес"
+      ],
+      [
+       "--log-level=debug_sql",
+       "кожен SQL-запит у лозі"
+      ],
+      [
+       "SQL(\"… %s\", v)",
+       "параметр замість f-рядка"
+      ]
+     ]
+    }
+   ]
+  }
+ ],
+ "units": [
+  {
+   "id": "tables",
+   "title": "Таблиця з правилами",
+   "topic": "типи, обмеження, NULL, RETURNING і upsert",
+   "goal": "Створити таблицю, яка сама не пропустить погані дані, і змінювати її з RETURNING",
+   "theory": [
+    {
+     "recall": "Пригадайте з курсу FastAPI: хто відкидає запит із qty = −1, якщо в моделі Field(ge=0)?",
+     "a": "Pydantic — ще до коду маршруту, з відповіддю 422. Але це перевіряє лише цей API; база має власні правила для всіх програм."
+    },
+    {
+     "p": "Перевірка в коді захищає один вхід. У базу ж пишуть і скрипти, і міграції, і інші сервіси. Тому правила, без яких дані стають сміттям, задають **в самій таблиці** — **обмеженнями** (constraints). PostgreSQL перевіряє їх при кожному записі, хто б його не робив ([обмеження](https://www.postgresql.org/docs/18/ddl-constraints.html))."
+    },
+    {
+     "code": "CREATE TABLE items (\n  id bigint GENERATED ALWAYS\n     AS IDENTITY PRIMARY KEY,\n  name text NOT NULL UNIQUE,\n  qty integer NOT NULL DEFAULT 0\n      CHECK (qty >= 0),\n  price numeric(10, 2)\n);\n\nINSERT INTO items (name, qty, price)\nVALUES ('Шолом', 5, 1200.50)\nRETURNING id, name, qty;",
+     "lang": "sql",
+     "title": "items.sql",
+     "hl": [
+      2,
+      3,
+      4,
+      6,
+      12
+     ]
+    },
+    {
+     "code": " id | name  | qty\n----+-------+-----\n  1 | Шолом |   5\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "code": "UPDATE items SET qty = qty - 10\nWHERE id = 1;",
+     "lang": "sql"
+    },
+    {
+     "code": "ERROR:  new row for relation \"items\" violates check constraint \"items_qty_check\"\nDETAIL:  Failing row contains (1, Шолом, -5, 1200.50).",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "ul": [
+      "`GENERATED ALWAYS AS IDENTITY` — сучасна заміна `serial`: номер видає база, і вставити його руками випадково не вийде.",
+      "`RETURNING` повертає рядок одразу після зміни — не треба другого запиту, щоб дізнатися новий `id`.",
+      "Порушене правило — **помилка**, а не тихе виправлення: оновлення відкинуто повністю, кількість лишилась 5."
+     ]
+    },
+    {
+     "table": [
+      [
+       "Тип",
+       "Для чого"
+      ],
+      [
+       "`bigint`",
+       "id, лічильники"
+      ],
+      [
+       "`numeric(10,2)`",
+       "гроші: точно"
+      ],
+      [
+       "`text`",
+       "будь-який текст"
+      ],
+      [
+       "`timestamptz`",
+       "момент часу"
+      ],
+      [
+       "`boolean`",
+       "так / ні"
+      ]
+     ]
+    },
+    {
+     "warn": "❌ `price real` чи `double precision` для грошей → `0.1 + 0.2 = 0.3` дає **false**: дробові числа з плаваючою комою неточні. ✅ `numeric` — точна десяткова арифметика ([числові типи](https://www.postgresql.org/docs/18/datatype-numeric.html))."
+    },
+    {
+     "h": "NULL — це «невідомо»"
+    },
+    {
+     "p": "`NULL` — не нуль і не порожній рядок, а **відсутність значення**. Будь-яке порівняння з ним дає теж NULL — «невідомо», а `WHERE` пропускає лише рядки, де умова точно **true**:"
+    },
+    {
+     "code": "SELECT NULL = NULL AS eq,\n       NULL IS NULL AS is_null,\n       coalesce(NULL, 0) AS c;",
+     "lang": "sql"
+    },
+    {
+     "code": " eq | is_null | c\n----+---------+---\n    | t       | 0\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "warn": "❌ `WHERE x NOT IN (1, NULL)` — не поверне **жодного** рядка: для x = 2 умова стає «2 ≠ 1 і 2 ≠ невідомо» = невідомо. ✅ `NOT EXISTS` або відфільтрувати NULL у підзапиті."
+    },
+    {
+     "h": "Upsert і старе значення"
+    },
+    {
+     "p": "«Вставити, а якщо вже є — оновити» — одна команда `INSERT … ON CONFLICT`. А з PostgreSQL 18 `RETURNING` уміє показати і **старе**, і **нове** значення ([нове в 18](https://www.postgresql.org/docs/18/release-18.html)):"
+    },
+    {
+     "code": "INSERT INTO items (name, qty)\nVALUES ('Шолом', 3)\nON CONFLICT (name) DO UPDATE\n  SET qty = items.qty + EXCLUDED.qty\nRETURNING old.qty AS was, new.qty AS now;",
+     "lang": "sql",
+     "title": "upsert.sql",
+     "hl": [
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "code": " was | now\n-----+-----\n   5 |   8\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "note": "Для Odoo-розробника: Odoo 18 створює таблиці з `id SERIAL NOT NULL` (`odoo/tools/sql.py`), а обмеження рівня бази — через `_sql_constraints` у моделі. Помилка з них приходить користувачеві саме з такого `violates check constraint`."
+    },
+    {
+     "recall": "Пригадайте: чому WHERE x NOT IN (1, NULL) не повертає рядків?",
+     "a": "Порівняння з NULL дає «невідомо»; умова для кожного рядка — невідомо, а WHERE пропускає лише true."
+    }
+   ],
+   "examples": [
+    {
+     "w": "id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY",
+     "note": "номер видає база"
+    },
+    {
+     "w": "qty integer NOT NULL DEFAULT 0 CHECK (qty >= 0)",
+     "note": "кількість не мінусова"
+    },
+    {
+     "w": "name text NOT NULL UNIQUE",
+     "note": "назва обов'язкова й унікальна"
+    },
+    {
+     "w": "price numeric(10, 2)",
+     "note": "гроші — точно"
+    },
+    {
+     "w": "RETURNING id",
+     "note": "отримати новий id одразу"
+    },
+    {
+     "w": "x IS NULL",
+     "note": "єдиний правильний спосіб перевірити NULL"
+    },
+    {
+     "w": "coalesce(x, 0)",
+     "note": "NULL → 0"
+    },
+    {
+     "w": "ON CONFLICT (name) DO UPDATE SET …",
+     "note": "upsert"
+    },
+    {
+     "w": "RETURNING old.qty, new.qty",
+     "note": "старе й нове (PostgreSQL 18)"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT 0.1::double precision\n     + 0.2::double precision = 0.3;",
+     "lang": "sql",
+     "options": [
+      "f",
+      "t",
+      "NULL",
+      "ERROR"
+     ],
+     "a": 0,
+     "why": "double precision зберігає двійкове наближення: 0.1 + 0.2 трохи більше за 0.3."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT 0.1::numeric + 0.2::numeric = 0.3;",
+     "lang": "sql",
+     "options": [
+      "t",
+      "f",
+      "NULL",
+      "ERROR"
+     ],
+     "a": 0,
+     "why": "numeric рахує десяткові точно — тому гроші зберігають у ньому."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT count(*) AS all_rows,\n       count(x) AS with_x\nFROM (VALUES (1), (NULL), (3)) t(x);",
+     "lang": "sql",
+     "options": [
+      "3 | 2",
+      "3 | 3",
+      "2 | 2",
+      "2 | 3"
+     ],
+     "a": 0,
+     "why": "count(*) рахує рядки, count(x) — лише ті, де x не NULL."
+    },
+    {
+     "type": "number",
+     "q": "Скільки рядків поверне запит? Введіть число.",
+     "code": "SELECT x\nFROM (VALUES (1), (2), (3)) t(x)\nWHERE x NOT IN (1, NULL);",
+     "lang": "sql",
+     "a": 0,
+     "tol": 0,
+     "why": "NOT IN зі списком, де є NULL, для кожного рядка дає «невідомо» — жоден рядок не проходить."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT NULL = NULL;",
+     "lang": "sql",
+     "options": [
+      "NULL (порожньо)",
+      "t",
+      "f",
+      "ERROR"
+     ],
+     "a": 0,
+     "why": "Порівняння з NULL — завжди NULL; перевіряють через IS NULL."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне останній запит?",
+     "code": "CREATE TABLE t (\n  qty int CHECK (qty >= 0));\nINSERT INTO t VALUES (NULL);\nSELECT count(*) FROM t;",
+     "lang": "sql",
+     "options": [
+      "1",
+      "0",
+      "ERROR: violates check",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "CHECK з NULL дає «невідомо», а CHECK відкидає лише false. Від NULL рятує NOT NULL."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "CREATE TABLE t (\n  id int GENERATED ALWAYS\n     AS IDENTITY,\n  name text);\nINSERT INTO t (id, name)\nVALUES (100, 'Каска');",
+     "lang": "sql",
+     "options": [
+      "ERROR: cannot insert a non-DEFAULT value into column \"id\"",
+      "Рядок з id = 100",
+      "Рядок з id = 1",
+      "ERROR: duplicate key value"
+     ],
+     "a": 0,
+     "why": "GENERATED ALWAYS не дає задати id руками (лише з OVERRIDING SYSTEM VALUE)."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне останній запит?",
+     "code": "CREATE TABLE t (\n  name text UNIQUE, qty int);\nINSERT INTO t VALUES ('Шолом', 5);\nINSERT INTO t VALUES ('Шолом', 2)\nON CONFLICT (name) DO UPDATE\n  SET qty = t.qty + EXCLUDED.qty\nRETURNING qty;",
+     "lang": "sql",
+     "options": [
+      "7",
+      "2",
+      "5",
+      "ERROR: duplicate key value"
+     ],
+     "a": 0,
+     "why": "Конфлікт за name — оновлення: стара кількість 5 + нова EXCLUDED.qty 2."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне останній запит (PostgreSQL 18)?",
+     "code": "CREATE TABLE t (id int, qty int);\nINSERT INTO t VALUES (1, 5);\nUPDATE t SET qty = qty - 2\nWHERE id = 1\nRETURNING old.qty, new.qty;",
+     "lang": "sql",
+     "options": [
+      "5 | 3",
+      "3 | 3",
+      "3 | 5",
+      "5 | 5"
+     ],
+     "a": 0,
+     "why": "old — значення до зміни, new — після. Можливо з PostgreSQL 18."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT coalesce(NULL, NULL, 'нема');",
+     "lang": "sql",
+     "options": [
+      "нема",
+      "NULL",
+      "ERROR",
+      "порожній рядок"
+     ],
+     "a": 0,
+     "why": "coalesce повертає перший аргумент, що не NULL."
+    },
+    {
+     "type": "choice",
+     "q": "Який тип для ціни спорядження?",
+     "options": [
+      "numeric(10, 2)",
+      "double precision",
+      "real",
+      "text"
+     ],
+     "a": 0,
+     "why": "Гроші — лише точна десяткова арифметика."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо обмеження в таблиці, якщо API вже перевіряє дані?",
+     "options": [
+      "У базу пишуть не лише через цей API",
+      "Так база працює швидше",
+      "Без них не працює RETURNING",
+      "Без них API не запуститься"
+     ],
+     "a": 0,
+     "why": "Скрипти, міграції, інші сервіси — правило в таблиці діє для всіх."
+    },
+    {
+     "type": "gap",
+     "q": "Перевірити, що значення відсутнє: WHERE note IS ◻",
+     "a": [
+      "NULL"
+     ],
+     "why": "= NULL завжди дає NULL; правильно — IS NULL."
+    },
+    {
+     "type": "choice",
+     "q": "Чим замінити WHERE item_id NOT IN (SELECT item_id FROM moves), якщо в moves.item_id бувають NULL?",
+     "options": [
+      "NOT EXISTS із корельованим підзапитом",
+      "NOT IN з подвійними дужками",
+      "IN замість NOT IN",
+      "DISTINCT у підзапиті"
+     ],
+     "a": 0,
+     "why": "NOT EXISTS не спотикається об NULL: перевіряє лише, чи знайшовся рядок."
+    }
+   ],
+   "typing": [
+    "Обмеження в таблиці діють для всіх, хто пише в базу.",
+    "Гроші зберігають у типі numeric, а не у float.",
+    "NULL означає «невідомо», і порівняння з ним дає NULL.",
+    "Перевіряють відсутність значення через IS NULL.",
+    "RETURNING повертає змінений рядок без другого запиту."
+   ],
+   "tasks": [
+    "Запустіть PostgreSQL 18 у Docker: docker run -d --name pg -e POSTGRES_PASSWORD=pg -p 127.0.0.1:5432:5432 postgres:18 і підключіться: docker exec -it pg psql -U postgres.",
+    "Створіть таблицю items з цієї теми, вставте три речі й спробуйте порушити кожне обмеження: порожня назва, дубль назви, мінусова кількість. Прочитайте кожну помилку."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: обмеження",
+     "url": "https://www.postgresql.org/docs/18/ddl-constraints.html",
+     "note": "CHECK, NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY — з прикладами",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: числові типи",
+     "url": "https://www.postgresql.org/docs/18/datatype-numeric.html",
+     "note": "чому numeric для грошей"
+    },
+    {
+     "title": "PostgreSQL: INSERT і ON CONFLICT",
+     "url": "https://www.postgresql.org/docs/18/sql-insert.html",
+     "note": "upsert, RETURNING з old і new"
+    }
+   ]
+  },
+  {
+   "id": "windows",
+   "title": "Віконні функції",
+   "topic": "залишок наростаючим підсумком, останній рух, lag, row_number",
+   "goal": "Рахувати залишок після кожного руху й вибирати «останнє в групі» одним запитом",
+   "theory": [
+    {
+     "recall": "Пригадайте: що поверне count(x) для стовпця, де є NULL, і чим він відрізняється від count(*)?",
+     "a": "count(x) рахує лише рядки, де x не NULL; count(*) — усі рядки."
+    },
+    {
+     "p": "`GROUP BY` **згортає** рядки: з п'яти рухів шолома лишається один рядок із сумою. **Віконна функція** рахує по групі рядків — «вікну», — але **залишає кожен рядок** на місці. Звідси залишок після кожного руху, номер рядка в групі, попереднє значення ([віконні функції](https://www.postgresql.org/docs/18/tutorial-window.html))."
+    },
+    {
+     "code": "CREATE TABLE moves (\n  id int PRIMARY KEY,\n  item text NOT NULL,\n  qty int NOT NULL\n);\nINSERT INTO moves VALUES\n  (1, 'Шолом', 10), (2, 'Каска', 4),\n  (3, 'Шолом', -3), (4, 'Шолом', -2),\n  (5, 'Каска', -1);\n\nSELECT id, item, qty,\n       sum(qty) OVER (\n         PARTITION BY item\n         ORDER BY id) AS rest\nFROM moves\nORDER BY id;",
+     "lang": "sql",
+     "title": "rest.sql",
+     "hl": [
+      13,
+      14,
+      15
+     ]
+    },
+    {
+     "code": " id | item  | qty | rest\n----+-------+-----+------\n  1 | Шолом |  10 |   10\n  2 | Каска |   4 |    4\n  3 | Шолом |  -3 |    7\n  4 | Шолом |  -2 |    5\n  5 | Каска |  -1 |    3\n(5 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "ul": [
+      "`OVER (…)` робить з `sum` віконну функцію.",
+      "`PARTITION BY item` — окреме вікно для кожної речі: шоломи рахуються окремо від касок.",
+      "`ORDER BY id` усередині `OVER` — порядок накопичення: сума «від початку до поточного рядка». Без нього кожен рядок отримав би загальну суму групи.",
+      "`ORDER BY id` у кінці запиту — порядок виводу. Це **різні** речі."
+     ]
+    },
+    {
+     "h": "Останній рух кожної речі"
+    },
+    {
+     "p": "`row_number()` нумерує рядки у вікні. Віконні функції не можна писати в `WHERE` — вони рахуються пізніше, — тому фільтрують у зовнішньому запиті:"
+    },
+    {
+     "code": "SELECT id, item, qty\nFROM (\n  SELECT id, item, qty,\n         row_number() OVER (\n           PARTITION BY item\n           ORDER BY id DESC) AS rn\n  FROM moves\n) t\nWHERE rn = 1\nORDER BY id;",
+     "lang": "sql",
+     "title": "last.sql",
+     "hl": [
+      4,
+      5,
+      6,
+      9
+     ]
+    },
+    {
+     "code": " id | item  | qty\n----+-------+-----\n  4 | Шолом |  -2\n  5 | Каска |  -1\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "table": [
+      [
+       "Функція",
+       "Що дає"
+      ],
+      [
+       "`row_number()`",
+       "1, 2, 3… без повторів"
+      ],
+      [
+       "`rank()`",
+       "1, 1, 3 — з пропуском"
+      ],
+      [
+       "`dense_rank()`",
+       "1, 1, 2 — без пропуску"
+      ],
+      [
+       "`lag(x)`",
+       "x попереднього рядка"
+      ],
+      [
+       "`lead(x)`",
+       "x наступного рядка"
+      ],
+      [
+       "`sum(x) OVER`",
+       "сума по вікну"
+      ]
+     ]
+    },
+    {
+     "warn": "❌ `ORDER BY day` у вікні, коли за день кілька рухів → усі рухи одного дня отримають **однаковий** залишок: за замовчуванням вікно — «до поточного рядка **і всіх рівних йому**». ✅ Унікальний порядок: `ORDER BY day, id` ([рамка вікна](https://www.postgresql.org/docs/18/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS))."
+    },
+    {
+     "note": "Для обліку спорядження: картка обліку (як Додаток 14 у складському обліку) — це і є залишок наростаючим підсумком. Одним запитом з `sum() OVER` її можна перевірити по всіх рухах, без циклу в Python."
+    },
+    {
+     "recall": "Пригадайте: чим відрізняються ORDER BY усередині OVER і ORDER BY у кінці запиту?",
+     "a": "Усередині OVER — порядок накопичення у вікні; у кінці — лише порядок виводу рядків."
+    }
+   ],
+   "examples": [
+    {
+     "w": "sum(qty) OVER (PARTITION BY item ORDER BY id)",
+     "note": "залишок після кожного руху"
+    },
+    {
+     "w": "sum(qty) OVER (PARTITION BY item)",
+     "note": "загальна сума групи в кожному рядку"
+    },
+    {
+     "w": "row_number() OVER (PARTITION BY item ORDER BY id DESC)",
+     "note": "1 — останній рух"
+    },
+    {
+     "w": "lag(qty) OVER (ORDER BY id)",
+     "note": "значення попереднього рядка"
+    },
+    {
+     "w": "rank() OVER (ORDER BY qty DESC)",
+     "note": "місце з пропуском після рівних"
+    },
+    {
+     "w": "ORDER BY day, id",
+     "note": "унікальний порядок у вікні"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT id, sum(q) OVER (ORDER BY id)\nFROM (VALUES (1, 5), (2, -2),\n             (3, 4)) t(id, q)\nORDER BY id;",
+     "lang": "sql",
+     "options": [
+      "1 | 5, 2 | 3, 3 | 7",
+      "1 | 7, 2 | 7, 3 | 7",
+      "1 | 5, 2 | -2, 3 | 4",
+      "1 | 5, 2 | 7, 3 | 11"
+     ],
+     "a": 0,
+     "why": "Наростаючий підсумок: 5, 5 − 2 = 3, 3 + 4 = 7."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT id, sum(q) OVER ()\nFROM (VALUES (1, 5), (2, -2),\n             (3, 4)) t(id, q)\nORDER BY id;",
+     "lang": "sql",
+     "options": [
+      "1 | 7, 2 | 7, 3 | 7",
+      "1 | 5, 2 | 3, 3 | 7",
+      "7",
+      "ERROR: missing ORDER BY"
+     ],
+     "a": 0,
+     "why": "Порожнє OVER () — вікно з усіх рядків; кожен рядок отримує загальну суму."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT d, sum(q) OVER (ORDER BY d)\nFROM (VALUES (1, 5), (1, 3),\n             (2, 1)) t(d, q)\nORDER BY d, q;",
+     "lang": "sql",
+     "options": [
+      "1 | 8, 1 | 8, 2 | 9",
+      "1 | 3, 1 | 8, 2 | 9",
+      "1 | 5, 1 | 8, 2 | 9",
+      "1 | 8, 2 | 9"
+     ],
+     "a": 0,
+     "why": "Рядки з однаковим d — «рівні»: вікно включає їх усі, тож обидва отримують 8."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT id, lag(q) OVER (ORDER BY id)\nFROM (VALUES (1, 5), (2, 3),\n             (3, 9)) t(id, q)\nORDER BY id;",
+     "lang": "sql",
+     "options": [
+      "1 | , 2 | 5, 3 | 3",
+      "1 | 5, 2 | 3, 3 | 9",
+      "1 | 3, 2 | 9, 3 |",
+      "1 | 0, 2 | 5, 3 | 3"
+     ],
+     "a": 0,
+     "why": "lag — значення попереднього рядка; у першого попереднього немає — NULL."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT q, rank() OVER (ORDER BY q DESC)\nFROM (VALUES (10), (7), (10),\n             (3)) t(q)\nORDER BY q DESC;",
+     "lang": "sql",
+     "options": [
+      "10 | 1, 10 | 1, 7 | 3, 3 | 4",
+      "10 | 1, 10 | 2, 7 | 3, 3 | 4",
+      "10 | 1, 10 | 1, 7 | 2, 3 | 3",
+      "10 | 1, 7 | 2, 3 | 3"
+     ],
+     "a": 0,
+     "why": "rank дає рівним однакове місце й пропускає наступні: 1, 1, 3, 4."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT q,\n  dense_rank() OVER (ORDER BY q DESC)\nFROM (VALUES (10), (7), (10),\n             (3)) t(q)\nORDER BY q DESC;",
+     "lang": "sql",
+     "options": [
+      "10 | 1, 10 | 1, 7 | 2, 3 | 3",
+      "10 | 1, 10 | 1, 7 | 3, 3 | 4",
+      "10 | 1, 10 | 2, 7 | 3, 3 | 4",
+      "10 | 1, 7 | 2, 3 | 3"
+     ],
+     "a": 0,
+     "why": "dense_rank — без пропусків після рівних: 1, 1, 2, 3."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT q FROM (VALUES (1), (2)) t(q)\nWHERE row_number() OVER () = 1;",
+     "lang": "sql",
+     "options": [
+      "ERROR: window functions are not allowed in WHERE",
+      "1",
+      "1, 2",
+      "Порожній результат"
+     ],
+     "a": 0,
+     "why": "Вікна рахуються після WHERE — фільтрують у зовнішньому запиті чи CTE."
+    },
+    {
+     "type": "number",
+     "q": "Скільки рядків поверне запит? Введіть число.",
+     "code": "SELECT item, id FROM (\n  SELECT item, id,\n    row_number() OVER (\n      PARTITION BY item\n      ORDER BY id DESC) AS rn\n  FROM (VALUES ('a', 1), ('a', 2),\n               ('b', 3), ('c', 4),\n               ('c', 5)) t(item, id)\n) s\nWHERE rn = 1;",
+     "lang": "sql",
+     "a": 3,
+     "tol": 0,
+     "why": "rn = 1 — по одному рядку на кожну річ: a, b, c."
+    },
+    {
+     "type": "choice",
+     "q": "Чим віконна функція відрізняється від GROUP BY?",
+     "options": [
+      "Рахує по групі, але лишає кожен рядок",
+      "Працює лише з числовими стовпцями",
+      "Не вміє ділити рядки на групи",
+      "Виконується до WHERE і фільтрує"
+     ],
+     "a": 0,
+     "why": "GROUP BY згортає групу в рядок, вікно — ні."
+    },
+    {
+     "type": "choice",
+     "q": "Як отримати рядок з найбільшим id для кожної речі?",
+     "options": [
+      "row_number() по PARTITION BY item ORDER BY id DESC, потім rn = 1",
+      "max(id) у WHERE для кожного рядка",
+      "ORDER BY id DESC LIMIT 1 без групування",
+      "rank() у WHERE з умовою = 1"
+     ],
+     "a": 0,
+     "why": "Нумерація в кожній групі від найбільшого id і відбір першого."
+    },
+    {
+     "type": "gap",
+     "q": "Окреме вікно для кожної речі: sum(qty) OVER (◻ BY item ORDER BY id)",
+     "a": [
+      "PARTITION"
+     ],
+     "why": "PARTITION BY ділить рядки на незалежні вікна."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне SELECT count(*) FROM t, якщо в t є стовпець qty int CHECK (qty >= 0) і ви вставили рядок з qty = NULL?",
+     "options": [
+      "1: CHECK пропускає NULL",
+      "0: CHECK відкинув NULL",
+      "Помилка на вставці",
+      "NULL замість числа"
+     ],
+     "a": 0,
+     "why": "CHECK відкидає лише false; NULL дає «невідомо». Від NULL — NOT NULL."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: який тип для залишку грошей на рахунку частини?",
+     "options": [
+      "numeric",
+      "real",
+      "double precision",
+      "integer у копійках завжди"
+     ],
+     "a": 0,
+     "why": "numeric — точна десяткова арифметика, рекомендована для грошей."
+    }
+   ],
+   "typing": [
+    "Віконна функція рахує по групі, але залишає кожен рядок.",
+    "PARTITION BY ділить рядки на незалежні вікна.",
+    "ORDER BY усередині OVER задає порядок накопичення.",
+    "Віконні функції не можна писати в WHERE.",
+    "Порядок у вікні має бути унікальним."
+   ],
+   "tasks": [
+    "Створіть таблицю moves з датою руху й кількістю (плюс — прихід, мінус — видача), вставте 10 рухів трьох речей, кілька — в один день. Порахуйте залишок після кожного руху з ORDER BY day і з ORDER BY day, id — і знайдіть різницю.",
+    "Одним запитом виведіть для кожної речі останній рух і залишок після нього."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: віконні функції (підручник)",
+     "url": "https://www.postgresql.org/docs/18/tutorial-window.html",
+     "note": "OVER, PARTITION BY, ORDER BY у вікні — з прикладами",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: список віконних функцій",
+     "url": "https://www.postgresql.org/docs/18/functions-window.html",
+     "note": "row_number, rank, lag, lead, first_value"
+    }
+   ]
+  },
+  {
+   "id": "cte",
+   "title": "CTE і рекурсія",
+   "topic": "WITH кроками, зміна даних у WITH, дерево розташувань",
+   "goal": "Розкласти складний запит на кроки й обійти дерево розташувань одним запитом",
+   "theory": [
+    {
+     "recall": "Пригадайте: чому віконну функцію не можна написати в WHERE і що роблять замість цього?",
+     "a": "Вікна рахуються після WHERE. Тому рахують у підзапиті, а фільтрують у зовнішньому запиті."
+    },
+    {
+     "p": "**CTE** (common table expression) — `WITH назва AS (запит)`: іменований проміжний результат, яким далі користуються як таблицею. Складний запит читається кроками згори вниз, а не зсередини назовні ([WITH-запити](https://www.postgresql.org/docs/18/queries-with.html))."
+    },
+    {
+     "code": "CREATE TABLE moves (\n  id int PRIMARY KEY,\n  item text NOT NULL,\n  qty int NOT NULL\n);\nINSERT INTO moves VALUES\n  (1, 'Шолом', 10), (2, 'Каска', 4),\n  (3, 'Шолом', -3), (4, 'Каска', -2);\n\nWITH stock AS (\n  SELECT item, sum(qty) AS rest\n  FROM moves\n  GROUP BY item\n)\nSELECT item, rest\nFROM stock\nWHERE rest < 5;",
+     "lang": "sql",
+     "title": "low.sql",
+     "hl": [
+      10,
+      11,
+      12,
+      13,
+      14
+     ]
+    },
+    {
+     "code": " item  | rest\n-------+------\n Каска |    2\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "h": "Зміна даних у WITH"
+    },
+    {
+     "p": "У `WITH` можна писати `UPDATE`, `INSERT`, `DELETE` з `RETURNING` — і використати змінені рядки в головному запиті. Видача й запис у журнал стають **однією командою**: або обидві дії, або жодної."
+    },
+    {
+     "code": "CREATE TABLE stock (\n  item text PRIMARY KEY,\n  qty int NOT NULL CHECK (qty >= 0));\nCREATE TABLE log (item text, qty int);\nINSERT INTO stock VALUES ('Шолом', 5);\n\nWITH issued AS (\n  UPDATE stock SET qty = qty - 2\n  WHERE item = 'Шолом'\n  RETURNING item\n)\nINSERT INTO log\nSELECT item, 2 FROM issued;\n\nSELECT s.qty, l.qty AS issued\nFROM stock s JOIN log l USING (item);",
+     "lang": "sql",
+     "title": "issue.sql",
+     "hl": [
+      7,
+      8,
+      10,
+      12,
+      13
+     ]
+    },
+    {
+     "code": " qty | issued\n-----+--------\n   3 |      2\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "h": "Рекурсія: дерево розташувань"
+    },
+    {
+     "p": "Склад → стелаж → полиця: кожне розташування знає лише батька. Усі вкладені в «Стелаж А» знаходить **рекурсивний** CTE: стартова частина, `UNION ALL`, і частина, що приєднує дітей до вже знайдених. Зупиняється, коли нових рядків немає."
+    },
+    {
+     "code": "CREATE TABLE locs (\n  id int PRIMARY KEY,\n  parent_id int REFERENCES locs,\n  name text NOT NULL\n);\nINSERT INTO locs VALUES\n  (1, NULL, 'Склад'),\n  (2, 1, 'Стелаж А'),\n  (3, 2, 'Полиця А1'),\n  (4, 2, 'Полиця А2'),\n  (5, 1, 'Стелаж Б');\n\nWITH RECURSIVE tree AS (\n  SELECT id, name, 1 AS depth\n  FROM locs WHERE id = 2\n  UNION ALL\n  SELECT l.id, l.name, t.depth + 1\n  FROM locs l\n  JOIN tree t ON l.parent_id = t.id\n)\nSELECT id, name, depth\nFROM tree\nORDER BY id;",
+     "lang": "sql",
+     "title": "tree.sql",
+     "hl": [
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+     ]
+    },
+    {
+     "code": " id |   name    | depth\n----+-----------+-------\n  2 | Стелаж А  |     1\n  3 | Полиця А1 |     2\n  4 | Полиця А2 |     2\n(3 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "warn": "❌ Помилка в даних зробила коло (полиця стала батьком стелажа) → рекурсія ходить по колу. ✅ Після CTE додають `CYCLE id SET is_cycle USING path`: PostgreSQL сам позначить повтор і не піде далі."
+    },
+    {
+     "note": "Для Odoo-розробника: Odoo не обходить дерево `stock.location` рекурсією. Модель має `_parent_store = True` і поле `parent_path` з індексом (рядок «1/2/3/»), тож «усі вкладені» — це `LIKE '1/2/%'`. Читати швидше, але при переміщенні гілки шлях переписується в усіх нащадків."
+    },
+    {
+     "recall": "Пригадайте: з яких двох частин складається рекурсивний CTE і коли він зупиняється?",
+     "a": "Стартовий запит і рекурсивна частина через UNION ALL; зупиняється, коли рекурсивна частина не дала нових рядків."
+    }
+   ],
+   "examples": [
+    {
+     "w": "WITH stock AS (SELECT …) SELECT … FROM stock",
+     "note": "іменований крок"
+    },
+    {
+     "w": "WITH issued AS (UPDATE … RETURNING item) INSERT INTO log …",
+     "note": "дві зміни однією командою"
+    },
+    {
+     "w": "WITH RECURSIVE tree AS (… UNION ALL …)",
+     "note": "обхід дерева"
+    },
+    {
+     "w": "JOIN tree t ON l.parent_id = t.id",
+     "note": "приєднати дітей до знайдених"
+    },
+    {
+     "w": "CYCLE id SET is_cycle USING path",
+     "note": "захист від кола"
+    },
+    {
+     "w": "parent_path LIKE '1/2/%'",
+     "note": "як Odoo шукає нащадків"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "number",
+     "q": "Що поверне запит? Введіть число.",
+     "code": "WITH RECURSIVE n(x) AS (\n  SELECT 1\n  UNION ALL\n  SELECT x + 1 FROM n WHERE x < 5\n)\nSELECT sum(x) FROM n;",
+     "lang": "sql",
+     "a": 15,
+     "tol": 0,
+     "why": "Рекурсія дає 1, 2, 3, 4, 5 і зупиняється на x = 5; сума — 15."
+    },
+    {
+     "type": "number",
+     "q": "Скільки рядків поверне запит? Введіть число.",
+     "code": "WITH RECURSIVE t AS (\n  SELECT id FROM (VALUES (1)) v(id)\n  UNION ALL\n  SELECT c.id\n  FROM (VALUES (2, 1), (3, 1), (4, 2),\n               (5, 9)) c(id, parent)\n  JOIN t ON c.parent = t.id\n)\nSELECT id FROM t;",
+     "lang": "sql",
+     "a": 4,
+     "tol": 0,
+     "why": "1 → діти 2 і 3 → дитина 2 — це 4. Рядок 5 має батька 9, якого в дереві немає."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне останній запит?",
+     "code": "CREATE TABLE stock (item text, qty int);\nCREATE TABLE log (item text, qty int);\nINSERT INTO stock VALUES ('Шолом', 5);\nWITH issued AS (\n  UPDATE stock SET qty = qty - 1\n  WHERE item = 'Каска'\n  RETURNING item\n)\nINSERT INTO log SELECT item, 1\nFROM issued;\nSELECT count(*) FROM log;",
+     "lang": "sql",
+     "options": [
+      "0",
+      "1",
+      "ERROR: no rows updated",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "Каски на складі немає — UPDATE змінив 0 рядків, у журнал не потрапило нічого."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "WITH s AS (\n  SELECT item, sum(q) AS rest\n  FROM (VALUES ('a', 3), ('a', 4),\n               ('b', 1)) t(item, q)\n  GROUP BY item\n)\nSELECT item, rest FROM s\nWHERE rest > 2;",
+     "lang": "sql",
+     "options": [
+      "a | 7",
+      "a | 3, a | 4",
+      "b | 1",
+      "a | 7, b | 1"
+     ],
+     "a": 0,
+     "why": "Спочатку CTE рахує суми (a = 7, b = 1), потім WHERE відбирає a."
+    },
+    {
+     "type": "choice",
+     "q": "Що з'явиться в рядку зі стовпцем is_cycle = t?",
+     "code": "CREATE TABLE locs (id int, parent_id int);\nINSERT INTO locs VALUES (1, 2), (2, 1);\nWITH RECURSIVE t AS (\n  SELECT id FROM locs WHERE id = 1\n  UNION ALL\n  SELECT l.id FROM locs l\n  JOIN t ON l.parent_id = t.id\n) CYCLE id SET is_cycle USING path\nSELECT id FROM t WHERE is_cycle;",
+     "lang": "sql",
+     "options": [
+      "1",
+      "2",
+      "Порожньо: кола немає",
+      "ERROR: infinite recursion"
+     ],
+     "a": 0,
+     "why": "1 → 2 → знову 1: повтор id = 1 позначено is_cycle, далі рекурсія не йде."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо CTE, якщо той самий запит можна написати вкладеними підзапитами?",
+     "options": [
+      "Запит читається кроками згори вниз",
+      "CTE завжди виконується швидше",
+      "Підзапити не вміють GROUP BY",
+      "Без CTE не можна писати JOIN"
+     ],
+     "a": 0,
+     "why": "Головна користь — читабельність: кожен крок має ім'я."
+    },
+    {
+     "type": "choice",
+     "q": "Чим корисний UPDATE … RETURNING у WITH разом з INSERT у журнал?",
+     "options": [
+      "Обидві зміни — одна атомарна команда",
+      "UPDATE виконається після INSERT",
+      "Журнал заповниться для всіх рядків",
+      "RETURNING вимикає перевірки CHECK"
+     ],
+     "a": 0,
+     "why": "Одна команда — одна транзакція: або списання і запис, або нічого."
+    },
+    {
+     "type": "order",
+     "q": "Як працює WITH RECURSIVE для дерева розташувань",
+     "items": [
+      "Стартовий запит бере корінь гілки",
+      "Рекурсивна частина приєднує дітей знайдених",
+      "Повторює з новими рядками",
+      "Зупиняється, коли нових рядків немає",
+      "Головний запит читає весь результат"
+     ],
+     "why": "Ітерації йдуть хвилями по рівнях дерева."
+    },
+    {
+     "type": "choice",
+     "q": "Як Odoo знаходить усі вкладені розташування stock.location?",
+     "options": [
+      "LIKE за індексованим parent_path",
+      "WITH RECURSIVE на кожен запит",
+      "Цикл у Python по location_id",
+      "Окрема таблиця всіх пар предок–нащадок"
+     ],
+     "a": 0,
+     "why": "_parent_store = True веде поле parent_path на кшталт «1/2/3/» з індексом."
+    },
+    {
+     "type": "gap",
+     "q": "Між стартовою й рекурсивною частиною пишуть: UNION ◻",
+     "a": [
+      "ALL"
+     ],
+     "why": "UNION ALL не шукає дублікати — швидше; захист від кіл — CYCLE."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що дасть sum(qty) OVER (PARTITION BY item ORDER BY id)?",
+     "options": [
+      "Залишок речі після кожного руху",
+      "Загальну суму всіх речей",
+      "Номер руху в межах речі",
+      "Попередню кількість руху"
+     ],
+     "a": 0,
+     "why": "Наростаючий підсумок окремо для кожної речі."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: скільки рядків поверне SELECT x FROM (VALUES (1), (2)) t(x) WHERE x NOT IN (3, NULL)?",
+     "options": [
+      "0",
+      "1",
+      "2",
+      "ERROR"
+     ],
+     "a": 0,
+     "why": "NULL у списку NOT IN робить умову «невідомо» для всіх рядків."
+    }
+   ],
+   "typing": [
+    "CTE — іменований крок запиту.",
+    "Зміна даних у WITH робить кілька дій однією командою.",
+    "Рекурсивний CTE має стартову й рекурсивну частини.",
+    "Рекурсія зупиняється, коли нових рядків немає.",
+    "Від кіл у даних захищає CYCLE."
+   ],
+   "tasks": [
+    "Створіть таблицю locs з деревом на три рівні (склад, стелажі, полиці) і таблицю залишків з location_id. Одним запитом порахуйте залишок усього, що лежить у «Стелажі А» з усіма полицями.",
+    "Навмисно зробіть коло в даних і запустіть рекурсію з CYCLE і без нього (без нього додайте LIMIT 20, щоб не чекати вічно)."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: WITH-запити",
+     "url": "https://www.postgresql.org/docs/18/queries-with.html",
+     "note": "CTE, рекурсія, CYCLE, зміна даних у WITH",
+     "main": true
+    }
+   ]
+  },
+  {
+   "id": "indexes",
+   "title": "Індекси",
+   "topic": "B-tree, складений індекс і skip scan, індекс за виразом, частковий індекс",
+   "goal": "Обрати, який індекс створити під конкретний запит, і перевірити, що його використано",
+   "theory": [
+    {
+     "recall": "Пригадайте: як Odoo знаходить усі вкладені розташування складу без рекурсії?",
+     "a": "За полем parent_path з індексом: LIKE '1/2/%'."
+    },
+    {
+     "p": "Без індексу PostgreSQL шукає рядки **послідовним переглядом** (Seq Scan): читає всю таблицю. **Індекс B-tree** — відсортоване дерево «значення → де лежить рядок»: потрібне значення знаходиться за кілька кроків навіть серед мільйонів рядків. Чи використано індекс, показує `EXPLAIN` перед запитом ([індекси](https://www.postgresql.org/docs/18/indexes.html))."
+    },
+    {
+     "code": "CREATE TABLE moves (\n  id bigint GENERATED ALWAYS\n     AS IDENTITY PRIMARY KEY,\n  item_id int NOT NULL,\n  unit_id int NOT NULL,\n  qty int NOT NULL\n);\nINSERT INTO moves (item_id, unit_id, qty)\nSELECT g % 5000, g % 20,\n  CASE WHEN g % 10 = 0 THEN -1 ELSE 1 END\nFROM generate_series(1, 200000) g;\nANALYZE moves;\n\nEXPLAIN (COSTS OFF)\nSELECT * FROM moves WHERE item_id = 42;",
+     "lang": "sql",
+     "title": "seq.sql",
+     "hl": [
+      14,
+      15
+     ]
+    },
+    {
+     "code": "        QUERY PLAN\n--------------------------\n Seq Scan on moves\n   Filter: (item_id = 42)\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "code": "CREATE INDEX moves_item\n  ON moves (item_id);\n\nEXPLAIN (COSTS OFF)\nSELECT * FROM moves WHERE item_id = 42;",
+     "lang": "sql",
+     "title": "index.sql",
+     "hl": [
+      1,
+      2
+     ]
+    },
+    {
+     "code": "              QUERY PLAN\n---------------------------------------\n Bitmap Heap Scan on moves\n   Recheck Cond: (item_id = 42)\n   ->  Bitmap Index Scan on moves_item\n         Index Cond: (item_id = 42)\n(4 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "ul": [
+      "`generate_series` дав 200 000 рядків, `ANALYZE` зібрав статистику — без неї планувальник гадає наосліп.",
+      "`COSTS OFF` прибирає оцінки вартості: так план коротший і не змінюється від запуску до запуску.",
+      "Індекс знайшов 40 потрібних рядків (`Index Cond`), а `Bitmap Heap Scan` дочитав їх з таблиці."
+     ]
+    },
+    {
+     "h": "Коли індекс не допоможе"
+    },
+    {
+     "table": [
+      [
+       "Умова",
+       "Що вибере"
+      ],
+      [
+       "`item_id = 42`",
+       "індекс"
+      ],
+      [
+       "`item_id + 0 = 42`",
+       "Seq Scan"
+      ],
+      [
+       "`item_id > 10`",
+       "Seq Scan"
+      ],
+      [
+       "`lower(name) = …`",
+       "Seq Scan"
+      ]
+     ]
+    },
+    {
+     "p": "Вираз над стовпцем (`item_id + 0`, `lower(name)`) — це вже **інше значення**, ніж збережене в індексі. А `item_id > 10` підходить майже всім рядкам: прочитати таблицю підряд дешевше, ніж стрибати індексом. Планувальник вирішує за статистикою, а не за наявністю індексу."
+    },
+    {
+     "h": "Індекс за виразом і частковий індекс"
+    },
+    {
+     "code": "CREATE TABLE items (\n  id int PRIMARY KEY,\n  name text NOT NULL);\nINSERT INTO items\nSELECT g, 'Річ ' || g\nFROM generate_series(1, 100000) g;\nCREATE INDEX items_lname\n  ON items (lower(name));\nANALYZE items;\n\nEXPLAIN (COSTS OFF)\nSELECT * FROM items\nWHERE lower(name) = 'річ 5';",
+     "lang": "sql",
+     "title": "lower.sql",
+     "hl": [
+      7,
+      8
+     ]
+    },
+    {
+     "code": "                 QUERY PLAN\n---------------------------------------------\n Index Scan using items_lname on items\n   Index Cond: (lower(name) = 'річ 5'::text)\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "**Частковий** індекс містить лише рядки з умовою `WHERE`: наприклад, тільки видачі (`qty < 0`). Він у рази менший і швидше оновлюється, а запит використає його, якщо його умова **містить** умову індексу ([часткові індекси](https://www.postgresql.org/docs/18/indexes-partial.html)):"
+    },
+    {
+     "code": "CREATE INDEX moves_out\n  ON moves (item_id) WHERE qty < 0;\nSELECT pg_size_pretty(\n  pg_relation_size('moves_out')) AS part,\n  pg_size_pretty(\n  pg_relation_size('moves_item')) AS full;",
+     "lang": "sql",
+     "title": "partial.sql",
+     "hl": [
+      2
+     ]
+    },
+    {
+     "code": "  part  |  full\n--------+---------\n 160 kB | 1400 kB\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "h": "Складений індекс і skip scan"
+    },
+    {
+     "p": "Індекс на кілька стовпців `(unit_id, item_id)` відсортований спершу за першим, потім за другим. Найкраще він працює, коли в запиті є умова на **перший** стовпець. З PostgreSQL 18 B-tree вміє **skip scan**: якщо в першому стовпці мало різних значень (тут 20 підрозділів), індекс знадобиться і для `WHERE item_id = 42` — PostgreSQL обійде його 20 разів ([складені індекси](https://www.postgresql.org/docs/18/indexes-multicolumn.html))."
+    },
+    {
+     "warn": "❌ Стара порада «без першого стовпця складений індекс не працює» — з PostgreSQL 18 уже неточна. ✅ Але й не покладайтесь на skip scan: при тисячах різних значень у першому стовпці він програє, і буде Seq Scan. Рівності — першими, діапазон — останнім."
+    },
+    {
+     "note": "Для Odoo-розробника: `index=True` у полі — це B-tree, `index=\"btree_not_null\"` — **частковий** індекс без NULL (`WHERE поле IS NOT NULL`), `index=\"trigram\"` — GIN з триграмами для пошуку `ilike` (`odoo/fields.py`). Кожен індекс сповільнює запис: не ставте його «про всяк випадок»."
+    },
+    {
+     "recall": "Пригадайте: чому WHERE lower(name) = 'річ 5' не бере звичайний індекс на name?",
+     "a": "У індексі лежить name, а не lower(name). Потрібен індекс за виразом: CREATE INDEX … ON items (lower(name))."
+    }
+   ],
+   "examples": [
+    {
+     "w": "CREATE INDEX moves_item ON moves (item_id)",
+     "note": "звичайний B-tree"
+    },
+    {
+     "w": "EXPLAIN (COSTS OFF) SELECT …",
+     "note": "план без оцінок вартості"
+    },
+    {
+     "w": "ANALYZE moves",
+     "note": "оновити статистику"
+    },
+    {
+     "w": "CREATE INDEX … ON items (lower(name))",
+     "note": "індекс за виразом"
+    },
+    {
+     "w": "CREATE INDEX … ON moves (item_id) WHERE qty < 0",
+     "note": "частковий індекс"
+    },
+    {
+     "w": "CREATE INDEX … ON moves (unit_id, item_id)",
+     "note": "складений індекс"
+    },
+    {
+     "w": "CREATE INDEX CONCURRENTLY …",
+     "note": "без блокування запису на бойовій базі"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Індекс створено на moves (item_id). Що покаже EXPLAIN для WHERE item_id + 0 = 42?",
+     "options": [
+      "Послідовний перегляд таблиці",
+      "Bitmap Index Scan по moves_item",
+      "Index Only Scan по moves_item",
+      "Помилку: вираз у WHERE"
+     ],
+     "a": 0,
+     "why": "Вираз над стовпцем — інше значення, ніж у індексі."
+    },
+    {
+     "type": "choice",
+     "q": "Таблиця з 200 000 рядків, item_id від 0 до 4999, індекс на item_id. Що вибере планувальник для WHERE item_id > 10?",
+     "options": [
+      "Seq Scan: умова бере майже все",
+      "Index Scan: індекс завжди кращий",
+      "Bitmap Index Scan по всіх рядках",
+      "Помилку: діапазон без індексу"
+     ],
+     "a": 0,
+     "why": "Коли умова підходить більшості рядків, читати таблицю підряд дешевше."
+    },
+    {
+     "type": "choice",
+     "q": "Як змусити індекс працювати для WHERE lower(name) = 'шолом'?",
+     "options": [
+      "CREATE INDEX ON items (lower(name))",
+      "CREATE INDEX ON items (name) DESC",
+      "CREATE UNIQUE INDEX ON items (name)",
+      "SET enable_seqscan = off назавжди"
+     ],
+     "a": 0,
+     "why": "Індекс за виразом зберігає саме lower(name)."
+    },
+    {
+     "type": "choice",
+     "q": "Частковий індекс ON moves (item_id) WHERE qty < 0. Який запит його використає?",
+     "options": [
+      "WHERE item_id = 40 AND qty < 0",
+      "WHERE item_id = 40",
+      "WHERE qty > 0",
+      "WHERE item_id = 40 OR qty < 0"
+     ],
+     "a": 0,
+     "why": "Умова запиту має гарантувати умову індексу (qty < 0)."
+    },
+    {
+     "type": "choice",
+     "q": "Чому частковий індекс лише на видачі (10% рядків) кращий за повний, якщо шукають тільки видачі?",
+     "options": [
+      "Він у рази менший і швидше оновлюється",
+      "Він сортує рядки за кількістю",
+      "Він не потребує ANALYZE ніколи",
+      "Він замінює первинний ключ"
+     ],
+     "a": 0,
+     "why": "Менший індекс — менше читань і дешевші вставки рядків, що в нього не потрапляють."
+    },
+    {
+     "type": "choice",
+     "q": "Що нового з'явилося в PostgreSQL 18 для складених B-tree індексів?",
+     "options": [
+      "Skip scan без умови на перший стовпець",
+      "Обмеження в три стовпці на індекс",
+      "Автоматичне створення індексів",
+      "Заборона індексів на вирази"
+     ],
+     "a": 0,
+     "why": "Skip scan обходить індекс за кожним значенням першого стовпця — вигідно, коли їх мало."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо ANALYZE після масового завантаження даних?",
+     "options": [
+      "Оновити статистику для планувальника",
+      "Створити індекси автоматично",
+      "Перевірити обмеження CHECK",
+      "Стиснути таблицю на диску"
+     ],
+     "a": 0,
+     "why": "Без свіжої статистики планувальник неправильно оцінює кількість рядків."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить EXPLAIN без ANALYZE?",
+     "options": [
+      "Показує план, не виконуючи запит",
+      "Виконує запит і міряє час",
+      "Створює потрібні індекси",
+      "Оновлює статистику таблиці"
+     ],
+     "a": 0,
+     "why": "Просто EXPLAIN — лише план; виконання — з ANALYZE (тема 5)."
+    },
+    {
+     "type": "choice",
+     "q": "Індекс на (unit_id, item_id), unit_id — 20 різних значень. Чи може PostgreSQL 18 використати його для WHERE item_id = 43?",
+     "options": [
+      "Так, через skip scan",
+      "Ні, ніколи без unit_id",
+      "Лише з ORDER BY unit_id",
+      "Лише після VACUUM FULL"
+     ],
+     "a": 0,
+     "why": "Перевірено на PostgreSQL 18.7: Bitmap Index Scan on moves_unit_item з Index Cond: (item_id = 43)."
+    },
+    {
+     "type": "choice",
+     "q": "Чому не варто ставити індекс на кожен стовпець «про всяк випадок»?",
+     "options": [
+      "Кожен індекс сповільнює запис і займає місце",
+      "PostgreSQL дозволяє лише п'ять індексів",
+      "Індекси вимикають обмеження CHECK",
+      "Зайві індекси ламають RETURNING"
+     ],
+     "a": 0,
+     "why": "Кожна вставка й оновлення змінює всі індекси таблиці."
+    },
+    {
+     "type": "gap",
+     "q": "Показати план запиту без вартостей: EXPLAIN (◻ OFF) SELECT …",
+     "a": [
+      "COSTS"
+     ],
+     "why": "COSTS OFF прибирає числа оцінок, що відрізняються між запусками."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 3) SELECT count(*) FROM n?",
+     "options": [
+      "3",
+      "2",
+      "4",
+      "Нескінченна рекурсія"
+     ],
+     "a": 0,
+     "why": "1, 2, 3 — на x = 3 умова x < 3 не пускає далі."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як вибрати останній рух кожної речі?",
+     "options": [
+      "row_number() OVER (PARTITION BY item ORDER BY id DESC) і rn = 1",
+      "max(id) у WHERE для кожного рядка",
+      "ORDER BY id DESC LIMIT 1",
+      "DISTINCT item без порядку"
+     ],
+     "a": 0,
+     "why": "Нумерація в групі від найновішого і відбір першого."
+    }
+   ],
+   "typing": [
+    "Без індексу PostgreSQL переглядає всю таблицю.",
+    "Вираз над стовпцем не використовує звичайний індекс.",
+    "Частковий індекс містить лише потрібні рядки.",
+    "Після масового завантаження запускають ANALYZE.",
+    "Кожен індекс сповільнює запис."
+   ],
+   "tasks": [
+    "Відтворіть таблицю moves з 200 000 рядків і порівняйте EXPLAIN для item_id = 42 до і після CREATE INDEX. Потім спробуйте item_id + 0 = 42 і item_id > 10.",
+    "Створіть складений індекс (unit_id, item_id) і перевірте EXPLAIN для WHERE item_id = 43. Потім зробіть unit_id майже унікальним (g замість g % 20) і подивіться, чи лишився skip scan."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: складені індекси",
+     "url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html",
+     "note": "провідні стовпці і skip scan у 18",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: індекси за виразами",
+     "url": "https://www.postgresql.org/docs/18/indexes-expressional.html",
+     "note": "lower(name) та інші вирази"
+    },
+    {
+     "title": "PostgreSQL: часткові індекси",
+     "url": "https://www.postgresql.org/docs/18/indexes-partial.html",
+     "note": "WHERE в індексі й коли запит його використає"
+    }
+   ]
+  },
+  {
+   "id": "explain",
+   "title": "Читаємо EXPLAIN",
+   "topic": "дерево плану, оцінка проти факту, Buffers, Index Only Scan",
+   "goal": "Прочитати план запиту й знайти, чому він повільний: застаріла статистика, зайвий перегляд, сортування всієї таблиці",
+   "theory": [
+    {
+     "recall": "Пригадайте: чому для WHERE item_id + 0 = 42 індекс на item_id не працює?",
+     "a": "Індекс зберігає значення стовпця, а не виразу. Умову з виразом над стовпцем звичайний індекс не обслуговує — потрібен індекс за виразом або умова на сам стовпець."
+    },
+    {
+     "p": "`EXPLAIN запит` показує **план** — як PostgreSQL збирається виконати запит, і нічого не виконує. `EXPLAIN ANALYZE` справді виконує запит і дописує до кожного кроку, що сталося насправді ([EXPLAIN](https://www.postgresql.org/docs/18/using-explain.html))."
+    },
+    {
+     "code": "CREATE TABLE moves (\n  id bigint GENERATED ALWAYS AS IDENTITY\n    PRIMARY KEY,\n  item_id int NOT NULL,\n  qty int NOT NULL\n) WITH (autovacuum_enabled = off);\n-- статистика з усіх рядків, а не з\n-- вибірки: числа в планах стабільні\nALTER TABLE moves\n  ALTER item_id SET STATISTICS 1000;\nINSERT INTO moves (item_id, qty)\nSELECT g % 5000, 1\nFROM generate_series(1, 200000) g;\nCREATE INDEX moves_item ON moves (item_id);\nCREATE TABLE items (\n  id int PRIMARY KEY, name text);\nINSERT INTO items\nSELECT g, 'Річ ' || g\nFROM generate_series(0, 4999) g;\nANALYZE moves, items;\n\nEXPLAIN (COSTS OFF)\nSELECT i.name, sum(m.qty)\nFROM moves m\nJOIN items i ON i.id = m.item_id\nGROUP BY i.name;",
+     "lang": "sql",
+     "title": "plan.sql",
+     "hl": [
+      19,
+      20,
+      21,
+      22,
+      23
+     ]
+    },
+    {
+     "code": "              QUERY PLAN\n---------------------------------------\n HashAggregate\n   Group Key: i.name\n   ->  Hash Join\n         Hash Cond: (m.item_id = i.id)\n         ->  Seq Scan on moves m\n         ->  Hash\n               ->  Seq Scan on items i\n(7 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "План — **дерево**. Кожен рядок зі стрілкою `->` — вузол; його діти — рядки з більшим відступом під ним. Читають **знизу вгору**: найглибші вузли читають таблиці, батьки отримують від них рядки. Тут: перегляд items → хеш-таблиця (`Hash`) → прохід по moves з пошуком у хеші (`Hash Join`) → групування (`HashAggregate`). `COSTS OFF` прибирає числа вартості, щоб видно було саму форму плану."
+    },
+    {
+     "h": "Оцінка проти факту"
+    },
+    {
+     "p": "Без `COSTS OFF` кожен вузол має `rows=` — скільки рядків **очікує** планувальник. `ANALYZE` у дужках дописує `actual rows=` — скільки вийшло. Оцінки беруться зі статистики таблиці, а статистику оновлює команда `ANALYZE` (і автоочищення у фоні). Завантажили 50 000 рухів по одній речі й одразу запитали:"
+    },
+    {
+     "code": "INSERT INTO moves (item_id, qty)\nSELECT 42, 1\nFROM generate_series(1, 50000);\n\nEXPLAIN (ANALYZE, TIMING OFF,\n         SUMMARY OFF, BUFFERS OFF)\nSELECT * FROM moves WHERE item_id = 42;",
+     "lang": "sql",
+     "title": "stale.sql",
+     "hl": [
+      5,
+      6
+     ]
+    },
+    {
+     "code": "                                               QUERY PLAN\n---------------------------------------------------------------------------------------------------------\n Bitmap Heap Scan on moves  (cost=4.68..176.46 rows=50 width=16) (actual rows=50040.00 loops=1)\n   Recheck Cond: (item_id = 42)\n   Heap Blocks: exact=311\n   ->  Bitmap Index Scan on moves_item  (cost=0.00..4.67 rows=50 width=0) (actual rows=50040.00 loops=1)\n         Index Cond: (item_id = 42)\n         Index Searches: 1\n(6 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Очікував 50 рядків, отримав 50 040 — помилка в тисячу разів. На такій оцінці планувальник вибирає план для «кількох рядків»: тут обійшлося, а в запиті з `JOIN` це вкладений цикл на 50 тисяч пошуків. Після `ANALYZE moves` оцінка збігається з фактом (звичайно — лише близька: статистику збирають з випадкової вибірки рядків):"
+    },
+    {
+     "code": "ANALYZE moves;\nEXPLAIN (ANALYZE, TIMING OFF,\n         SUMMARY OFF, BUFFERS OFF)\nSELECT * FROM moves WHERE item_id = 42;",
+     "lang": "sql",
+     "title": "fresh.sql",
+     "hl": [
+      1
+     ]
+    },
+    {
+     "code": "                                                  QUERY PLAN\n--------------------------------------------------------------------------------------------------------------\n Bitmap Heap Scan on moves  (cost=564.10..2541.61 rows=50040 width=16) (actual rows=50040.00 loops=1)\n   Recheck Cond: (item_id = 42)\n   Heap Blocks: exact=311\n   ->  Bitmap Index Scan on moves_item  (cost=0.00..551.59 rows=50040 width=0) (actual rows=50040.00 loops=1)\n         Index Cond: (item_id = 42)\n         Index Searches: 1\n(6 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "tip": "Перше, що шукати в повільному плані, — вузол, де `rows=` і `actual rows=` різняться в десятки разів. Якщо `loops=` більше 1, `actual rows` — **середнє** на один прохід: загалом вузол повернув rows × loops."
+    },
+    {
+     "warn": "❌ `EXPLAIN ANALYZE DELETE …` «просто подивитися план» → рядки справді видалено. ✅ `BEGIN; EXPLAIN ANALYZE DELETE …; ROLLBACK;` — план видно, зміни скасовано."
+    },
+    {
+     "h": "Buffers і Index Only Scan"
+    },
+    {
+     "p": "З PostgreSQL 18 `EXPLAIN ANALYZE` сам показує рядки `Buffers:` — скільки сторінок по 8 кБ прочитав вузол. `shared hit` — знайдено в кеші PostgreSQL, `read` — довелося читати з диска. Запит бере лише `item_id`, а він є в індексі. Чи обійдеться PostgreSQL без таблиці?"
+    },
+    {
+     "code": "EXPLAIN (ANALYZE, COSTS OFF,\n         TIMING OFF, SUMMARY OFF)\nSELECT item_id FROM moves\nWHERE item_id = 43;\n\nVACUUM moves;\n\nEXPLAIN (ANALYZE, COSTS OFF,\n         TIMING OFF, SUMMARY OFF)\nSELECT item_id FROM moves\nWHERE item_id = 43;",
+     "lang": "sql",
+     "title": "ios.sql",
+     "hl": [
+      6
+     ]
+    },
+    {
+     "code": "                              QUERY PLAN\n-----------------------------------------------------------------------\n Index Only Scan using moves_item on moves (actual rows=40.00 loops=1)\n   Index Cond: (item_id = 43)\n   Heap Fetches: 40\n   Index Searches: 1\n   Buffers: shared hit=42\n Planning:\n   Buffers: shared hit=…\n(7 rows)\n\n                              QUERY PLAN\n-----------------------------------------------------------------------\n Index Only Scan using moves_item on moves (actual rows=40.00 loops=1)\n   Index Cond: (item_id = 43)\n   Heap Fetches: 0\n   Index Searches: 1\n   Buffers: shared hit=3\n Planning:\n   Buffers: shared hit=…\n(7 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Обидва рази — **Index Only Scan**, але до `VACUUM` вузол показав `Heap Fetches: 40` і 42 сторінки: на кожен рядок ходив у таблицю. Індекс не знає, чи рядок видимий вашій транзакції, — це записано в самій таблиці. `VACUUM` позначає у **карті видимості** (visibility map) сторінки, де всі рядки видимі всім. Після нього `Heap Fetches: 0` і 3 сторінки — відповідь з самого індексу ([Index-Only Scans](https://www.postgresql.org/docs/18/indexes-index-only-scans.html))."
+    },
+    {
+     "table": [
+      [
+       "Вузол",
+       "Що робить"
+      ],
+      [
+       "Seq Scan",
+       "читає всю таблицю"
+      ],
+      [
+       "Index Scan",
+       "індекс → рядок"
+      ],
+      [
+       "Bitmap Heap Scan",
+       "з індексу — список сторінок"
+      ],
+      [
+       "Index Only Scan",
+       "лише індекс"
+      ],
+      [
+       "Nested Loop",
+       "пошук на кожен рядок"
+      ],
+      [
+       "Hash Join",
+       "хеш з меншої таблиці"
+      ],
+      [
+       "Sort / Limit",
+       "сортує / бере перші N"
+      ]
+     ]
+    },
+    {
+     "h": "ORDER BY … LIMIT"
+    },
+    {
+     "p": "Списки в інтерфейсі — це завжди «перші N за порядком». Якщо порядок збігається з індексом, PostgreSQL читає індекс з потрібного кінця й зупиняється на N-му рядку. Якщо ні — читає й сортує всю таблицю, щоб віддати п'ять рядків."
+    },
+    {
+     "code": "-- без паралельних процесів:\n-- план коротший\nSET max_parallel_workers_per_gather = 0;\n\nEXPLAIN (ANALYZE, COSTS OFF, TIMING OFF,\n         SUMMARY OFF, BUFFERS OFF)\nSELECT * FROM moves\nORDER BY id DESC LIMIT 5;\n\nEXPLAIN (ANALYZE, COSTS OFF, TIMING OFF,\n         SUMMARY OFF, BUFFERS OFF)\nSELECT * FROM moves\nORDER BY qty LIMIT 5;",
+     "lang": "sql",
+     "title": "limit.sql",
+     "hl": [
+      8,
+      13
+     ]
+    },
+    {
+     "code": "                                   QUERY PLAN\n--------------------------------------------------------------------------------\n Limit (actual rows=5.00 loops=1)\n   ->  Index Scan Backward using moves_pkey on moves (actual rows=5.00 loops=1)\n         Index Searches: 1\n(3 rows)\n\n                          QUERY PLAN\n---------------------------------------------------------------\n Limit (actual rows=5.00 loops=1)\n   ->  Sort (actual rows=5.00 loops=1)\n         Sort Key: qty\n         Sort Method: top-N heapsort  Memory: 25kB\n         ->  Seq Scan on moves (actual rows=250000.00 loops=1)\n(5 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "note": "Для Odoo-розробника: запуск з `--log-level=debug_sql` пише в лог кожен запит Odoo з підставленими параметрами і часом (`[1.234 ms] query: …`). Повільний запит звідти копіюють у psql під `EXPLAIN ANALYZE`. Типовий запит списку — `ORDER BY` за `_order` моделі (за замовчуванням `id`) з `LIMIT 80`: індекс під цей порядок вирішує, чи читається вся таблиця."
+    },
+    {
+     "recall": "Пригадайте: що означає вузол з rows=50 і actual rows=50040 і що з цим робити?",
+     "a": "Планувальник помилився в оцінці в тисячу разів — статистика застаріла. Запустити ANALYZE таблиці й подивитися план ще раз."
+    }
+   ],
+   "examples": [
+    {
+     "w": "EXPLAIN (COSTS OFF) SELECT …",
+     "note": "лише форма плану"
+    },
+    {
+     "w": "EXPLAIN ANALYZE SELECT …",
+     "note": "виконати й показати факт"
+    },
+    {
+     "w": "rows=50 … actual rows=50040.00",
+     "note": "оцінка проти факту"
+    },
+    {
+     "w": "ANALYZE moves;",
+     "note": "оновити статистику"
+    },
+    {
+     "w": "BEGIN; EXPLAIN ANALYZE DELETE …; ROLLBACK;",
+     "note": "план зміни без зміни"
+    },
+    {
+     "w": "Buffers: shared hit=42",
+     "note": "42 сторінки з кешу"
+    },
+    {
+     "w": "Index Only Scan … Heap Fetches: 0",
+     "note": "без звернень до таблиці"
+    },
+    {
+     "w": "Limit -> Index Scan Backward",
+     "note": "останні N за індексом"
+    },
+    {
+     "w": "odoo --log-level=debug_sql",
+     "note": "побачити SQL, який шле Odoo"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "number",
+     "q": "Що поверне останній запит? Введіть число.",
+     "code": "CREATE TABLE t (x int);\nINSERT INTO t VALUES (1), (2), (3);\nEXPLAIN (ANALYZE, COSTS OFF)\nDELETE FROM t WHERE x > 1;\nSELECT count(*) FROM t;",
+     "lang": "sql",
+     "a": 1,
+     "tol": 0,
+     "why": "EXPLAIN ANALYZE справді виконує команду: два рядки видалено. Щоб лише подивитися план — BEGIN … ROLLBACK."
+    },
+    {
+     "type": "choice",
+     "q": "У плані HashAggregate → Hash Join → (Seq Scan on moves, Hash → Seq Scan on items). Який вузол віддає рядки найпершим?",
+     "options": [
+      "Seq Scan on items",
+      "HashAggregate",
+      "Hash Join",
+      "Group Key"
+     ],
+     "a": 0,
+     "why": "План читають знизу вгору: найглибші вузли читають таблиці, батьки обробляють їхні рядки."
+    },
+    {
+     "type": "choice",
+     "q": "Вузол показує rows=50 і actual rows=50040.00. Що зробити першим?",
+     "options": [
+      "Запустити ANALYZE таблиці",
+      "Видалити індекс на стовпець",
+      "Збільшити LIMIT у запиті",
+      "Перезапустити PostgreSQL"
+     ],
+     "a": 0,
+     "why": "Оцінка в тисячу разів менша за факт — застаріла статистика; ANALYZE її оновлює."
+    },
+    {
+     "type": "number",
+     "q": "Вузол Index Scan показує actual rows=3.00 loops=40. Скільки рядків він повернув загалом? Введіть число.",
+     "a": 120,
+     "tol": 0,
+     "why": "При loops > 1 actual rows — середнє на один прохід: 3 × 40 = 120."
+    },
+    {
+     "type": "choice",
+     "q": "Що означає Heap Fetches: 0 у вузлі Index Only Scan?",
+     "options": [
+      "Жодного звернення до таблиці",
+      "Індекс не знайшов жодного рядка",
+      "Таблицю прочитано з диска",
+      "Рядки ще не закомічені"
+     ],
+     "a": 0,
+     "why": "Усі сторінки позначені видимими в карті видимості — відповідь узято з самого індексу."
+    },
+    {
+     "type": "choice",
+     "q": "Таблицю щойно наповнили, автоочищення вимкнене. План — Index Only Scan, але Heap Fetches: 40 на 40 рядків. Чому?",
+     "options": [
+      "Карта видимості ще порожня",
+      "Індекс не містить item_id",
+      "Індекс пошкоджений, потрібен REINDEX",
+      "Запит повертає забагато рядків"
+     ],
+     "a": 0,
+     "why": "Поки VACUUM не позначив сторінки як повністю видимі, видимість рядка перевіряють у таблиці."
+    },
+    {
+     "type": "choice",
+     "q": "Що означає Buffers: shared hit=42 read=3?",
+     "options": [
+      "42 сторінки з кешу, 3 з диска",
+      "42 рядки з кешу, 3 з диска",
+      "42 запити до кешу, 3 помилки",
+      "45 кБ прочитано загалом"
+     ],
+     "a": 0,
+     "why": "Buffers рахує сторінки по 8 кБ: hit — знайдені в кеші PostgreSQL, read — прочитані з диска."
+    },
+    {
+     "type": "choice",
+     "q": "План: Limit (actual rows=5) -> Index Scan Backward using moves_pkey. Скільки рядків прочитав індексний вузол?",
+     "options": [
+      "5",
+      "Усю таблицю",
+      "Половину таблиці",
+      "Залежить від Sort"
+     ],
+     "a": 0,
+     "why": "Індекс уже впорядкований за id; вузол читає з кінця і зупиняється, коли Limit отримав п'ять рядків."
+    },
+    {
+     "type": "choice",
+     "q": "Для ORDER BY qty LIMIT 5 без індексу на qty план має Sort над Seq Scan. Що це означає?",
+     "options": [
+      "Прочитано всю таблицю заради 5 рядків",
+      "Прочитано лише 5 рядків",
+      "Індекс на qty створено автоматично",
+      "Сортування пропущено через LIMIT"
+     ],
+     "a": 0,
+     "why": "Без індексу в потрібному порядку перші п'ять можна знайти, лише переглянувши всі рядки."
+    },
+    {
+     "type": "gap",
+     "q": "У PostgreSQL 18 EXPLAIN ANALYZE показує сторінки кешу за замовчуванням; прибрати: EXPLAIN (ANALYZE, ◻ OFF)",
+     "a": [
+      "BUFFERS"
+     ],
+     "why": "З 18-ї версії BUFFERS вмикається разом з ANALYZE; вимкнути — BUFFERS OFF."
+    },
+    {
+     "type": "choice",
+     "q": "Як побачити SQL-запити, які Odoo надсилає в PostgreSQL?",
+     "options": [
+      "Запустити з --log-level=debug_sql",
+      "Увімкнути режим розробника в меню",
+      "Додати --dev=all до команди",
+      "Подивитися журнал nginx"
+     ],
+     "a": 0,
+     "why": "Рівень debug_sql вмикає DEBUG для odoo.sql_db: кожен запит з параметрами й часом."
+    },
+    {
+     "type": "order",
+     "q": "Розбір повільного запиту в Odoo",
+     "items": [
+      "Знайти запит у лозі debug_sql",
+      "Виконати його під EXPLAIN ANALYZE",
+      "Знайти вузол, де оцінка далека від факту",
+      "Оновити статистику або додати індекс",
+      "Повторити EXPLAIN ANALYZE і порівняти"
+     ],
+     "why": "Спершу факт, потім діагноз, потім ліки — і обов'язково перевірка, що стало краще."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: який індекс використає запит WHERE item_id = 40 AND qty < 0?",
+     "options": [
+      "ON moves (item_id) WHERE qty < 0",
+      "ON moves (qty) WHERE item_id > 100",
+      "ON moves (lower(item_id::text))",
+      "Жоден частковий індекс"
+     ],
+     "a": 0,
+     "why": "Частковий індекс підходить, коли умова запиту включає умову індексу."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що вкаже на коло в даних при WITH RECURSIVE … CYCLE id SET is_cycle USING path?",
+     "options": [
+      "Рядок з is_cycle = true",
+      "Помилка infinite recursion",
+      "Порожній результат запиту",
+      "NULL у стовпці path"
+     ],
+     "a": 0,
+     "why": "CYCLE позначає повтор id стовпцем is_cycle і далі цю гілку не розвиває."
+    }
+   ],
+   "typing": [
+    "План запиту читають знизу вгору.",
+    "EXPLAIN ANALYZE справді виконує запит.",
+    "Велика різниця між оцінкою і фактом — сигнал оновити статистику.",
+    "Index Only Scan працює після VACUUM.",
+    "Індекс у потрібному порядку рятує ORDER BY з LIMIT."
+   ],
+   "tasks": [
+    "Відтворіть таблицю moves з цієї теми. Додайте 50 000 рухів однієї речі й порівняйте rows і actual rows до і після ANALYZE.",
+    "Запустіть локальний Odoo з --log-level=debug_sql, відкрийте список «Переміщення» і знайдіть у лозі запит з ORDER BY і LIMIT. Виконайте його в psql під EXPLAIN (ANALYZE) і знайдіть найдорожчий вузол."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: Using EXPLAIN",
+     "url": "https://www.postgresql.org/docs/18/using-explain.html",
+     "note": "як читати план, ANALYZE, loops, Buffers",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: Index-Only Scans",
+     "url": "https://www.postgresql.org/docs/18/indexes-index-only-scans.html",
+     "note": "карта видимості і Heap Fetches"
+    },
+    {
+     "title": "PostgreSQL: EXPLAIN",
+     "url": "https://www.postgresql.org/docs/18/sql-explain.html",
+     "note": "усі параметри команди"
+    }
+   ]
+  },
+  {
+   "id": "transactions",
+   "title": "Транзакції і MVCC",
+   "topic": "BEGIN/COMMIT, перервана транзакція, SAVEPOINT, версії рядків, VACUUM",
+   "goal": "Знати, що відбувається з транзакцією після помилки, вміти відкотити частину змін і розуміти, звідки береться роздування таблиць",
+   "theory": [
+    {
+     "recall": "Пригадайте: що станеться з рядками після EXPLAIN ANALYZE DELETE … і як подивитися план, нічого не видаливши?",
+     "a": "Рядки справді видаляться: ANALYZE виконує команду. Треба обгорнути в BEGIN … ROLLBACK."
+    },
+    {
+     "p": "**Транзакція** — група команд, які застосовуються всі разом або жодна. Почати — `BEGIN`, зафіксувати — `COMMIT`, скасувати — `ROLLBACK`. Без `BEGIN` кожна команда — окрема транзакція і фіксується одразу (**автокоміт**). Списали з одного складу й не зарахували на інший — такого стану база не покаже нікому ([Transactions](https://www.postgresql.org/docs/18/tutorial-transactions.html))."
+    },
+    {
+     "code": "CREATE TABLE stock (\n  item text PRIMARY KEY,\n  qty int NOT NULL CHECK (qty >= 0)\n);\nINSERT INTO stock VALUES\n  ('Шолом', 5), ('Каска', 3);\n\nBEGIN;\nUPDATE stock SET qty = qty - 2\nWHERE item = 'Шолом';\nUPDATE stock SET qty = qty - 10\nWHERE item = 'Каска';\nSELECT * FROM stock;\nCOMMIT;\n\nSELECT * FROM stock ORDER BY item;",
+     "lang": "sql",
+     "title": "tx.sql",
+     "hl": [
+      8,
+      11,
+      13,
+      14
+     ]
+    },
+    {
+     "code": "ERROR:  new row for relation \"stock\" violates check constraint \"stock_qty_check\"\nDETAIL:  Failing row contains (Каска, -7).\nERROR:  current transaction is aborted, commands ignored until end of transaction block\n item  | qty\n-------+-----\n Каска |   3\n Шолом |   5\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Після помилки транзакція **перервана**: будь-яку команду, навіть `SELECT`, PostgreSQL відкидає з «current transaction is aborted». Прийме лише кінець транзакції. А `COMMIT` у перерваній транзакції насправді робить відкат — psql так і відповідає: `ROLLBACK`. Тому шолом теж лишився 5: успішне перше `UPDATE` скасовано разом з усім."
+    },
+    {
+     "h": "SAVEPOINT: відкотити частину"
+    },
+    {
+     "p": "`SAVEPOINT назва` ставить позначку всередині транзакції. `ROLLBACK TO SAVEPOINT назва` скасовує лише зміни після позначки і знімає стан «перервана» — транзакція працює далі, а все до позначки збережеться при `COMMIT`."
+    },
+    {
+     "code": "BEGIN;\nUPDATE stock SET qty = qty - 2\nWHERE item = 'Шолом';\nSAVEPOINT before_helmet;\nUPDATE stock SET qty = qty - 10\nWHERE item = 'Каска';\nROLLBACK TO SAVEPOINT before_helmet;\nUPDATE stock SET qty = qty - 1\nWHERE item = 'Каска';\nCOMMIT;\n\nSELECT * FROM stock ORDER BY item;",
+     "lang": "sql",
+     "title": "savepoint.sql",
+     "hl": [
+      4,
+      7
+     ]
+    },
+    {
+     "code": "ERROR:  new row for relation \"stock\" violates check constraint \"stock_qty_check\"\nDETAIL:  Failing row contains (Каска, -7).\n item  | qty\n-------+-----\n Каска |   2\n Шолом |   3\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "note": "Для Odoo-розробника: кожен запит з браузера — одна транзакція. Odoo виконує метод і робить `commit()` наприкінці, а при винятку — `rollback()` (`odoo/service/model.py`, функція `retrying`). Тому `UserError` посеред методу скасовує все, що метод встиг записати. Відкотити лише частину — `with self.env.cr.savepoint():`: це той самий SAVEPOINT, а перед ним Odoo скидає в базу відкладені записи ORM."
+    },
+    {
+     "h": "MVCC: версії рядків"
+    },
+    {
+     "p": "PostgreSQL не переписує рядок на місці. `UPDATE` створює **нову версію** рядка, а стара лишається, поки її може бачити хоч одна транзакція. Так працює **MVCC** (multiversion concurrency control): читання не чекає на запис, а запис — на читання. Видно це за `ctid` — адресою версії: (сторінка, номер на сторінці)."
+    },
+    {
+     "code": "CREATE TABLE helmets (\n  id int PRIMARY KEY, qty int);\nINSERT INTO helmets VALUES (1, 5), (2, 7);\nSELECT ctid, id, qty FROM helmets;\n\nUPDATE helmets SET qty = 4 WHERE id = 1;\nSELECT ctid, id, qty FROM helmets\nORDER BY id;",
+     "lang": "sql",
+     "title": "ctid.sql",
+     "hl": [
+      6
+     ]
+    },
+    {
+     "code": " ctid  | id | qty\n-------+----+-----\n (0,1) |  1 |   5\n (0,2) |  2 |   7\n(2 rows)\n\n ctid  | id | qty\n-------+----+-----\n (0,3) |  1 |   4\n (0,2) |  2 |   7\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Рядок 1 переїхав з (0,1) на (0,3): це нова версія, а (0,1) лишилася на сторінці мертвою. Поки транзакція не закомітила зміну, інші бачать стару версію — і не чекають. Перевірено двома з'єднаннями (на початку Шолом = 5):"
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "BEGIN;",
+       ""
+      ],
+      [
+       "UPDATE … qty = 3;",
+       ""
+      ],
+      [
+       "",
+       "SELECT qty → 5, без очікування"
+      ],
+      [
+       "COMMIT;",
+       ""
+      ],
+      [
+       "",
+       "SELECT qty → 3"
+      ]
+     ]
+    },
+    {
+     "h": "VACUUM і роздування"
+    },
+    {
+     "p": "Старі версії самі не зникають. Їх прибирає `VACUUM` — позначає місце як вільне для нових версій (файл таблиці при цьому не меншає). У фоні це робить **автоочищення** (autovacuum). Таблиця з 10 000 рядків, автоочищення вимкнене:"
+    },
+    {
+     "code": "CREATE TABLE big (id int PRIMARY KEY,\n  qty int)\n  WITH (autovacuum_enabled = off);\nINSERT INTO big\nSELECT g, 0\nFROM generate_series(1, 10000) g;\nSELECT\n  pg_size_pretty(pg_relation_size('big'));\nUPDATE big SET qty = qty + 1;\nSELECT\n  pg_size_pretty(pg_relation_size('big'));\nVACUUM big;\nUPDATE big SET qty = qty + 1;\nSELECT\n  pg_size_pretty(pg_relation_size('big'));\nVACUUM FULL big;\nSELECT\n  pg_size_pretty(pg_relation_size('big'));",
+     "lang": "sql",
+     "title": "bloat.sql",
+     "hl": [
+      9,
+      12,
+      16
+     ]
+    },
+    {
+     "code": " pg_size_pretty\n----------------\n 360 kB\n(1 row)\n\n pg_size_pretty\n----------------\n 712 kB\n(1 row)\n\n pg_size_pretty\n----------------\n 712 kB\n(1 row)\n\n pg_size_pretty\n----------------\n 360 kB\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Перше `UPDATE` подвоїло таблицю: 10 000 нових версій поруч зі старими. Після `VACUUM` друге `UPDATE` лягло у звільнене місце — розмір той самий. `VACUUM FULL` переписує таблицю начисто, але тримає блокування ACCESS EXCLUSIVE: поки працює, таблицю не можна навіть читати ([Routine Vacuuming](https://www.postgresql.org/docs/18/routine-vacuuming.html))."
+    },
+    {
+     "warn": "❌ Транзакція, відкрита годинами (`BEGIN` у psql і забули, зависла задача) → VACUUM не може прибрати жодну версію, яку вона ще могла б побачити, і таблиці пухнуть. ✅ Короткі транзакції; знайти довгі — `pg_stat_activity` зі станом `idle in transaction`."
+    },
+    {
+     "recall": "Пригадайте: чому після помилки в транзакції не виконується навіть SELECT і як продовжити роботу, не втративши попередніх змін?",
+     "a": "Транзакція перервана — PostgreSQL приймає лише її кінець. Зберегти попереднє можна, якщо заздалегідь поставити SAVEPOINT і зробити ROLLBACK TO SAVEPOINT."
+    }
+   ],
+   "examples": [
+    {
+     "w": "BEGIN; … COMMIT;",
+     "note": "усе або нічого"
+    },
+    {
+     "w": "current transaction is aborted",
+     "note": "після помилки — лише ROLLBACK"
+    },
+    {
+     "w": "COMMIT → ROLLBACK",
+     "note": "перервану транзакцію не зафіксувати"
+    },
+    {
+     "w": "SAVEPOINT s; … ROLLBACK TO SAVEPOINT s;",
+     "note": "відкотити частину"
+    },
+    {
+     "w": "with self.env.cr.savepoint():",
+     "note": "SAVEPOINT в Odoo"
+    },
+    {
+     "w": "SELECT ctid, * FROM t;",
+     "note": "адреса версії рядка"
+    },
+    {
+     "w": "VACUUM big;",
+     "note": "звільнити місце старих версій"
+    },
+    {
+     "w": "VACUUM FULL big;",
+     "note": "стиснути файл, блокує таблицю"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне останній запит?",
+     "code": "CREATE TABLE t (x int CHECK (x > 0));\nBEGIN;\nINSERT INTO t VALUES (1);\nINSERT INTO t VALUES (-1);\nCOMMIT;\nSELECT count(*) FROM t;",
+     "lang": "sql",
+     "options": [
+      "0",
+      "1",
+      "2",
+      "ERROR: transaction is aborted"
+     ],
+     "a": 0,
+     "why": "Друга вставка зламала транзакцію, COMMIT зробив відкат — перша вставка теж скасована."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне останній запит?",
+     "code": "CREATE TABLE t (x int CHECK (x > 0));\nBEGIN;\nINSERT INTO t VALUES (1);\nSAVEPOINT s;\nINSERT INTO t VALUES (-1);\nROLLBACK TO SAVEPOINT s;\nINSERT INTO t VALUES (2);\nCOMMIT;\nSELECT sum(x) FROM t;",
+     "lang": "sql",
+     "options": [
+      "3",
+      "1",
+      "2",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "Відкочено лише невдалу вставку після позначки; 1 і 2 зафіксовані."
+    },
+    {
+     "type": "choice",
+     "q": "Транзакція отримала помилку CHECK. Яку команду PostgreSQL виконає далі в цій же транзакції?",
+     "options": [
+      "Лише ROLLBACK (або COMMIT, що стане відкатом)",
+      "Будь-який SELECT",
+      "Наступний INSERT без помилки",
+      "Будь-яку команду після паузи"
+     ],
+     "a": 0,
+     "why": "Перервана транзакція відкидає все до свого кінця: «commands ignored until end of transaction block»."
+    },
+    {
+     "type": "choice",
+     "q": "Сесія А зробила BEGIN і UPDATE qty = 3 (було 5), але не COMMIT. Що побачить сесія Б у SELECT qty?",
+     "options": [
+      "5 одразу",
+      "3 одразу",
+      "Чекатиме COMMIT сесії А",
+      "ERROR: row is locked"
+     ],
+     "a": 0,
+     "why": "MVCC: читач бачить останню закомічену версію і не чекає на того, хто пише."
+    },
+    {
+     "type": "choice",
+     "q": "Що зробить UPDATE з рядком у PostgreSQL?",
+     "options": [
+      "Створить нову версію, стара лишиться",
+      "Перепише рядок на тому ж місці",
+      "Видалить рядок і вставить у кінець індексу",
+      "Заблокує всю таблицю"
+     ],
+     "a": 0,
+     "why": "Стара версія потрібна транзакціям, які ще можуть її бачити; її прибере VACUUM."
+    },
+    {
+     "type": "choice",
+     "q": "Таблиця 360 кБ, усі рядки оновили один раз, автоочищення вимкнене. Який розмір покаже pg_relation_size?",
+     "options": [
+      "Близько 720 кБ",
+      "360 кБ",
+      "180 кБ",
+      "0, поки не буде VACUUM"
+     ],
+     "a": 0,
+     "why": "Кожне оновлення додало нову версію поруч зі старою — таблиця подвоїлась."
+    },
+    {
+     "type": "choice",
+     "q": "Чим VACUUM відрізняється від VACUUM FULL?",
+     "options": [
+      "FULL переписує файл і блокує таблицю",
+      "FULL лише рахує статистику",
+      "VACUUM видаляє таблицю, FULL — ні",
+      "Різниці немає"
+     ],
+     "a": 0,
+     "why": "Звичайний VACUUM позначає місце вільним без блокування читання; FULL стискає файл під ACCESS EXCLUSIVE."
+    },
+    {
+     "type": "choice",
+     "q": "Чому довга транзакція в стані idle in transaction шкодить усій базі?",
+     "options": [
+      "VACUUM не може прибрати старі версії",
+      "Вона блокує всі SELECT інших сесій",
+      "Вона вимикає індекси",
+      "Вона заповнює журнал помилок"
+     ],
+     "a": 0,
+     "why": "Версії, які ця транзакція ще могла б побачити, не можна видалити — таблиці роздуваються."
+    },
+    {
+     "type": "choice",
+     "q": "У методі Odoo після write() кинуто UserError. Що станеться з записом у базі?",
+     "options": [
+      "Скасується разом з усім запитом",
+      "Збережеться, бо write() уже виконано",
+      "Збережеться лише в кеші ORM",
+      "Збережеться до наступного запиту"
+     ],
+     "a": 0,
+     "why": "Увесь запит — одна транзакція: при винятку Odoo робить rollback()."
+    },
+    {
+     "type": "choice",
+     "q": "Як у методі Odoo спробувати ризиковану дію і при помилці відкотити лише її?",
+     "options": [
+      "with self.env.cr.savepoint():",
+      "self.env.cr.commit() перед дією",
+      "try/except без нічого іншого",
+      "self.env.invalidate_all()"
+     ],
+     "a": 0,
+     "why": "savepoint() ставить SAVEPOINT і при винятку робить ROLLBACK TO лише до нього."
+    },
+    {
+     "type": "order",
+     "q": "Від BEGIN до кінця: що відбувається з транзакцією, де друга команда впала",
+     "items": [
+      "BEGIN",
+      "Перша команда успішна",
+      "Друга команда — ERROR",
+      "Наступні команди відкидаються",
+      "COMMIT відповідає ROLLBACK"
+     ],
+     "why": "Після помилки транзакцію можна лише завершити, і завершиться вона відкатом."
+    },
+    {
+     "type": "gap",
+     "q": "Позначка всередині транзакції, до якої можна відкотитись: ◻ s;",
+     "a": [
+      "SAVEPOINT"
+     ],
+     "why": "SAVEPOINT s; … ROLLBACK TO SAVEPOINT s;"
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: вузол показує rows=50 і actual rows=50040.00. Що це означає?",
+     "options": [
+      "Застаріла статистика, треба ANALYZE",
+      "Запит повернув зайві рядки",
+      "Індекс пошкоджений",
+      "Таблиця потребує VACUUM FULL"
+     ],
+     "a": 0,
+     "why": "Велика різниця оцінки й факту — ознака застарілої статистики."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: чому вираз у WHERE lower(name) = 'шолом' не використовує індекс ON items (name)?",
+     "options": [
+      "Індекс зберігає name, а не lower(name)",
+      "lower() заборонена в WHERE",
+      "Індекси не працюють з text",
+      "Потрібен ANALYZE"
+     ],
+     "a": 0,
+     "why": "Для умови з виразом потрібен індекс за тим самим виразом."
+    }
+   ],
+   "typing": [
+    "Транзакція застосовується вся або ніяк.",
+    "Після помилки транзакцію можна лише відкотити.",
+    "SAVEPOINT дозволяє відкотити частину змін.",
+    "UPDATE створює нову версію рядка.",
+    "Старі версії прибирає VACUUM.",
+    "Довгі транзакції заважають VACUUM."
+   ],
+   "tasks": [
+    "Відкрийте два вікна psql. У першому зробіть BEGIN і UPDATE, у другому — SELECT того самого рядка. Потім COMMIT у першому й повторіть SELECT у другому.",
+    "У другому вікні psql зробіть BEGIN; SELECT 1; і залиште. У першому знайдіть цю сесію: SELECT pid, state, xact_start FROM pg_stat_activity WHERE state LIKE 'idle in%';"
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: Transactions",
+     "url": "https://www.postgresql.org/docs/18/tutorial-transactions.html",
+     "note": "BEGIN, COMMIT, ROLLBACK, SAVEPOINT на прикладі переказу",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: MVCC Introduction",
+     "url": "https://www.postgresql.org/docs/18/mvcc-intro.html",
+     "note": "чому читання не блокує запис"
+    },
+    {
+     "title": "PostgreSQL: Routine Vacuuming",
+     "url": "https://www.postgresql.org/docs/18/routine-vacuuming.html",
+     "note": "VACUUM, VACUUM FULL, автоочищення"
+    }
+   ]
+  },
+  {
+   "id": "isolation",
+   "title": "Рівні ізоляції",
+   "topic": "READ COMMITTED, втрачене оновлення, REPEATABLE READ, повтори в Odoo",
+   "goal": "Передбачити, що побачать дві паралельні транзакції, не втрачати оновлення залишків і розуміти, чому Odoo повторює запити",
+   "theory": [
+    {
+     "recall": "Пригадайте: сесія А зробила UPDATE і ще не закомітила. Що побачить SELECT у сесії Б і чи буде він чекати?",
+     "a": "Стару, закомічену версію рядка, одразу й без очікування: так працює MVCC."
+    },
+    {
+     "p": "**Рівень ізоляції** визначає, які чужі зміни бачить транзакція, поки працює. За замовчуванням у PostgreSQL — **READ COMMITTED**: кожна команда бачить усе, що закомітили до її початку. Два однакові `SELECT` в одній транзакції можуть дати різне ([Transaction Isolation](https://www.postgresql.org/docs/18/transaction-iso.html)). Усі сценарії нижче перевірено двома справжніми з'єднаннями; на початку Шолом = 5."
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "BEGIN;",
+       ""
+      ],
+      [
+       "SELECT qty → 5",
+       ""
+      ],
+      [
+       "",
+       "UPDATE … qty = 4; (автокоміт)"
+      ],
+      [
+       "SELECT qty → 4",
+       ""
+      ],
+      [
+       "COMMIT;",
+       ""
+      ]
+     ]
+    },
+    {
+     "h": "Втрачене оновлення"
+    },
+    {
+     "p": "Типова помилка в коді застосунку: прочитати залишок у Python, порахувати нове число і записати його. Два видавачі одночасно видають 2 і 1 шолом:"
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "SELECT qty → 5",
+       ""
+      ],
+      [
+       "",
+       "SELECT qty → 5"
+      ],
+      [
+       "UPDATE … qty = 3;",
+       ""
+      ],
+      [
+       "",
+       "UPDATE … qty = 4;"
+      ],
+      [
+       "у базі 4, а мало бути 2",
+       ""
+      ]
+     ]
+    },
+    {
+     "p": "Видачу А **затерто**: Б записав число, пораховане зі старого залишку. Ліки — рахувати в самій базі: `UPDATE stock SET qty = qty - 2`. Друга команда на тому ж рядку **чекає**, поки перша транзакція завершиться, і тоді рахує від свіжої версії:"
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "BEGIN;",
+       ""
+      ],
+      [
+       "UPDATE … qty = qty - 2;",
+       ""
+      ],
+      [
+       "",
+       "UPDATE … qty = qty - 1; чекає…"
+      ],
+      [
+       "COMMIT;",
+       ""
+      ],
+      [
+       "",
+       "виконано: qty = 2"
+      ]
+     ]
+    },
+    {
+     "h": "REPEATABLE READ: знімок на всю транзакцію"
+    },
+    {
+     "p": "На рівні **REPEATABLE READ** транзакція бачить знімок бази на момент своєї першої команди — і більше нічого нового. Але змінити рядок, який після знімка змінив і закомітив інший, вона не може: PostgreSQL перериває її помилкою серіалізації. Транзакцію треба повторити з початку."
+    },
+    {
+     "table": [
+      [
+       "Сесія А (REPEATABLE READ)",
+       "Сесія Б"
+      ],
+      [
+       "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+       ""
+      ],
+      [
+       "SELECT qty → 5",
+       ""
+      ],
+      [
+       "",
+       "UPDATE … qty = 4;"
+      ],
+      [
+       "SELECT qty → 5 (знімок)",
+       ""
+      ],
+      [
+       "UPDATE … qty = qty - 2; → ERROR: could not serialize access due to concurrent update",
+       ""
+      ]
+     ]
+    },
+    {
+     "p": "Якщо ж Б ще не закомітив, А чекає на його рядок: після `ROLLBACK` у Б оновлення А проходить (5 − 2 = 3), після `COMMIT` — та сама помилка."
+    },
+    {
+     "table": [
+      [
+       "Рівень",
+       "Що бачить",
+       "Конфлікт запису"
+      ],
+      [
+       "READ COMMITTED",
+       "закомічене до команди",
+       "чекає, бере свіжий рядок"
+      ],
+      [
+       "REPEATABLE READ",
+       "знімок на першу команду",
+       "помилка серіалізації"
+      ],
+      [
+       "SERIALIZABLE",
+       "як по черзі",
+       "помилка серіалізації"
+      ]
+     ]
+    },
+    {
+     "p": "`READ UNCOMMITTED` у PostgreSQL працює як `READ COMMITTED`: чужих незакомічених змін не видно на жодному рівні. Поточний рівень показує `SHOW`:"
+    },
+    {
+     "code": "SHOW transaction_isolation;\n\nBEGIN ISOLATION LEVEL REPEATABLE READ;\nSHOW transaction_isolation;\nCOMMIT;",
+     "lang": "sql",
+     "title": "level.sql",
+     "hl": [
+      3
+     ]
+    },
+    {
+     "code": " transaction_isolation\n-----------------------\n read committed\n(1 row)\n\n transaction_isolation\n-----------------------\n repeatable read\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "note": "Для Odoo-розробника: курсор Odoo працює на REPEATABLE READ (`odoo/sql_db.py`: `set_isolation_level(ISOLATION_LEVEL_REPEATABLE_READ)`). Помилки серіалізації, deadlock і «lock not available» Odoo ловить у `retrying` (`odoo/service/model.py`): відкат, пауза випадкової довжини (до 2, 4, 8… секунд) і повтор усього запиту — до 5 спроб (`MAX_TRIES_ON_CONCURRENCY_FAILURE`). У лозі це рядок на кшталт `SERIALIZATION_FAILURE, 4 tries left, try again in 1.2345 sec...`."
+    },
+    {
+     "warn": "❌ У методі Odoo надіслати HTTP-запит чи лист, а потім писати в базу → при повторі запиту зовнішня дія виконається ще раз. ✅ Зовнішні дії — після коміту: `self.env.cr.postcommit.add(функція)` або через чергу завдань."
+    },
+    {
+     "recall": "Пригадайте: чим небезпечно «прочитати залишок у Python і записати нове число» і як це виправити?",
+     "a": "Паралельні транзакції затирають одна одну (втрачене оновлення). Рахувати в базі: UPDATE … SET qty = qty - n, — друга команда дочекається першої й візьме свіжий рядок."
+    }
+   ],
+   "examples": [
+    {
+     "w": "SHOW transaction_isolation;",
+     "note": "поточний рівень"
+    },
+    {
+     "w": "BEGIN ISOLATION LEVEL REPEATABLE READ;",
+     "note": "знімок на всю транзакцію"
+    },
+    {
+     "w": "UPDATE stock SET qty = qty - 2 …",
+     "note": "рахувати в базі, а не в Python"
+    },
+    {
+     "w": "could not serialize access due to concurrent update",
+     "note": "повторити транзакцію"
+    },
+    {
+     "w": "MAX_TRIES_ON_CONCURRENCY_FAILURE = 5",
+     "note": "скільки разів Odoo повторить"
+    },
+    {
+     "w": "self.env.cr.postcommit.add(f)",
+     "note": "дія після коміту"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Рівень READ COMMITTED, на початку qty = 5. А: BEGIN; SELECT qty. Б (автокоміт): UPDATE qty = 4. А: SELECT qty. Що побачить другий SELECT сесії А?",
+     "options": [
+      "4",
+      "5",
+      "Чекатиме кінця Б",
+      "ERROR: could not serialize"
+     ],
+     "a": 0,
+     "why": "У READ COMMITTED кожна команда бачить усе закомічене до її початку."
+    },
+    {
+     "type": "choice",
+     "q": "Те саме, але А почала з BEGIN ISOLATION LEVEL REPEATABLE READ. Що покаже другий SELECT сесії А?",
+     "options": [
+      "5",
+      "4",
+      "Чекатиме кінця Б",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "REPEATABLE READ бачить знімок на момент першої команди транзакції."
+    },
+    {
+     "type": "choice",
+     "q": "Сесія А на REPEATABLE READ прочитала рядок, Б змінила його й закомітила. Що буде з UPDATE цього рядка в А?",
+     "options": [
+      "ERROR: could not serialize access",
+      "Оновить знімкову версію рядка",
+      "Оновить свіжу версію рядка",
+      "Чекатиме, поки Б завершиться"
+     ],
+     "a": 0,
+     "why": "REPEATABLE READ не може змінити рядок, змінений після її знімка; транзакцію треба повторити."
+    },
+    {
+     "type": "number",
+     "q": "Залишок 5. А і Б прочитали його в Python. А записав qty = 5 − 2, потім Б записав qty = 5 − 1. Яке число в базі? Введіть число.",
+     "a": 4,
+     "tol": 0,
+     "why": "Б затер видачу А числом, порахованим зі старого залишку: втрачене оновлення."
+    },
+    {
+     "type": "number",
+     "q": "Залишок 5. А і Б одночасно виконують UPDATE … SET qty = qty − 2 і qty = qty − 1 (READ COMMITTED). Яке число в базі після обох комітів? Введіть число.",
+     "a": 2,
+     "tol": 0,
+     "why": "Друга команда чекає на рядок і рахує від свіжої версії: 5 − 2 − 1 = 2."
+    },
+    {
+     "type": "choice",
+     "q": "Який рівень ізоляції в PostgreSQL за замовчуванням?",
+     "options": [
+      "READ COMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+      "READ UNCOMMITTED"
+     ],
+     "a": 0,
+     "why": "READ COMMITTED — типовий рівень; інший вмикають явно."
+    },
+    {
+     "type": "choice",
+     "q": "Чи можна в PostgreSQL прочитати чужі незакомічені зміни на рівні READ UNCOMMITTED?",
+     "options": [
+      "Ні, він працює як READ COMMITTED",
+      "Так, це його призначення",
+      "Лише в межах однієї бази",
+      "Лише для таблиць без індексів"
+     ],
+     "a": 0,
+     "why": "PostgreSQL не має «брудного читання»: READ UNCOMMITTED поводиться як READ COMMITTED."
+    },
+    {
+     "type": "choice",
+     "q": "Що покаже останній SHOW?",
+     "code": "BEGIN ISOLATION LEVEL SERIALIZABLE;\nSHOW transaction_isolation;\nCOMMIT;",
+     "lang": "sql",
+     "options": [
+      "serializable",
+      "read committed",
+      "repeatable read",
+      "ERROR: SET TRANSACTION"
+     ],
+     "a": 0,
+     "why": "BEGIN ISOLATION LEVEL задає рівень саме цієї транзакції."
+    },
+    {
+     "type": "choice",
+     "q": "На якому рівні ізоляції працює курсор Odoo?",
+     "options": [
+      "REPEATABLE READ",
+      "READ COMMITTED",
+      "SERIALIZABLE",
+      "READ UNCOMMITTED"
+     ],
+     "a": 0,
+     "why": "sql_db.py ставить ISOLATION_LEVEL_REPEATABLE_READ кожному з'єднанню."
+    },
+    {
+     "type": "choice",
+     "q": "Запит у Odoo отримав помилку серіалізації. Що зробить Odoo?",
+     "options": [
+      "Відкотить і повторить запит, до 5 спроб",
+      "Покаже користувачу помилку одразу",
+      "Закомітить те, що встиг",
+      "Перейде на READ COMMITTED"
+     ],
+     "a": 0,
+     "why": "retrying ловить SerializationFailure, робить rollback, чекає і повторює — MAX_TRIES_ON_CONCURRENCY_FAILURE = 5."
+    },
+    {
+     "type": "choice",
+     "q": "Чому в методі Odoo не варто надсилати лист до запису в базу?",
+     "options": [
+      "При повторі запиту лист піде ще раз",
+      "Лист не дійде без коміту",
+      "SMTP блокує транзакцію",
+      "ORM заборонить write() після листа"
+     ],
+     "a": 0,
+     "why": "При конфлікті Odoo повторює весь запит; зовнішню дію роблять після коміту (postcommit)."
+    },
+    {
+     "type": "gap",
+     "q": "Знімок бази на всю транзакцію: BEGIN ISOLATION LEVEL ◻ READ;",
+     "a": [
+      "REPEATABLE"
+     ],
+     "why": "REPEATABLE READ бачить дані на момент першої команди."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне SELECT count(*) після BEGIN; INSERT (1); INSERT (-1) з порушенням CHECK; COMMIT?",
+     "options": [
+      "0",
+      "1",
+      "2",
+      "ERROR"
+     ],
+     "a": 0,
+     "why": "Після помилки транзакція перервана, COMMIT робить відкат — скасовано обидві вставки."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що означає Heap Fetches: 40 в Index Only Scan на 40 рядків?",
+     "options": [
+      "Карта видимості не заповнена, потрібен VACUUM",
+      "Індекс пошкоджений",
+      "Запит повернув 40 зайвих рядків",
+      "Статистика застаріла"
+     ],
+     "a": 0,
+     "why": "Без позначок карти видимості перевірку кожного рядка роблять у таблиці."
+    }
+   ],
+   "typing": [
+    "За замовчуванням PostgreSQL працює на рівні READ COMMITTED.",
+    "Залишок рахують у базі, а не в Python.",
+    "REPEATABLE READ бачить знімок на першу команду.",
+    "Помилку серіалізації лікують повтором транзакції.",
+    "Odoo повторює запит до п'яти разів."
+   ],
+   "tasks": [
+    "Відтворіть у двох вікнах psql втрачене оновлення: обидва SELECT, потім обидва UPDATE з готовим числом. Потім те саме з qty = qty - n.",
+    "Повторіть сценарій REPEATABLE READ з цієї теми й отримайте «could not serialize access». Потім знайдіть у odoo/service/model.py функцію retrying і прочитайте, які помилки вона повторює."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: Transaction Isolation",
+     "url": "https://www.postgresql.org/docs/18/transaction-iso.html",
+     "note": "рівні ізоляції, що кожен бачить і коли падає",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: MVCC Introduction",
+     "url": "https://www.postgresql.org/docs/18/mvcc-intro.html",
+     "note": "звідки знімки й версії рядків"
+    }
+   ]
+  },
+  {
+   "id": "locks",
+   "title": "Блокування",
+   "topic": "FOR UPDATE, NOWAIT, lock_timeout, видача з перевіркою, deadlock, SKIP LOCKED",
+   "goal": "Безпечно списувати залишок при паралельній роботі, не зависати на чужих блокуваннях і роздавати завдання кільком обробникам",
+   "theory": [
+    {
+     "recall": "Пригадайте: залишок 5, дві сесії одночасно роблять UPDATE … SET qty = qty - 2 і qty = qty - 1. Що буде в базі і чому?",
+     "a": "2. Друга команда чекає, поки перша транзакція завершиться, і рахує від свіжої версії рядка."
+    },
+    {
+     "p": "`UPDATE` і `DELETE` **блокують** змінені рядки до кінця транзакції: інший, хто захоче змінити той самий рядок, чекає. Звичайний `SELECT` не блокує і не чекає. Щоб заблокувати рядок, ще нічого не змінивши — «прочитаю, вирішу, тоді змінюю», — пишуть `SELECT … FOR UPDATE` ([Explicit Locking](https://www.postgresql.org/docs/18/explicit-locking.html))."
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "BEGIN;",
+       ""
+      ],
+      [
+       "SELECT qty … FOR UPDATE; → 5",
+       ""
+      ],
+      [
+       "",
+       "SELECT qty …; → 5, не чекає"
+      ],
+      [
+       "",
+       "SELECT … FOR UPDATE NOWAIT; → ERROR: could not obtain lock on row in relation \"stock\""
+      ],
+      [
+       "",
+       "SET lock_timeout = '1s'; UPDATE …; → ERROR: canceling statement due to lock timeout"
+      ],
+      [
+       "COMMIT;",
+       ""
+      ]
+     ]
+    },
+    {
+     "p": "`NOWAIT` не чекає ані миті, `lock_timeout` — чекає не довше заданого. Без них сесія Б чекала б, скільки завгодно довго: поки А не завершить транзакцію."
+    },
+    {
+     "h": "Видача з перевіркою одною командою"
+    },
+    {
+     "p": "«Перевірити, що вистачає, і списати» — дві дії, між якими може вклинитись інший видавач. Одна команда з умовою в `WHERE` робить це атомарно: рядок блокується, умова перевіряється на свіжій версії."
+    },
+    {
+     "code": "CREATE TABLE stock (\n  item text PRIMARY KEY,\n  qty int NOT NULL CHECK (qty >= 0)\n);\nINSERT INTO stock VALUES ('Шолом', 5);\n\nUPDATE stock SET qty = qty - 4\nWHERE item = 'Шолом' AND qty >= 4\nRETURNING qty;\n\nUPDATE stock SET qty = qty - 4\nWHERE item = 'Шолом' AND qty >= 4\nRETURNING qty;",
+     "lang": "sql",
+     "title": "issue.sql",
+     "hl": [
+      8,
+      9
+     ]
+    },
+    {
+     "code": " qty\n-----\n   1\n(1 row)\n\n qty\n-----\n(0 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Друга видача повернула 0 рядків — застосунок знає: не вистачає. Без перевірки в `WHERE` друге списання впало б на `CHECK (qty >= 0)`, і вся транзакція стала б перерваною."
+    },
+    {
+     "h": "Deadlock"
+    },
+    {
+     "p": "А заблокувала шолом і хоче каску, Б заблокувала каску і хоче шолом. Кожна чекає на іншу вічно — **взаємне блокування**. Через `deadlock_timeout` (типово 1 секунда) PostgreSQL помічає коло й перериває одну з транзакцій; друга йде далі."
+    },
+    {
+     "table": [
+      [
+       "Сесія А",
+       "Сесія Б"
+      ],
+      [
+       "UPDATE … 'Шолом';",
+       ""
+      ],
+      [
+       "",
+       "UPDATE … 'Каска';"
+      ],
+      [
+       "UPDATE … 'Каска'; чекає…",
+       ""
+      ],
+      [
+       "",
+       "UPDATE … 'Шолом';"
+      ],
+      [
+       "ERROR: deadlock detected",
+       "виконано"
+      ]
+     ]
+    },
+    {
+     "tip": "Блокуйте рядки в **однаковому порядку** — наприклад, `ORDER BY id` перед `FOR UPDATE` або сортуйте id у Python перед циклом. Тоді друга транзакція чекає на першу, а не на коло."
+    },
+    {
+     "h": "SKIP LOCKED: черга завдань"
+    },
+    {
+     "p": "`FOR UPDATE SKIP LOCKED` пропускає рядки, які вже хтось заблокував. Кілька обробників беруть з таблиці **різні** завдання й не чекають одне на одного:"
+    },
+    {
+     "table": [
+      [
+       "Обробник А",
+       "Обробник Б"
+      ],
+      [
+       "BEGIN;",
+       "BEGIN;"
+      ],
+      [
+       "… LIMIT 1 FOR UPDATE SKIP LOCKED → 1",
+       ""
+      ],
+      [
+       "",
+       "… LIMIT 1 FOR UPDATE SKIP LOCKED → 2"
+      ]
+     ]
+    },
+    {
+     "code": "CREATE TABLE jobs (\n  id int PRIMARY KEY,\n  done bool NOT NULL DEFAULT false\n);\nINSERT INTO jobs (id) VALUES (1), (2), (3);\n\nUPDATE jobs SET done = true\nWHERE id = (\n  SELECT id FROM jobs\n  WHERE NOT done\n  ORDER BY id LIMIT 1\n  FOR UPDATE SKIP LOCKED\n)\nRETURNING id;",
+     "lang": "sql",
+     "title": "take_job.sql",
+     "hl": [
+      12
+     ]
+    },
+    {
+     "code": " id\n----\n  1\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "note": "Для Odoo-розробника: планувальник `ir.cron` бере завдання саме так — `FOR NO KEY UPDATE SKIP LOCKED` (`odoo/addons/base/models/ir_cron.py`): кілька воркерів не запускають одне завдання двічі. А помилки «lock not available» (NOWAIT) і «deadlock detected» Odoo повторює так само, як помилки серіалізації: до 5 спроб."
+    },
+    {
+     "recall": "Пригадайте: як списати 4 шоломи так, щоб паралельний видавач не довів залишок до мінуса, і що побачить застосунок, якщо шоломів не вистачає?",
+     "a": "Одним UPDATE з умовою qty >= 4 у WHERE і RETURNING. Якщо не вистачає — команда поверне 0 рядків."
+    }
+   ],
+   "examples": [
+    {
+     "w": "SELECT … FOR UPDATE;",
+     "note": "заблокувати, ще не змінюючи"
+    },
+    {
+     "w": "SELECT … FOR UPDATE NOWAIT;",
+     "note": "не чекати — одразу помилка"
+    },
+    {
+     "w": "SET lock_timeout = '1s';",
+     "note": "чекати не довше секунди"
+    },
+    {
+     "w": "UPDATE … WHERE qty >= 4 RETURNING qty;",
+     "note": "перевірка й списання разом"
+    },
+    {
+     "w": "ERROR: deadlock detected",
+     "note": "коло блокувань"
+    },
+    {
+     "w": "ORDER BY id FOR UPDATE",
+     "note": "однаковий порядок — без кола"
+    },
+    {
+     "w": "FOR UPDATE SKIP LOCKED",
+     "note": "черга: взяти незайняте"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Сесія А зробила BEGIN; SELECT … FOR UPDATE рядка. Що отримає звичайний SELECT того ж рядка в сесії Б?",
+     "options": [
+      "Дані одразу, без очікування",
+      "Чекатиме кінця транзакції А",
+      "ERROR: could not obtain lock",
+      "Порожній результат"
+     ],
+     "a": 0,
+     "why": "FOR UPDATE блокує запис і інші FOR UPDATE, але не звичайне читання."
+    },
+    {
+     "type": "choice",
+     "q": "Рядок заблоковано сесією А. Що відповість сесії Б SELECT … FOR UPDATE NOWAIT?",
+     "options": [
+      "ERROR: could not obtain lock on row",
+      "Чекатиме кінця транзакції А",
+      "Поверне рядок без блокування",
+      "Поверне 0 рядків"
+     ],
+     "a": 0,
+     "why": "NOWAIT не чекає: якщо рядок зайнятий — одразу помилка."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне другий UPDATE?",
+     "code": "CREATE TABLE stock (item text,\n  qty int CHECK (qty >= 0));\nINSERT INTO stock VALUES ('Шолом', 5);\nUPDATE stock SET qty = qty - 3\nWHERE qty >= 3 RETURNING qty;\nUPDATE stock SET qty = qty - 3\nWHERE qty >= 3 RETURNING qty;",
+     "lang": "sql",
+     "options": [
+      "0 рядків",
+      "-1",
+      "2",
+      "ERROR: violates check constraint"
+     ],
+     "a": 0,
+     "why": "Після першої видачі лишилось 2: умова qty >= 3 не виконалась, змінено 0 рядків."
+    },
+    {
+     "type": "choice",
+     "q": "Те саме, але без умови в WHERE. Що буде з другою видачею?",
+     "code": "CREATE TABLE stock (item text,\n  qty int CHECK (qty >= 0));\nINSERT INTO stock VALUES ('Шолом', 5);\nUPDATE stock SET qty = qty - 3;\nUPDATE stock SET qty = qty - 3;",
+     "lang": "sql",
+     "options": [
+      "ERROR: new row for relation \"stock\" violates check constraint \"stock_qty_check\"",
+      "Залишок стане -1",
+      "Змінено 0 рядків",
+      "Чекатиме першу видачу"
+     ],
+     "a": 0,
+     "why": "2 − 3 = −1 порушує CHECK: команда падає, транзакція перервана."
+    },
+    {
+     "type": "choice",
+     "q": "А заблокувала шолом і чекає каску, Б заблокувала каску і чекає шолом. Що зробить PostgreSQL?",
+     "options": [
+      "Перерве одну транзакцію: deadlock detected",
+      "Чекатиме, поки хтось не скасує вручну",
+      "Перерве обидві транзакції",
+      "Віддасть обидва рядки обом"
+     ],
+     "a": 0,
+     "why": "Приблизно через deadlock_timeout PostgreSQL знаходить коло й перериває одну з транзакцій; друга продовжує."
+    },
+    {
+     "type": "choice",
+     "q": "Як уникнути deadlock, коли метод блокує кілька рядків?",
+     "options": [
+      "Блокувати рядки в однаковому порядку",
+      "Блокувати якомога пізніше",
+      "Вмикати REPEATABLE READ",
+      "Ставити NOWAIT на кожен SELECT"
+     ],
+     "a": 0,
+     "why": "Однаковий порядок (наприклад, ORDER BY id) не дає утворитися колу очікувань."
+    },
+    {
+     "type": "choice",
+     "q": "Два обробники одночасно беруть завдання запитом … ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED. Що вони отримають?",
+     "options": [
+      "Різні завдання: 1 і 2",
+      "Обидва — завдання 1",
+      "Другий чекатиме на першого",
+      "Другий отримає помилку"
+     ],
+     "a": 0,
+     "why": "SKIP LOCKED пропускає рядок, уже заблокований першим обробником."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо SET lock_timeout = '1s'?",
+     "options": [
+      "Не чекати чуже блокування довше секунди",
+      "Тримати свої блокування секунду",
+      "Перевіряти deadlock щосекунди",
+      "Обмежити час усього запиту"
+     ],
+     "a": 0,
+     "why": "lock_timeout обриває лише очікування блокування: «canceling statement due to lock timeout»."
+    },
+    {
+     "type": "choice",
+     "q": "Як планувальник ir.cron в Odoo не дає двом воркерам запустити одне завдання?",
+     "options": [
+      "FOR NO KEY UPDATE SKIP LOCKED",
+      "Таблиця-прапорець у Redis",
+      "Рівень SERIALIZABLE",
+      "Блокування всієї таблиці"
+     ],
+     "a": 0,
+     "why": "Воркер блокує рядок завдання, а інші його пропускають."
+    },
+    {
+     "type": "order",
+     "q": "Безпечна видача кількох речей в одній транзакції",
+     "items": [
+      "BEGIN",
+      "Відсортувати id речей",
+      "UPDATE … WHERE qty >= n RETURNING для кожної",
+      "Нуль рядків — ROLLBACK і повідомлення",
+      "Усе списано — COMMIT"
+     ],
+     "why": "Однаковий порядок рятує від deadlock, умова в WHERE — від мінусу, транзакція — від половинчастої видачі."
+    },
+    {
+     "type": "gap",
+     "q": "Взяти незаблоковане завдання з черги: … FOR UPDATE ◻ LOCKED",
+     "a": [
+      "SKIP"
+     ],
+     "why": "SKIP LOCKED пропускає рядки, заблоковані іншими."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: А прочитала залишок 5 у Python, Б теж. А записала 3, Б записала 4. Як називається проблема?",
+     "options": [
+      "Втрачене оновлення",
+      "Deadlock",
+      "Брудне читання",
+      "Помилка серіалізації"
+     ],
+     "a": 0,
+     "why": "Б затерла зміну А числом, порахованим зі старого значення."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як відкотити лише частину змін усередині транзакції?",
+     "options": [
+      "SAVEPOINT і ROLLBACK TO SAVEPOINT",
+      "Повторний BEGIN",
+      "COMMIT, потім ROLLBACK",
+      "DELETE змінених рядків"
+     ],
+     "a": 0,
+     "why": "ROLLBACK TO скасовує зміни після позначки, транзакція триває."
+    }
+   ],
+   "typing": [
+    "UPDATE блокує змінені рядки до кінця транзакції.",
+    "Звичайний SELECT не чекає на блокування.",
+    "Перевірку залишку пишуть в умову UPDATE.",
+    "Рядки блокують в однаковому порядку.",
+    "SKIP LOCKED роздає різні завдання різним обробникам."
+   ],
+   "tasks": [
+    "У двох вікнах psql відтворіть deadlock з цієї теми. Потім змініть порядок у сесії Б на той самий, що в А, і переконайтеся, що Б просто чекає.",
+    "Зробіть таблицю jobs на 10 завдань і запустіть у двох вікнах BEGIN та запит взяття завдання з SKIP LOCKED. Порівняйте, які id дістались кожному."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: Explicit Locking",
+     "url": "https://www.postgresql.org/docs/18/explicit-locking.html",
+     "note": "блокування рядків і таблиць, deadlock",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: SELECT — The Locking Clause",
+     "url": "https://www.postgresql.org/docs/18/sql-select.html#SQL-FOR-UPDATE-SHARE",
+     "note": "FOR UPDATE, NOWAIT, SKIP LOCKED"
+    }
+   ]
+  },
+  {
+   "id": "jsonb",
+   "title": "jsonb",
+   "topic": "-> і ->>, @> і ?, jsonb_set, GIN, перекладні поля Odoo",
+   "goal": "Читати, шукати й змінювати дані в jsonb, підібрати індекс і прочитати перекладне поле Odoo напряму в psql",
+   "theory": [
+    {
+     "recall": "Пригадайте: як списати 4 шоломи одною командою так, щоб залишок не пішов у мінус навіть при паралельній видачі?",
+     "a": "UPDATE stock SET qty = qty - 4 WHERE item = 'Шолом' AND qty >= 4 RETURNING qty — якщо не вистачає, поверне 0 рядків."
+    },
+    {
+     "p": "PostgreSQL має два типи для JSON. `json` зберігає текст як є. `jsonb` розбирає його в двійковий вигляд: дублікати ключів зникають (лишається останній), порядок ключів не зберігається, зате працюють оператори пошуку й індекси. Майже завжди потрібен `jsonb` ([JSON Types](https://www.postgresql.org/docs/18/datatype-json.html))."
+    },
+    {
+     "code": "SELECT\n  '{\"a\": 1, \"a\": 2}'::jsonb,\n  '{\"b\": 1, \"a\": 2}'::jsonb,\n  '{\"a\": 1, \"a\": 2}'::json;",
+     "lang": "sql",
+     "title": "types.sql"
+    },
+    {
+     "code": "  jsonb   |      jsonb       |       json\n----------+------------------+------------------\n {\"a\": 2} | {\"a\": 2, \"b\": 1} | {\"a\": 1, \"a\": 2}\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "h": "Читати: -> і ->>"
+    },
+    {
+     "p": "`->` повертає значення як **jsonb** (рядок — у лапках), `->>` — як **text**. Для порівнянь і виводу майже завжди `->>`. Немає ключа — `NULL`, без помилки."
+    },
+    {
+     "code": "CREATE TABLE items (\n  id int PRIMARY KEY,\n  name jsonb NOT NULL,\n  attrs jsonb NOT NULL DEFAULT '{}'\n);\nINSERT INTO items VALUES\n  (1, '{\"en_US\": \"Helmet\",\n        \"uk_UA\": \"Шолом\"}',\n      '{\"size\": \"L\", \"class\": 4,\n        \"tags\": [\"балістика\"]}'),\n  (2, '{\"en_US\": \"Vest\"}',\n      '{\"size\": \"M\", \"class\": 3}');\n\nSELECT id,\n  name -> 'uk_UA' AS j,\n  name ->> 'uk_UA' AS t\nFROM items ORDER BY id;",
+     "lang": "sql",
+     "title": "read.sql",
+     "hl": [
+      15,
+      16
+     ]
+    },
+    {
+     "code": " id |    j    |   t\n----+---------+-------\n  1 | \"Шолом\" | Шолом\n  2 |         |\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "table": [
+      [
+       "Оператор",
+       "Що робить"
+      ],
+      [
+       "->",
+       "значення як jsonb"
+      ],
+      [
+       "->>",
+       "значення як text"
+      ],
+      [
+       "#>>",
+       "text за шляхом {tags,0}"
+      ],
+      [
+       "@>",
+       "містить фрагмент"
+      ],
+      [
+       "?",
+       "є такий ключ"
+      ]
+     ]
+    },
+    {
+     "p": "Так Odoo читає перекладні поля: назва зберігається як `{\"en_US\": …, \"uk_UA\": …}`, а запит бере мову користувача з запасною англійською:"
+    },
+    {
+     "code": "SELECT id,\n  COALESCE(name ->> 'uk_UA',\n           name ->> 'en_US') AS name\nFROM items ORDER BY id;",
+     "lang": "sql",
+     "title": "translate.sql",
+     "hl": [
+      2,
+      3
+     ]
+    },
+    {
+     "code": " id | name\n----+-------\n  1 | Шолом\n  2 | Vest\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "note": "Для Odoo-розробника: поле з `translate=True` — це стовпець jsonb з мовами-ключами; ORM будує `COALESCE(name->>'uk_UA', name->>'en_US')` (`odoo/models.py`). Поля з `company_dependent=True` у 18-й версії теж jsonb: ключ — id компанії (`odoo/fields.py`). Тож у psql назва товару — `SELECT name->>'uk_UA' FROM product_template`."
+    },
+    {
+     "warn": "❌ `WHERE name = 'Шолом'` для jsonb-стовпця → `ERROR: invalid input syntax for type json`: рядок без лапок — не JSON. ✅ `WHERE name ->> 'uk_UA' = 'Шолом'`."
+    },
+    {
+     "h": "Пошук і зміна"
+    },
+    {
+     "p": "`@>` — «ліворуч міститься фрагмент праворуч», `?` — «є ключ». `->>` дає текст: для чисел потрібне приведення, інакше порівняння йде як рядків."
+    },
+    {
+     "code": "SELECT id FROM items\nWHERE attrs @> '{\"size\": \"L\"}';\n\nSELECT id FROM items\nWHERE attrs ? 'tags';\n\nSELECT id,\n  (attrs ->> 'class')::int + 1 AS next\nFROM items ORDER BY id;",
+     "lang": "sql",
+     "title": "search.sql",
+     "hl": [
+      2,
+      5,
+      8
+     ]
+    },
+    {
+     "code": " id\n----\n  1\n(1 row)\n\n id\n----\n  1\n(1 row)\n\n id | next\n----+------\n  1 |    5\n  2 |    4\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "p": "Змінювати: `jsonb_set(колонка, шлях, значення)` замінює значення за шляхом, `||` дописує ключі, `-` видаляє ключ. Значення jsonb не змінюється на місці — `UPDATE` записує новий об'єкт цілком."
+    },
+    {
+     "code": "UPDATE items\nSET attrs = jsonb_set(attrs, '{class}', '5')\nWHERE id = 1\nRETURNING attrs;\n\nUPDATE items\nSET attrs = attrs || '{\"color\": \"олива\"}'\nWHERE id = 2\nRETURNING attrs;",
+     "lang": "sql",
+     "title": "update.sql",
+     "hl": [
+      2,
+      7
+     ]
+    },
+    {
+     "code": "                      attrs\n--------------------------------------------------\n {\"size\": \"L\", \"tags\": [\"балістика\"], \"class\": 5}\n(1 row)\n\n                    attrs\n---------------------------------------------\n {\"size\": \"M\", \"class\": 3, \"color\": \"олива\"}\n(1 row)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "h": "Індекси для jsonb"
+    },
+    {
+     "p": "GIN-індекс на весь стовпець (`USING gin`) обслуговує `@>` і `?` по будь-яких ключах. Але не `->> … =`: це вираз над стовпцем, і для нього, як у темі про індекси, потрібен B-tree за тим самим виразом."
+    },
+    {
+     "code": "CREATE TABLE big (id int PRIMARY KEY,\n  attrs jsonb);\nINSERT INTO big\nSELECT g, jsonb_build_object(\n  'size',\n  (ARRAY['S','M','L','XL'])[g % 4 + 1],\n  'lot', 'L' || g)\nFROM generate_series(1, 100000) g;\nCREATE INDEX big_attrs ON big\n  USING gin (attrs);\nANALYZE big;\n\nEXPLAIN (COSTS OFF) SELECT id FROM big\nWHERE attrs @> '{\"lot\": \"L77\"}';\nEXPLAIN (COSTS OFF) SELECT id FROM big\nWHERE attrs ->> 'lot' = 'L77';\n\nCREATE INDEX big_lot ON big\n  ((attrs ->> 'lot'));\nANALYZE big;\nEXPLAIN (COSTS OFF) SELECT id FROM big\nWHERE attrs ->> 'lot' = 'L77';",
+     "lang": "sql",
+     "title": "gin.sql",
+     "hl": [
+      9,
+      10,
+      18,
+      19
+     ]
+    },
+    {
+     "code": "                       QUERY PLAN\n--------------------------------------------------------\n Bitmap Heap Scan on big\n   Recheck Cond: (attrs @> '{\"lot\": \"L77\"}'::jsonb)\n   ->  Bitmap Index Scan on big_attrs\n         Index Cond: (attrs @> '{\"lot\": \"L77\"}'::jsonb)\n(4 rows)\n\n                    QUERY PLAN\n---------------------------------------------------\n Seq Scan on big\n   Filter: ((attrs ->> 'lot'::text) = 'L77'::text)\n(2 rows)\n\n                      QUERY PLAN\n-------------------------------------------------------\n Index Scan using big_lot on big\n   Index Cond: ((attrs ->> 'lot'::text) = 'L77'::text)\n(2 rows)",
+     "lang": "text",
+     "title": "результат"
+    },
+    {
+     "tip": "jsonb — для атрибутів, які різняться від запису до запису. Поле, за яким щодня фільтрують, з'єднують чи сортують, краще зробити звичайним стовпцем: тип, NOT NULL, CHECK і простий індекс."
+    },
+    {
+     "recall": "Пригадайте: чим відрізняються -> і ->> і який індекс потрібен для WHERE attrs ->> 'lot' = 'L77'?",
+     "a": "-> повертає jsonb, ->> — text. Для умови з ->> потрібен B-tree індекс за виразом (attrs ->> 'lot'); GIN на весь стовпець обслуговує @> і ?."
+    }
+   ],
+   "examples": [
+    {
+     "w": "name ->> 'uk_UA'",
+     "note": "значення як текст"
+    },
+    {
+     "w": "attrs -> 'tags' -> 0",
+     "note": "перший елемент масиву як jsonb"
+    },
+    {
+     "w": "attrs #>> '{tags,0}'",
+     "note": "те саме за шляхом, як text"
+    },
+    {
+     "w": "attrs @> '{\"size\": \"L\"}'",
+     "note": "містить фрагмент"
+    },
+    {
+     "w": "attrs ? 'tags'",
+     "note": "є ключ"
+    },
+    {
+     "w": "(attrs ->> 'class')::int",
+     "note": "число з тексту"
+    },
+    {
+     "w": "jsonb_set(attrs, '{class}', '5')",
+     "note": "замінити значення"
+    },
+    {
+     "w": "attrs || '{\"color\": \"олива\"}'",
+     "note": "дописати ключ"
+    },
+    {
+     "w": "CREATE INDEX … USING gin (attrs)",
+     "note": "індекс для @> і ?"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT '{\"a\": 1, \"a\": 2}'::jsonb\n  ->> 'a';",
+     "lang": "sql",
+     "options": [
+      "2",
+      "1",
+      "1, 2",
+      "ERROR: duplicate key"
+     ],
+     "a": 0,
+     "why": "jsonb лишає останнє значення дубліката ключа."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT '{\"size\": \"L\"}'::jsonb\n  -> 'size';",
+     "lang": "sql",
+     "options": [
+      "\"L\"",
+      "L",
+      "{\"size\": \"L\"}",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "-> повертає jsonb — рядок у лапках; без лапок дає ->>."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT '{\"size\": \"L\"}'::jsonb\n  ->> 'color' IS NULL;",
+     "lang": "sql",
+     "options": [
+      "t",
+      "f",
+      "ERROR: key not found",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "Відсутній ключ дає NULL, а не помилку."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT '{\"class\": 4}'::jsonb\n  ->> 'class' > '10';",
+     "lang": "sql",
+     "options": [
+      "t",
+      "f",
+      "ERROR: operator does not exist",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "->> дає текст, а рядок '4' більший за '10' посимвольно. Для чисел — (attrs ->> 'class')::int."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT '{\"tags\": [\"a\", \"b\"]}'::jsonb\n  @> '{\"tags\": [\"b\"]}';",
+     "lang": "sql",
+     "options": [
+      "t",
+      "f",
+      "ERROR: cannot compare arrays",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "@> перевіряє вкладення: масив [\"a\", \"b\"] містить [\"b\"]."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "CREATE TABLE items (name jsonb);\nINSERT INTO items VALUES\n  ('{\"en_US\": \"Helmet\"}');\nSELECT name FROM items\nWHERE name = 'Шолом';",
+     "lang": "sql",
+     "options": [
+      "ERROR: invalid input syntax for type json",
+      "0 рядків",
+      "{\"en_US\": \"Helmet\"}",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "Рядок 'Шолом' без лапок — не JSON; порівнюють name ->> 'uk_UA' = 'Шолом'."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит?",
+     "code": "SELECT jsonb_set('{\"class\": 4}',\n  '{class}', '5') ->> 'class';",
+     "lang": "sql",
+     "options": [
+      "5",
+      "4",
+      "{\"class\": 5}",
+      "ERROR: path not found"
+     ],
+     "a": 0,
+     "why": "jsonb_set замінює значення за шляхом {class}."
+    },
+    {
+     "type": "choice",
+     "q": "Як Odoo 18 зберігає поле з translate=True?",
+     "options": [
+      "jsonb: {\"en_US\": …, \"uk_UA\": …}",
+      "Окрема таблиця ir_translation",
+      "Стовпець на кожну мову",
+      "Текст і файл .po"
+     ],
+     "a": 0,
+     "why": "З Odoo 16 переклади живуть у jsonb-стовпці самого поля; ORM читає COALESCE(name->>мова, name->>'en_US')."
+    },
+    {
+     "type": "choice",
+     "q": "Як у psql вибрати українську назву товару з product_template?",
+     "options": [
+      "SELECT name ->> 'uk_UA' FROM product_template",
+      "SELECT name FROM product_template WHERE lang = 'uk_UA'",
+      "SELECT name_uk_UA FROM product_template",
+      "SELECT translate(name, 'uk_UA') FROM product_template"
+     ],
+     "a": 0,
+     "why": "name — jsonb з мовами-ключами; ->> бере значення потрібної мови текстом."
+    },
+    {
+     "type": "choice",
+     "q": "Є GIN-індекс на attrs. Який запит його використає?",
+     "options": [
+      "WHERE attrs @> '{\"lot\": \"L77\"}'",
+      "WHERE attrs ->> 'lot' = 'L77'",
+      "WHERE attrs::text LIKE '%L77%'",
+      "WHERE length(attrs::text) > 10"
+     ],
+     "a": 0,
+     "why": "GIN на jsonb обслуговує @> і ?; для ->> = потрібен індекс за виразом."
+    },
+    {
+     "type": "choice",
+     "q": "Поле «партія» є в кожному записі, за ним щодня шукають і з'єднують. Де його тримати?",
+     "options": [
+      "Окремим стовпцем з індексом",
+      "Ключем у jsonb attrs",
+      "Масивом у jsonb",
+      "Текстом JSON у стовпці json"
+     ],
+     "a": 0,
+     "why": "Сталі поля для фільтрів і з'єднань — звичайні стовпці: тип, обмеження, простий індекс."
+    },
+    {
+     "type": "gap",
+     "q": "Отримати значення ключа як текст: attrs ◻ 'size'",
+     "a": [
+      "->>"
+     ],
+     "why": "->> повертає text, -> — jsonb."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як два обробники черги беруть різні завдання й не чекають одне на одного?",
+     "options": [
+      "FOR UPDATE SKIP LOCKED",
+      "FOR UPDATE NOWAIT",
+      "LOCK TABLE jobs",
+      "SERIALIZABLE"
+     ],
+     "a": 0,
+     "why": "SKIP LOCKED пропускає рядки, уже заблоковані іншим."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: на якому рівні ізоляції працює курсор Odoo?",
+     "options": [
+      "REPEATABLE READ",
+      "READ COMMITTED",
+      "SERIALIZABLE",
+      "READ UNCOMMITTED"
+     ],
+     "a": 0,
+     "why": "sql_db.py ставить REPEATABLE READ; конфлікти Odoo повторює до 5 разів."
+    }
+   ],
+   "typing": [
+    "Майже завжди обирають jsonb, а не json.",
+    "Оператор -> повертає jsonb, а ->> повертає текст.",
+    "Для чисел з jsonb потрібне приведення типу.",
+    "GIN-індекс обслуговує оператори @> і ?.",
+    "Перекладні поля Odoo зберігаються в jsonb."
+   ],
+   "tasks": [
+    "У локальній базі Odoo виконайте SELECT id, name FROM product_template LIMIT 5; і подивіться, як виглядають перекладні назви. Потім виберіть українську назву з запасною англійською через COALESCE.",
+    "Відтворіть таблицю big з цієї теми й порівняйте EXPLAIN для @> і для ->> = до і після індексу за виразом."
+   ],
+   "media": [
+    {
+     "title": "PostgreSQL: JSON Types",
+     "url": "https://www.postgresql.org/docs/18/datatype-json.html",
+     "note": "json проти jsonb, вкладення @>, GIN-індекси",
+     "main": true
+    },
+    {
+     "title": "PostgreSQL: JSON Functions and Operators",
+     "url": "https://www.postgresql.org/docs/18/functions-json.html",
+     "note": "усі оператори й функції jsonb"
+    }
+   ]
+  },
+  {
+   "id": "psycopg",
+   "title": "psycopg 3",
+   "topic": "з'єднання, параметри %s, транзакції, dict_row, executemany і COPY",
+   "goal": "Працювати з PostgreSQL з Python без SQL-ін'єкцій, керувати транзакціями й швидко завантажувати багато рядків",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим відрізняються оператори -> і ->> для jsonb?",
+     "a": "-> повертає значення як jsonb (рядок у лапках), ->> — як text."
+    },
+    {
+     "p": "**psycopg** — драйвер PostgreSQL для Python. Тут — третя версія (`pip install \"psycopg[binary]\"`). Odoo 18 працює на попередній, psycopg2, але ідеї ті самі: з'єднання, курсор, параметри, транзакції ([psycopg: Basic usage](https://www.psycopg.org/psycopg3/docs/basic/usage.html)). Приклади працюють з такою таблицею:"
+    },
+    {
+     "code": "CREATE TABLE stock (\n  item text PRIMARY KEY,\n  qty int NOT NULL CHECK (qty >= 0)\n);\nINSERT INTO stock VALUES\n  ('Шолом', 5), ('Каска', 3);",
+     "lang": "sql",
+     "title": "schema.sql"
+    },
+    {
+     "code": "import psycopg\n\nDSN = \"postgresql://kurs@localhost/stock\"\n\nwith psycopg.connect(DSN) as conn:\n    row = conn.execute(\n        \"SELECT qty FROM stock\"\n        \" WHERE item = %s\",\n        (\"Шолом\",),\n    ).fetchone()\n    print(row)\n    print(row[0] + 1)",
+     "lang": "python",
+     "title": "basic.py",
+     "hl": [
+      5,
+      8,
+      9
+     ]
+    },
+    {
+     "code": "$ python basic.py\n(5,)\n6",
+     "lang": "console"
+    },
+    {
+     "p": "`connect()` відкриває з'єднання, `execute()` надсилає запит, `fetchone()` повертає один рядок кортежем, `fetchall()` — список. Значення приходять уже Python-типами: `int`, `Decimal`, `datetime`, `dict` для jsonb."
+    },
+    {
+     "h": "Параметри, а не f-рядок"
+    },
+    {
+     "p": "`%s` у запиті — не форматування Python. psycopg надсилає текст запиту й значення **окремо**, і сервер ніколи не сприймає значення як SQL ([Passing parameters](https://www.psycopg.org/psycopg3/docs/basic/params.html)). Порівняйте з f-рядком, коли «назву речі» ввів зловмисник:"
+    },
+    {
+     "code": "import psycopg\n\nDSN = \"postgresql://kurs@localhost/stock\"\nitem = \"x' OR '1'='1\"\n\nwith psycopg.connect(DSN) as conn:\n    bad = conn.execute(\n        \"SELECT item FROM stock\"\n        f\" WHERE item = '{item}'\"\n    ).fetchall()\n    good = conn.execute(\n        \"SELECT item FROM stock\"\n        \" WHERE item = %s\",\n        (item,),\n    ).fetchall()\nprint(\"f-рядок:\", bad)\nprint(\"%s:\", good)",
+     "lang": "python",
+     "title": "inject.py",
+     "hl": [
+      9,
+      13,
+      14
+     ]
+    },
+    {
+     "code": "$ python inject.py\nf-рядок: [('Шолом',), ('Каска',)]\n%s: []",
+     "lang": "console"
+    },
+    {
+     "warn": "❌ `f\"… WHERE item = '{item}'\"` чи `\"…\" % item` → умову допише будь-хто, хто керує значенням. ✅ `execute(\"… WHERE item = %s\", (item,))` — і для чисел теж `%s`. Назву таблиці чи стовпця параметром не передати — для них `psycopg.sql.Identifier`."
+    },
+    {
+     "h": "Транзакції"
+    },
+    {
+     "p": "psycopg відкриває транзакцію сам, з першим запитом. Блок `with psycopg.connect() as conn:` наприкінці робить `COMMIT`, а якщо вилетів виняток — `ROLLBACK`; з'єднання закривається в обох випадках. Видача двох речей — одна транзакція:"
+    },
+    {
+     "code": "import psycopg\n\nDSN = \"postgresql://kurs@localhost/stock\"\n\n\ndef issue(conn, item, n):\n    conn.execute(\n        \"UPDATE stock SET qty = qty - %s\"\n        \" WHERE item = %s\",\n        (n, item),\n    )\n\n\ntry:\n    with psycopg.connect(DSN) as conn:\n        issue(conn, \"Шолом\", 2)\n        issue(conn, \"Каска\", 10)\nexcept psycopg.errors.CheckViolation as e:\n    print(\"відкат:\", e.diag.constraint_name)\n\nwith psycopg.connect(DSN) as conn:\n    print(conn.execute(\n        \"SELECT item, qty FROM stock\"\n        \" ORDER BY item\").fetchall())",
+     "lang": "python",
+     "title": "tx.py",
+     "hl": [
+      15,
+      18
+     ]
+    },
+    {
+     "code": "$ python tx.py\nвідкат: stock_qty_check\n[('Каска', 3), ('Шолом', 5)]",
+     "lang": "console"
+    },
+    {
+     "p": "Шолом лишився 5: перше списання відкочено разом з невдалим другим. Вкладений блок `with conn.transaction():` усередині вже відкритої транзакції — це `SAVEPOINT`: помилка в ньому відкочує лише його ([Transactions management](https://www.psycopg.org/psycopg3/docs/basic/transactions.html))."
+    },
+    {
+     "code": "import psycopg\n\nDSN = \"postgresql://kurs@localhost/stock\"\nUPD = (\"UPDATE stock SET qty = qty - %s\"\n       \" WHERE item = %s\")\n\nwith psycopg.connect(DSN) as conn:\n    conn.execute(UPD, (2, \"Шолом\"))\n    try:\n        with conn.transaction():\n            conn.execute(UPD, (10, \"Каска\"))\n    except psycopg.errors.CheckViolation:\n        print(\"каску не видано\")\n\nwith psycopg.connect(DSN) as conn:\n    print(conn.execute(\n        \"SELECT item, qty FROM stock\"\n        \" ORDER BY item\").fetchall())",
+     "lang": "python",
+     "title": "savepoint.py",
+     "hl": [
+      10,
+      11
+     ]
+    },
+    {
+     "code": "$ python savepoint.py\nкаску не видано\n[('Каска', 3), ('Шолом', 3)]",
+     "lang": "console"
+    },
+    {
+     "h": "Словники, пакети, COPY"
+    },
+    {
+     "p": "`row_factory=dict_row` повертає рядки словниками з назвами стовпців. `executemany()` виконує один запит для списку параметрів. Тисячі рядків найшвидше завантажує `COPY … FROM STDIN` через `cursor.copy()` ([COPY](https://www.psycopg.org/psycopg3/docs/basic/copy.html))."
+    },
+    {
+     "code": "import psycopg\nfrom psycopg.rows import dict_row\n\nDSN = \"postgresql://kurs@localhost/stock\"\nnew = [(\"Бронежилет\", 2), (\"Аптечка\", 10)]\n\nwith psycopg.connect(DSN) as conn:\n    cur = conn.cursor(row_factory=dict_row)\n    cur.executemany(\n        \"INSERT INTO stock VALUES (%s, %s)\",\n        new,\n    )\n    cur.execute(\n        \"SELECT item, qty FROM stock\"\n        \" WHERE qty > %s ORDER BY item\",\n        (2,),\n    )\n    for row in cur:\n        print(row)",
+     "lang": "python",
+     "title": "rows.py",
+     "hl": [
+      8,
+      9
+     ]
+    },
+    {
+     "code": "$ python rows.py\n{'item': 'Аптечка', 'qty': 10}\n{'item': 'Каска', 'qty': 3}\n{'item': 'Шолом', 'qty': 3}",
+     "lang": "console"
+    },
+    {
+     "code": "import psycopg\n\nDSN = \"postgresql://kurs@localhost/stock\"\nrows = [(f\"Річ {i}\", i)\n        for i in range(5000)]\n\nwith psycopg.connect(DSN) as conn:\n    cur = conn.cursor()\n    with cur.copy(\n        \"COPY stock (item, qty) FROM STDIN\"\n    ) as copy:\n        for r in rows:\n            copy.write_row(r)\n    cur.execute(\n        \"SELECT count(*) FROM stock\")\n    print(cur.fetchone()[0])",
+     "lang": "python",
+     "title": "copy.py",
+     "hl": [
+      9,
+      10,
+      13
+     ]
+    },
+    {
+     "code": "$ python copy.py\n5004",
+     "lang": "console"
+    },
+    {
+     "note": "Для Odoo-розробника: `self.env.cr` — курсор psycopg2 з обгорткою Odoo. Запит з параметрами: `self.env.cr.execute(SQL(\"SELECT id FROM stock_lot WHERE name = %s\", name))` — клас `SQL` з `odoo.tools` склеює запит і параметри безпечно. f-рядок у `cr.execute` ловить pylint-odoo перевіркою `sql-injection`. І `cr.commit()` у звичайному методі не пишуть: коміт робить Odoo після запиту."
+    },
+    {
+     "recall": "Пригадайте: що станеться з першим списанням, якщо друге в тому ж блоці with psycopg.connect() кинуло виняток, і як зберегти перше?",
+     "a": "Блок зробить ROLLBACK — перше теж скасується. Друге треба загорнути у with conn.transaction(): тоді це SAVEPOINT і відкотиться лише воно."
+    }
+   ],
+   "examples": [
+    {
+     "w": "psycopg.connect(DSN)",
+     "note": "з'єднання"
+    },
+    {
+     "w": "conn.execute(\"… WHERE item = %s\", (item,))",
+     "note": "параметр окремо від SQL"
+    },
+    {
+     "w": ".fetchone() / .fetchall()",
+     "note": "рядок / список рядків"
+    },
+    {
+     "w": "with psycopg.connect(DSN) as conn:",
+     "note": "COMMIT або ROLLBACK наприкінці"
+    },
+    {
+     "w": "with conn.transaction():",
+     "note": "вкладено — SAVEPOINT"
+    },
+    {
+     "w": "psycopg.errors.CheckViolation",
+     "note": "помилка CHECK як виняток"
+    },
+    {
+     "w": "conn.cursor(row_factory=dict_row)",
+     "note": "рядки словниками"
+    },
+    {
+     "w": "cur.copy(\"COPY t FROM STDIN\")",
+     "note": "швидке завантаження"
+    },
+    {
+     "w": "self.env.cr.execute(SQL(\"… %s\", v))",
+     "note": "те саме в Odoo"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Таблиця stock: ('Шолом', 5).",
+     "code": "item = \"x' OR '1'='1\"\nrows = conn.execute(\n    \"SELECT item FROM stock\"\n    \" WHERE item = %s\",\n    (item,),\n).fetchall()\nprint(rows)",
+     "lang": "python",
+     "options": [
+      "[]",
+      "[('Шолом',)]",
+      "SyntaxError у SQL",
+      "[('x',)]"
+     ],
+     "a": 0,
+     "why": "Значення передано параметром: сервер шукає річ з такою дивною назвою і не знаходить."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Таблиця stock: ('Шолом', 5).",
+     "code": "item = \"x' OR '1'='1\"\nrows = conn.execute(\n    \"SELECT item FROM stock\"\n    f\" WHERE item = '{item}'\"\n).fetchall()\nprint(rows)",
+     "lang": "python",
+     "options": [
+      "[('Шолом',)]",
+      "[]",
+      "SyntaxError у SQL",
+      "[('x',)]"
+     ],
+     "a": 0,
+     "why": "f-рядок вставив значення в текст SQL: умова стала item = 'x' OR '1'='1' — правда для всіх рядків."
+    },
+    {
+     "type": "choice",
+     "q": "Як правильно передати число в запит?",
+     "options": [
+      "execute(\"… qty > %s\", (n,))",
+      "execute(f\"… qty > {n}\")",
+      "execute(\"… qty > %d\" % n)",
+      "execute(\"… qty > \" + str(n))"
+     ],
+     "a": 0,
+     "why": "Будь-які значення, і числа теж, — лише через %s і кортеж параметрів."
+    },
+    {
+     "type": "choice",
+     "q": "Що буде в базі після блоку, якщо друге UPDATE порушило CHECK?",
+     "code": "with psycopg.connect(DSN) as conn:\n    conn.execute(UPD, (2, \"Шолом\"))\n    conn.execute(UPD, (10, \"Каска\"))",
+     "lang": "python",
+     "options": [
+      "Нічого не змінено",
+      "Шолом списано, каска — ні",
+      "Обидва списання збережено",
+      "Каска в мінусі"
+     ],
+     "a": 0,
+     "why": "Виняток вийшов з блоку with — psycopg зробив ROLLBACK усієї транзакції."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить with conn.transaction(): усередині вже відкритої транзакції?",
+     "options": [
+      "SAVEPOINT: при помилці відкат лише блоку",
+      "Відкриває друге з'єднання",
+      "Комітить усе, що було до нього",
+      "Нічого, блок ігнорується"
+     ],
+     "a": 0,
+     "why": "Вкладена транзакція — це SAVEPOINT і RELEASE або ROLLBACK TO."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує код? Таблиця stock: ('Шолом', 5).",
+     "code": "cur = conn.cursor(row_factory=dict_row)\ncur.execute(\"SELECT item, qty FROM stock\")\nprint(cur.fetchone())",
+     "lang": "python",
+     "options": [
+      "{'item': 'Шолом', 'qty': 5}",
+      "('Шолом', 5)",
+      "['Шолом', 5]",
+      "Row(item='Шолом', qty=5)"
+     ],
+     "a": 0,
+     "why": "dict_row будує словник з назв стовпців."
+    },
+    {
+     "type": "choice",
+     "q": "Як найшвидше завантажити 100 000 рядків з Python?",
+     "options": [
+      "cursor.copy() з COPY … FROM STDIN",
+      "INSERT у циклі з commit() після кожного",
+      "Один INSERT, зібраний f-рядком",
+      "executemany з autocommit і sleep"
+     ],
+     "a": 0,
+     "why": "COPY передає дані потоком без розбору окремих INSERT."
+    },
+    {
+     "type": "choice",
+     "q": "Як назвати таблицю в запиті, якщо назва приходить змінною?",
+     "options": [
+      "psycopg.sql.Identifier",
+      "Параметр %s",
+      "f-рядок з лапками",
+      "str.replace(\"'\", \"''\")"
+     ],
+     "a": 0,
+     "why": "%s підставляє лише значення; імена таблиць і стовпців складають через psycopg.sql."
+    },
+    {
+     "type": "choice",
+     "q": "Як написати запит з параметром у методі Odoo 18?",
+     "options": [
+      "self.env.cr.execute(SQL(\"… %s\", v))",
+      "self.env.cr.execute(f\"… {v}\")",
+      "self.env.cr.execute(\"… \" + v)",
+      "self.env.cr.execute(\"… %s\" % v)"
+     ],
+     "a": 0,
+     "why": "SQL з odoo.tools склеює текст і параметри безпечно; решта — SQL-ін'єкція."
+    },
+    {
+     "type": "choice",
+     "q": "Чому в звичайному методі Odoo не пишуть self.env.cr.commit()?",
+     "options": [
+      "Odoo комітить сам, а ручний коміт ламає відкат",
+      "commit() у Odoo заборонено мовою",
+      "Коміт видаляє кеш ORM назавжди",
+      "Без commit() усе одно все збережеться двічі"
+     ],
+     "a": 0,
+     "why": "Запит — одна транзакція: Odoo комітить наприкінці або відкочує при помилці; ручний коміт фіксує половину."
+    },
+    {
+     "type": "gap",
+     "q": "Місце для параметра в запиті psycopg: WHERE item = ◻",
+     "a": [
+      "%s"
+     ],
+     "why": "%s — заповнювач параметра, а не форматування Python."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне '{\"class\": 4}'::jsonb ->> 'class' > '10'?",
+     "options": [
+      "t",
+      "f",
+      "ERROR",
+      "NULL"
+     ],
+     "a": 0,
+     "why": "->> дає текст: '4' > '10' посимвольно. Для чисел потрібне ::int."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як уникнути deadlock, коли метод блокує кілька рядків?",
+     "options": [
+      "Блокувати в однаковому порядку",
+      "Ставити NOWAIT скрізь",
+      "Вмикати SERIALIZABLE",
+      "Комітити після кожного рядка"
+     ],
+     "a": 0,
+     "why": "Однаковий порядок блокувань не дає утворитися колу."
+    }
+   ],
+   "typing": [
+    "Значення в запит передають лише параметрами.",
+    "f-рядок у SQL відкриває дорогу ін'єкції.",
+    "Блок with connect комітить або відкочує транзакцію.",
+    "Вкладений transaction працює як SAVEPOINT.",
+    "Багато рядків швидко завантажує COPY."
+   ],
+   "tasks": [
+    "Повторіть inject.py з цієї теми. Потім спробуйте зламати версію з %s будь-яким значенням і переконайтеся, що не виходить.",
+    "Напишіть функцію issue_many(conn, items), яка списує кілька речей в одній транзакції, сортує їх за назвою перед UPDATE і повертає False, якщо якоїсь не вистачило (UPDATE … AND qty >= %s RETURNING)."
+   ],
+   "media": [
+    {
+     "title": "psycopg 3: Basic module usage",
+     "url": "https://www.psycopg.org/psycopg3/docs/basic/usage.html",
+     "note": "з'єднання, курсори, блок with",
+     "main": true
+    },
+    {
+     "title": "psycopg 3: Passing parameters",
+     "url": "https://www.psycopg.org/psycopg3/docs/basic/params.html",
+     "note": "%s, ін'єкції, чому не f-рядок"
+    },
+    {
+     "title": "psycopg 3: Transactions management",
+     "url": "https://www.psycopg.org/psycopg3/docs/basic/transactions.html",
+     "note": "автокоміт, transaction(), savepoint"
+    },
+    {
+     "title": "psycopg 3: Using COPY",
+     "url": "https://www.psycopg.org/psycopg3/docs/basic/copy.html",
+     "note": "copy() і write_row()"
+    }
+   ]
+  },
+  {
+   "id": "pool-fastapi",
+   "title": "Пул з'єднань і FastAPI",
+   "topic": "psycopg_pool, lifespan, з'єднання як залежність, коміт до відповіді",
+   "goal": "Підключити PostgreSQL до FastAPI через пул так, щоб з'єднання не вичерпувались, а коміт відбувався до відповіді клієнту",
+   "theory": [
+    {
+     "recall": "Пригадайте: що робить блок with psycopg.connect(DSN) as conn: наприкінці?",
+     "a": "Комітить транзакцію, а якщо вилетів виняток — відкочує; з'єднання закривається в обох випадках."
+    },
+    {
+     "p": "Кожне з'єднання з PostgreSQL — окремий процес на сервері: відкрити його — це перевірка пароля й запуск процесу, тобто мілісекунди на кожен запит. А кількість з'єднань обмежена: `SHOW max_connections` у типовій інсталяції — 100. **Пул** тримає кілька відкритих з'єднань і видає їх на час роботи: `pool.connection()` позичає, кінець блоку `with` повертає ([psycopg: Connection pools](https://www.psycopg.org/psycopg3/docs/advanced/pool.html))."
+    },
+    {
+     "code": "CREATE TABLE stock (\n  item text PRIMARY KEY,\n  qty int NOT NULL CHECK (qty >= 0)\n);\nINSERT INTO stock VALUES\n  ('Шолом', 5), ('Каска', 3);",
+     "lang": "sql",
+     "title": "schema.sql"
+    },
+    {
+     "code": "import psycopg\nfrom psycopg_pool import ConnectionPool\n\nDSN = \"postgresql://kurs@localhost/stock\"\nPID = \"SELECT pg_backend_pid()\"\n\nnew = set()\nfor _ in range(5):\n    with psycopg.connect(DSN) as c:\n        pid = c.execute(PID).fetchone()\n        new.add(pid)\n\npooled = set()\nwith ConnectionPool(DSN, min_size=1,\n                    max_size=1) as pool:\n    for _ in range(5):\n        with pool.connection() as c:\n            pid = c.execute(PID).fetchone()\n            pooled.add(pid)\n\nprint(\"connect():\", len(new), \"процесів\")\nprint(\"пул:\", len(pooled), \"процес\")",
+     "lang": "python",
+     "title": "pool.py",
+     "hl": [
+      14,
+      15,
+      17
+     ]
+    },
+    {
+     "code": "$ python pool.py\nconnect(): 5 процесів\nпул: 1 процес",
+     "lang": "console"
+    },
+    {
+     "p": "`pg_backend_pid()` — номер серверного процесу. П'ять `connect()` — п'ять процесів, а пул п'ять разів видав одне й те саме з'єднання. Повертаючи його, пул завершує транзакцію так само, як блок `with connect()`: `COMMIT` або `ROLLBACK` при винятку."
+    },
+    {
+     "table": [
+      [
+       "Параметр",
+       "Що задає"
+      ],
+      [
+       "min_size",
+       "скільки тримати відкритими (типово 4)"
+      ],
+      [
+       "max_size",
+       "стеля з'єднань"
+      ],
+      [
+       "timeout",
+       "скільки чекати вільне (30 с)"
+      ],
+      [
+       "open",
+       "відкрити в конструкторі"
+      ]
+     ]
+    },
+    {
+     "h": "Пул у FastAPI"
+    },
+    {
+     "p": "Пул створюють один на процес застосунку, відкривають у `lifespan` при старті й закривають при зупинці. З'єднання на запит видає залежність з `yield`. `scope=\"function\"` закінчує залежність — повертає з'єднання й комітить — **до** того, як відповідь піде клієнту. Без нього клієнт може отримати «200», а коміт після цього впасти."
+    },
+    {
+     "code": "from contextlib import asynccontextmanager\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import HTTPException\nfrom psycopg.rows import dict_row\nfrom psycopg_pool import ConnectionPool\n\nDSN = \"postgresql://kurs@localhost/stock\"\npool = ConnectionPool(\n    DSN, open=False, max_size=10,\n    kwargs={\"row_factory\": dict_row})\n\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    pool.open()\n    yield\n    pool.close()\n\n\napp = FastAPI(lifespan=lifespan)\n\n\ndef get_conn():\n    with pool.connection() as conn:\n        yield conn\n\n\nConn = Depends(get_conn, scope=\"function\")\n\n\n@app.post(\"/issue/{item}\")\ndef issue(item: str, n: int, conn=Conn):\n    row = conn.execute(\n        \"UPDATE stock SET qty = qty - %s\"\n        \" WHERE item = %s AND qty >= %s\"\n        \" RETURNING qty\",\n        (n, item, n),\n    ).fetchone()\n    if row is None:\n        raise HTTPException(\n            409, \"Не вистачає\")\n    return {\"item\": item, \"qty\": row[\"qty\"]}\n\n\nif __name__ == \"__main__\":\n    from fastapi import testclient\n    app_client = testclient.TestClient(app)\n    with app_client as c:\n        for _ in range(2):\n            r = c.post(\"/issue/Шолом?n=4\")\n            print(r.status_code, r.json())",
+     "lang": "python",
+     "title": "app.py",
+     "hl": [
+      10,
+      16,
+      18,
+      25,
+      29,
+      36
+     ]
+    },
+    {
+     "code": "$ python app.py\n200 {'item': 'Шолом', 'qty': 1}\n409 {'detail': 'Не вистачає'}",
+     "lang": "console"
+    },
+    {
+     "p": "Тут зібрано весь курс: перевірка залишку й списання — одне `UPDATE` з умовою (тема про блокування), значення — лише параметрами `%s`, транзакція на запит — з'єднання з пулу. Ендпоінт оголошено через `def`, а не `async def`: синхронний psycopg блокує потік, і FastAPI виконує такі функції в пулі потоків. Для `async def` — `AsyncConnectionPool` і `await pool.open()` у `lifespan`, решта та сама."
+    },
+    {
+     "warn": "❌ `ConnectionPool(DSN)` на рівні модуля без `open=False` → з'єднання відкриваються ще при імпорті, зокрема в тестах і в кожному воркері, який нічого не обслуговує. ✅ `open=False` і `pool.open()` у `lifespan`."
+    },
+    {
+     "tip": "Порахуйте стелю: `max_size` × кількість процесів застосунку має бути менше за `max_connections` сервера з запасом для адміністратора й міграцій. 4 воркери по 10 — це 40 з'єднань."
+    },
+    {
+     "note": "Для Odoo-розробника: Odoo має власний пул psycopg2 у `odoo/sql_db.py` — `ConnectionPool` з розміром `db_maxconn` (типово 64) на кожен процес Odoo. При багатьох воркерах це множиться: 8 воркерів × 64 легко переступають `max_connections = 100`, тому `db_maxconn` на продакшні часто зменшують або ставлять перед PostgreSQL PgBouncer."
+    },
+    {
+     "recall": "Пригадайте: навіщо залежності з yield у FastAPI вказувати scope=\"function\", коли вона видає з'єднання з базою?",
+     "a": "Щоб з'єднання повернулось у пул і транзакція закомітилась до відправки відповіді: інакше клієнт може отримати успіх, а коміт після цього впасти."
+    }
+   ],
+   "examples": [
+    {
+     "w": "ConnectionPool(DSN, open=False)",
+     "note": "пул без з'єднань при імпорті"
+    },
+    {
+     "w": "with pool.connection() as conn:",
+     "note": "позичити й повернути"
+    },
+    {
+     "w": "pool.open() / pool.close()",
+     "note": "у lifespan"
+    },
+    {
+     "w": "kwargs={\"row_factory\": dict_row}",
+     "note": "словники з кожного з'єднання"
+    },
+    {
+     "w": "Depends(get_conn, scope=\"function\")",
+     "note": "коміт до відповіді"
+    },
+    {
+     "w": "SELECT pg_backend_pid()",
+     "note": "номер серверного процесу"
+    },
+    {
+     "w": "SHOW max_connections;",
+     "note": "стеля сервера"
+    },
+    {
+     "w": "AsyncConnectionPool + await pool.open()",
+     "note": "для async def"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Навіщо пул з'єднань у веб-застосунку?",
+     "options": [
+      "Не відкривати з'єднання на кожен запит",
+      "Виконувати запити паралельно в одній транзакції",
+      "Кешувати результати SELECT",
+      "Обходити max_connections сервера"
+     ],
+     "a": 0,
+     "why": "Відкрити з'єднання дорого (процес, автентифікація); пул тримає готові й видає їх повторно."
+    },
+    {
+     "type": "choice",
+     "q": "Пул з min_size=1, max_size=1, у циклі 5 разів with pool.connection(). Скільки різних pg_backend_pid() побачите?",
+     "options": [
+      "1",
+      "5",
+      "2",
+      "0"
+     ],
+     "a": 0,
+     "why": "Пул щоразу видає те саме з'єднання — той самий серверний процес."
+    },
+    {
+     "type": "choice",
+     "q": "Що відбувається з транзакцією, коли блок with pool.connection() завершився без винятку?",
+     "options": [
+      "COMMIT, з'єднання повертається в пул",
+      "З'єднання закривається без коміту",
+      "Транзакція лишається відкритою до наступного запиту",
+      "ROLLBACK завжди"
+     ],
+     "a": 0,
+     "why": "Як і блок with connect(): коміт або відкат при винятку; потім з'єднання знову вільне."
+    },
+    {
+     "type": "choice",
+     "q": "Де відкривати пул у FastAPI-застосунку?",
+     "options": [
+      "У lifespan: pool.open() до yield",
+      "У кожному ендпоінті",
+      "При імпорті модуля через open=True",
+      "У тестах перед кожним запитом"
+     ],
+     "a": 0,
+     "why": "lifespan виконується раз при старті й зупинці застосунку."
+    },
+    {
+     "type": "choice",
+     "q": "Що дає scope=\"function\" для залежності, яка видає з'єднання?",
+     "options": [
+      "Коміт і повернення до відправки відповіді",
+      "Нове з'єднання на кожну функцію",
+      "Кешування з'єднання між запитами",
+      "Виконання залежності в окремому потоці"
+     ],
+     "a": 0,
+     "why": "Код після yield виконується одразу після ендпоінта, а не після відповіді клієнту."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне другий запит POST /issue/Шолом?n=4, якщо шоломів було 5?",
+     "options": [
+      "409 {'detail': 'Не вистачає'}",
+      "200 {'item': 'Шолом', 'qty': -3}",
+      "500 CheckViolation",
+      "200 {'item': 'Шолом', 'qty': 1}"
+     ],
+     "a": 0,
+     "why": "Умова qty >= 4 не виконалась, UPDATE повернув 0 рядків — ендпоінт відповів 409."
+    },
+    {
+     "type": "number",
+     "q": "4 процеси застосунку, у кожному пул з max_size=10. Скільки з'єднань із сервером може бути відкрито найбільше? Введіть число.",
+     "a": 40,
+     "tol": 0,
+     "why": "Пул — свій у кожному процесі: 4 × 10 = 40. Це має бути менше за max_connections."
+    },
+    {
+     "type": "choice",
+     "q": "Ендпоінт працює з синхронним psycopg. Як його оголосити?",
+     "options": [
+      "def — FastAPI виконає в пулі потоків",
+      "async def — так швидше",
+      "async def з time.sleep",
+      "Будь-як, різниці немає"
+     ],
+     "a": 0,
+     "why": "Блокуючий виклик в async def зупинить цикл подій для всіх запитів; def виконується в окремому потоці."
+    },
+    {
+     "type": "choice",
+     "q": "Який пул потрібен для ендпоінтів async def?",
+     "options": [
+      "AsyncConnectionPool з await pool.open()",
+      "ConnectionPool з open=True",
+      "Пул не потрібен для async",
+      "Один psycopg.connect() на весь застосунок"
+     ],
+     "a": 0,
+     "why": "Асинхронні ендпоінти беруть з'єднання через await, не блокуючи цикл подій."
+    },
+    {
+     "type": "choice",
+     "q": "Odoo запущено з 8 воркерами й типовим db_maxconn = 64. Що загрожує?",
+     "options": [
+      "Перевищити max_connections = 100",
+      "Odoo відкриє лише 64 з'єднання на всіх",
+      "Воркери ділитимуть одне з'єднання",
+      "Нічого: Odoo не використовує пул"
+     ],
+     "a": 0,
+     "why": "Пул Odoo — у кожному процесі; 8 × 64 набагато більше за 100. Зменшують db_maxconn або ставлять PgBouncer."
+    },
+    {
+     "type": "order",
+     "q": "Життя з'єднання в FastAPI з пулом",
+     "items": [
+      "lifespan відкриває пул",
+      "Запит отримує з'єднання з залежності",
+      "Ендпоінт виконує UPDATE",
+      "Залежність комітить і повертає з'єднання",
+      "Клієнт отримує відповідь"
+     ],
+     "why": "З scope=\"function\" коміт і повернення відбуваються до відповіді."
+    },
+    {
+     "type": "gap",
+     "q": "Не відкривати пул при створенні: ConnectionPool(DSN, open=◻)",
+     "a": [
+      "False"
+     ],
+     "why": "Пул відкривають явно в lifespan; з'єднання при імпорті не потрібні."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як безпечно підставити значення в запит psycopg?",
+     "options": [
+      "execute(\"… = %s\", (v,))",
+      "execute(f\"… = '{v}'\")",
+      "execute(\"… = '%s'\" % v)",
+      "execute(\"… = \" + repr(v))"
+     ],
+     "a": 0,
+     "why": "Параметри йдуть на сервер окремо від тексту запиту — ін'єкція неможлива."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне UPDATE stock SET qty = qty - 4 WHERE qty >= 4 RETURNING qty, якщо qty = 1?",
+     "options": [
+      "0 рядків",
+      "-3",
+      "ERROR: check constraint",
+      "1"
+     ],
+     "a": 0,
+     "why": "Умова в WHERE не виконалась — нічого не змінено, нічого не повернуто."
+    }
+   ],
+   "typing": [
+    "Пул тримає готові з'єднання і видає їх повторно.",
+    "Пул відкривають у lifespan застосунку.",
+    "Залежність видає з'єднання на один запит.",
+    "Коміт має статися до відповіді клієнту.",
+    "Стеля з'єднань множиться на кількість процесів."
+   ],
+   "tasks": [
+    "Візьміть app.py з цієї теми, додайте GET /stock зі списком залишків і запустіть через fastapi dev. Видайте шоломи з двох вкладок браузера (/docs) і переконайтеся, що залишок не пішов у мінус.",
+    "Подивіться в конфігу свого Odoo значення workers і db_maxconn, порахуйте найбільшу кількість з'єднань і порівняйте з SHOW max_connections на сервері бази."
+   ],
+   "media": [
+    {
+     "title": "psycopg 3: Connection pools",
+     "url": "https://www.psycopg.org/psycopg3/docs/advanced/pool.html",
+     "note": "розміри пулу, open, lifespan у FastAPI",
+     "main": true
+    },
+    {
+     "title": "FastAPI: Dependencies with yield",
+     "url": "https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/",
+     "note": "scope і коли виконується код після yield"
+    }
+   ]
+  }
+ ]
+}
