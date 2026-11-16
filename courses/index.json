@@ -234,6 +234,16 @@
    "icon": "heart",
    "group": "Наука",
    "dir": "anatomy-practice"
+  },
+  {
+   "id": "python-fastapi",
+   "version": 1,
+   "title": "FastAPI: веб-API на Python",
+   "subtitle": "Від першого маршруту до тестів: параметри, Pydantic-моделі, відповіді й помилки, залежності, структура проєкту, async, безпека — на прикладі API «Складу спорядження». FastAPI 0.163, Python 3.11+",
+   "units": 11,
+   "icon": "code",
+   "group": "Програмування й дизайн",
+   "dir": "python-fastapi"
   }
  ]
 }

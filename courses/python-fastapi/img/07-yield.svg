@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 400" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="340" height="400" fill="#ffffff"/>
+  <text x="14" y="24" font-size="15" font-weight="700" fill="#263238">Звичайна залежність з yield</text>
+  <line x1="30" y1="44" x2="30" y2="236" stroke="#90a4ae" stroke-width="3"/>
+  <g font-size="14" fill="#263238">
+    <circle cx="30" cy="52" r="8" fill="#43a047"/>
+    <text x="48" y="57">до yield: відкрити сесію</text>
+    <circle cx="30" cy="96" r="8" fill="#1e88e5"/>
+    <text x="48" y="101">маршрут працює з сесією</text>
+    <circle cx="30" cy="140" r="8" fill="#f9a825"/>
+    <text x="48" y="145" font-weight="700">відповідь іде клієнту</text>
+    <circle cx="30" cy="184" r="8" fill="#8e24aa"/>
+    <text x="48" y="189">фонові задачі</text>
+    <circle cx="30" cy="228" r="8" fill="#e53935"/>
+    <text x="48" y="233">після yield: commit, close</text>
+  </g>
+  <text x="48" y="256" font-size="12" fill="#b71c1c">впав commit — клієнт уже отримав 200</text>
+
+  <text x="14" y="296" font-size="15" font-weight="700" fill="#263238">Depends(…, scope="function")</text>
+  <line x1="30" y1="314" x2="30" y2="382" stroke="#90a4ae" stroke-width="3"/>
+  <g font-size="14" fill="#263238">
+    <circle cx="30" cy="318" r="7" fill="#43a047"/>
+    <circle cx="30" cy="338" r="7" fill="#1e88e5"/>
+    <circle cx="30" cy="358" r="7" fill="#e53935"/>
+    <circle cx="30" cy="378" r="7" fill="#f9a825"/>
+    <text x="48" y="323">відкрити → маршрут</text>
+    <text x="48" y="363">commit, close — до відповіді</text>
+    <text x="48" y="383" font-weight="700">відповідь (впав commit → 500)</text>
+  </g>
+</svg>

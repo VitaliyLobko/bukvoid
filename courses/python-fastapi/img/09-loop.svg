@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 330" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="340" height="330" fill="#ffffff"/>
+  <text x="14" y="22" font-size="14" fill="#263238">5 запитів одночасно, кожен «чекає» 0,2 с</text>
+  <g stroke="#cfd8dc" stroke-width="1">
+    <line x1="60" y1="34" x2="60" y2="300"/>
+    <line x1="112" y1="34" x2="112" y2="300"/>
+    <line x1="164" y1="34" x2="164" y2="300"/>
+    <line x1="216" y1="34" x2="216" y2="300"/>
+    <line x1="268" y1="34" x2="268" y2="300"/>
+    <line x1="320" y1="34" x2="320" y2="300"/>
+  </g>
+  <g font-size="12" fill="#546e7a" text-anchor="middle">
+    <text x="60" y="318">0</text>
+    <text x="112" y="318">0,2</text>
+    <text x="164" y="318">0,4</text>
+    <text x="216" y="318">0,6</text>
+    <text x="268" y="318">0,8</text>
+    <text x="320" y="318">1,0 с</text>
+  </g>
+
+  <text x="14" y="52" font-size="13" font-weight="700" fill="#b71c1c">async def + time.sleep</text>
+  <g fill="#e53935">
+    <rect x="60" y="60" width="52" height="10" rx="2"/>
+    <rect x="112" y="73" width="52" height="10" rx="2"/>
+    <rect x="164" y="86" width="52" height="10" rx="2"/>
+    <rect x="216" y="99" width="52" height="10" rx="2"/>
+    <rect x="268" y="112" width="52" height="10" rx="2"/>
+  </g>
+  <text x="14" y="140" font-size="12" fill="#b71c1c">цикл заблоковано — по черзі, 1,0 с</text>
+
+  <text x="14" y="168" font-size="13" font-weight="700" fill="#1b5e20">async def + await asyncio.sleep</text>
+  <g fill="#43a047">
+    <rect x="60" y="176" width="52" height="8" rx="2"/>
+    <rect x="60" y="186" width="52" height="8" rx="2"/>
+    <rect x="60" y="196" width="52" height="8" rx="2"/>
+    <rect x="60" y="206" width="52" height="8" rx="2"/>
+    <rect x="60" y="216" width="52" height="8" rx="2"/>
+  </g>
+  <text x="124" y="204" font-size="12" fill="#1b5e20">разом, 0,2 с</text>
+
+  <text x="14" y="248" font-size="13" font-weight="700" fill="#0d47a1">def + time.sleep (пул потоків)</text>
+  <g fill="#1e88e5">
+    <rect x="60" y="256" width="52" height="8" rx="2"/>
+    <rect x="60" y="266" width="52" height="8" rx="2"/>
+    <rect x="60" y="276" width="52" height="8" rx="2"/>
+    <rect x="60" y="286" width="52" height="8" rx="2"/>
+    <rect x="60" y="296" width="52" height="8" rx="2"/>
+  </g>
+  <text x="124" y="284" font-size="12" fill="#0d47a1">у різних потоках, 0,2 с</text>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 470" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#455a64"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="340" height="470" fill="#ffffff"/>
+  <g font-size="16" text-anchor="middle">
+    <rect x="40" y="12" width="200" height="46" rx="10" fill="#e3f2fd" stroke="#1e88e5" stroke-width="2"/>
+    <text x="140" y="34" font-weight="700" fill="#0d47a1">Клієнт</text>
+    <text x="140" y="51" font-size="13" fill="#0d47a1">браузер, curl, інша програма</text>
+
+    <rect x="40" y="88" width="200" height="46" rx="10" fill="#eceff1" stroke="#607d8b" stroke-width="2"/>
+    <text x="140" y="110" font-weight="700" fill="#263238">Uvicorn</text>
+    <text x="140" y="127" font-size="13" fill="#263238">сервер: приймає з'єднання</text>
+
+    <rect x="40" y="164" width="200" height="46" rx="10" fill="#e8f5e9" stroke="#43a047" stroke-width="2"/>
+    <text x="140" y="186" font-weight="700" fill="#1b5e20">FastAPI: маршрут</text>
+    <text x="140" y="203" font-size="13" fill="#1b5e20">метод + шлях → функція</text>
+
+    <rect x="40" y="240" width="200" height="46" rx="10" fill="#fff8e1" stroke="#f9a825" stroke-width="2"/>
+    <text x="140" y="262" font-weight="700" fill="#5d4000">Перевірка даних</text>
+    <text x="140" y="279" font-size="13" fill="#5d4000">Pydantic за підказками типів</text>
+
+    <rect x="40" y="316" width="200" height="46" rx="10" fill="#e8f5e9" stroke="#43a047" stroke-width="2"/>
+    <text x="140" y="338" font-weight="700" fill="#1b5e20">Ваша функція</text>
+    <text x="140" y="355" font-size="13" fill="#1b5e20">отримує готові дані</text>
+
+    <rect x="40" y="392" width="200" height="46" rx="10" fill="#e3f2fd" stroke="#1e88e5" stroke-width="2"/>
+    <text x="140" y="414" font-weight="700" fill="#0d47a1">Відповідь</text>
+    <text x="140" y="431" font-size="13" fill="#0d47a1">код статусу + JSON</text>
+
+    <rect x="262" y="240" width="70" height="46" rx="10" fill="#ffebee" stroke="#e53935" stroke-width="2"/>
+    <text x="297" y="261" font-weight="700" fill="#b71c1c">422</text>
+    <text x="297" y="278" font-size="12" fill="#b71c1c">помилка</text>
+  </g>
+  <g stroke="#455a64" stroke-width="2" fill="none" marker-end="url(#ar)">
+    <line x1="140" y1="58" x2="140" y2="86"/>
+    <line x1="140" y1="134" x2="140" y2="162"/>
+    <line x1="140" y1="210" x2="140" y2="238"/>
+    <line x1="140" y1="286" x2="140" y2="314"/>
+    <line x1="140" y1="362" x2="140" y2="390"/>
+    <line x1="240" y1="263" x2="260" y2="263"/>
+    <path d="M297 286 L297 415 L244 415"/>
+  </g>
+  <text x="140" y="462" font-size="12" text-anchor="middle" fill="#455a64">дані не пройшли — функція не викликається</text>
+</svg>

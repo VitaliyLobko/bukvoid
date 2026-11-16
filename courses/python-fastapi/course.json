@@ -1,0 +1,3845 @@
+{
+ "format": "bukvoid-course",
+ "v": 1,
+ "id": "python-fastapi",
+ "version": 1,
+ "title": "FastAPI: веб-API на Python",
+ "short": "FastAPI",
+ "subtitle": "Від першого маршруту до тестів: параметри, Pydantic-моделі, відповіді й помилки, залежності, структура проєкту, async, безпека — на прикладі API «Складу спорядження». FastAPI 0.163, Python 3.11+",
+ "lang": "uk",
+ "pass": 0.8,
+ "icon": "code",
+ "group": "Програмування й дизайн",
+ "author": "Буквоїд",
+ "source": {
+  "title": "FastAPI: офіційний підручник",
+  "url": "https://fastapi.tiangolo.com/tutorial/"
+ },
+ "reference": [
+  {
+   "id": "glossary",
+   "title": "Словник",
+   "theory": [
+    {
+     "p": "Терміни курсу. У кожній темі вони вживаються саме в цьому значенні."
+    },
+    {
+     "table": [
+      [
+       "Термін",
+       "Що це"
+      ],
+      [
+       "операція шляху",
+       "метод + шлях + функція"
+      ],
+      [
+       "параметр шляху",
+       "`/items/{item_id}`"
+      ],
+      [
+       "параметр запиту",
+       "`?limit=10` після знака питання"
+      ],
+      [
+       "тіло запиту",
+       "JSON у POST, PUT, PATCH"
+      ],
+      [
+       "модель Pydantic",
+       "клас-нащадок `BaseModel`"
+      ],
+      [
+       "модель відповіді",
+       "фільтр вихідних даних"
+      ],
+      [
+       "`HTTPException`",
+       "виняток → відповідь з кодом"
+      ],
+      [
+       "залежність",
+       "функція перед маршрутом"
+      ],
+      [
+       "`Depends`",
+       "оголосити залежність"
+      ],
+      [
+       "`Annotated`",
+       "тип + `Depends` чи `Query`"
+      ],
+      [
+       "репозиторій",
+       "клас доступу до даних"
+      ],
+      [
+       "`lifespan`",
+       "старт і зупинка застосунку"
+      ],
+      [
+       "`APIRouter`",
+       "«маленький FastAPI» теми"
+      ],
+      [
+       "цикл подій",
+       "один потік, перемикання на `await`"
+      ],
+      [
+       "пул потоків",
+       "де виконуються `def`"
+      ],
+      [
+       "автентифікація",
+       "хто ви → 401"
+      ],
+      [
+       "авторизація",
+       "що можна → 403"
+      ],
+      [
+       "CORS",
+       "дозвіл браузеру читати відповідь"
+      ],
+      [
+       "`TestClient`",
+       "застосунок у пам'яті для тестів"
+      ],
+      [
+       "`dependency_overrides`",
+       "підміна залежності"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cheatsheet",
+   "title": "Шпаргалка: застосунок на одному екрані",
+   "theory": [
+    {
+     "p": "Усе головне з курсу разом: моделі входу й виходу, репозиторій через залежність, «знайти або 404», роутер, коди 201 і 404."
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import APIRouter, Depends\nfrom fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel, Field\n\n\nclass ItemIn(BaseModel):\n    name: str = Field(min_length=1)\n    qty: int = Field(default=0, ge=0)\n\n\nclass ItemOut(ItemIn):\n    id: int\n\n\nclass ItemRepo:\n    def __init__(self):\n        self.rows: dict[int, ItemOut] = {}\n\n    def add(self, item: ItemIn) -> ItemOut:\n        new = ItemOut(id=len(self.rows) + 1,\n                      **item.model_dump())\n        self.rows[new.id] = new\n        return new\n\n\nREPO = ItemRepo()\n\n\ndef get_repo() -> ItemRepo:\n    return REPO\n\n\nRepoDep = Annotated[ItemRepo,\n                    Depends(get_repo)]\n\n\ndef get_item(item_id: int,\n             repo: RepoDep) -> ItemOut:\n    item = repo.rows.get(item_id)\n    if item is None:\n        raise HTTPException(404, \"Немає\")\n    return item\n\n\nItemDep = Annotated[ItemOut,\n                    Depends(get_item)]\nrouter = APIRouter(prefix=\"/items\",\n                   tags=[\"items\"])\n\n\n@router.post(\"\", status_code=201)\ndef create(item: ItemIn,\n           repo: RepoDep) -> ItemOut:\n    return repo.add(item)\n\n\n@router.get(\"/{item_id}\")\ndef read(item: ItemDep) -> ItemOut:\n    return item\n\n\napp = FastAPI(title=\"Склад\")\napp.include_router(router)",
+     "lang": "python",
+     "title": "main.py"
+    },
+    {
+     "code": "→ POST /items {\"name\":\"Шолом\",\"qty\":5}\n← 201 {\"name\":\"Шолом\",\"qty\":5,\"id\":1}\n→ GET /items/1\n← 200 {\"name\":\"Шолом\",\"qty\":5,\"id\":1}\n→ GET /items/2\n← 404 {\"detail\":\"Немає\"}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    }
+   ]
+  },
+  {
+   "id": "status-codes",
+   "title": "Коди статусу",
+   "theory": [
+    {
+     "table": [
+      [
+       "Код",
+       "Коли"
+      ],
+      [
+       "200 OK",
+       "звичайна відповідь"
+      ],
+      [
+       "201 Created",
+       "створено запис"
+      ],
+      [
+       "204 No Content",
+       "успіх без тіла"
+      ],
+      [
+       "307",
+       "переадресація (скісна в кінці)"
+      ],
+      [
+       "400 Bad Request",
+       "запит не має сенсу"
+      ],
+      [
+       "401",
+       "не відомо, хто ви"
+      ],
+      [
+       "403 Forbidden",
+       "відомо, але не можна"
+      ],
+      [
+       "404 Not Found",
+       "такого немає"
+      ],
+      [
+       "405",
+       "шлях є, метод не той"
+      ],
+      [
+       "409 Conflict",
+       "суперечить стану"
+      ],
+      [
+       "422",
+       "дані не пройшли схему"
+      ],
+      [
+       "500",
+       "помилка в коді сервера"
+      ]
+     ]
+    },
+    {
+     "p": "422 і 401 (без облікових даних) FastAPI повертає сам; 404, 409, 403 — ваш `raise HTTPException`. 500 — завжди привід шукати помилку в журналі сервера."
+    }
+   ]
+  },
+  {
+   "id": "odoo",
+   "title": "Odoo → FastAPI",
+   "theory": [
+    {
+     "p": "Для тих, хто пише контролери Odoo 18: найближчі відповідники. Аналогія не повна — Odoo дає ORM, права й інтерфейс, FastAPI — лише HTTP-шар."
+    },
+    {
+     "table": [
+      [
+       "Odoo",
+       "FastAPI"
+      ],
+      [
+       "`@http.route('/x')`",
+       "`@app.get(\"/x\")`"
+      ],
+      [
+       "`auth='user'`",
+       "`Depends(current_user)`"
+      ],
+      [
+       "`request.env[…]`",
+       "репозиторій через `Depends`"
+      ],
+      [
+       "`raise UserError(…)`",
+       "`raise HTTPException(…)`"
+      ],
+      [
+       "wizard (`TransientModel`)",
+       "модель Pydantic"
+      ],
+      [
+       "`ir.config_parameter`",
+       "`BaseSettings` і `.env`"
+      ]
+     ]
+    },
+    {
+     "p": "Головна різниця: у FastAPI все, що потрібно маршруту, видно в його сигнатурі, і будь-яку частину можна підмінити в тесті через `dependency_overrides`."
+    }
+   ]
+  }
+ ],
+ "units": [
+  {
+   "id": "first-app",
+   "title": "Перший застосунок",
+   "topic": "що таке веб-API, операція шляху, fastapi dev і /docs",
+   "goal": "Запустити API з одним маршрутом і перевірити його в /docs",
+   "theory": [
+    {
+     "recall": "Пригадайте з курсу патернів: що робить декоратор, написаний як @ім'я над def?",
+     "a": "Приймає функцію й повертає нову (або ту саму, десь зареєстровану). FastAPI так і реєструє обробники запитів."
+    },
+    {
+     "p": "**Веб-API** — програма, з якою інші програми говорять по мережі. Клієнт надсилає **HTTP-запит**: метод (GET, POST…) і шлях (`/items/5`). Сервер повертає **код статусу** (200 — добре, 404 — нема) і зазвичай **JSON**."
+    },
+    {
+     "p": "**FastAPI** — фреймворк для таких API. Він стоїть на двох бібліотеках: **Starlette** (уся веб-частина) і **Pydantic** (перевірка даних). Ви пишете звичайну функцію з підказками типів, а FastAPI сам перевіряє вхідні дані, перетворює відповідь на JSON і пише документацію."
+    },
+    {
+     "img": "img/01-request.svg",
+     "alt": "Шлях запиту зверху вниз: клієнт → сервер Uvicorn → FastAPI знаходить маршрут → Pydantic перевіряє дані → ваша функція → відповідь із кодом і JSON. Якщо дані не пройшли перевірку, функція не викликається, клієнт одразу отримує 422.",
+     "caption": "Шлях одного запиту"
+    },
+    {
+     "h": "Перший застосунок"
+    },
+    {
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/\")\ndef root():\n    return {\"message\": \"Склад працює\"}",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      3,
+      6
+     ]
+    },
+    {
+     "ul": [
+      "`app = FastAPI()` — об'єкт застосунку. Саме його шукає сервер.",
+      "`@app.get(\"/\")` — **операція шляху** (path operation): «на GET-запит до `/` викликай функцію нижче».",
+      "Функція повертає `dict` — FastAPI перетворить його на JSON. Так само можна повернути список, рядок, число чи Pydantic-модель."
+     ]
+    },
+    {
+     "p": "Встановити й запустити (FastAPI CLI всередині запускає сервер **Uvicorn**, [документація CLI](https://fastapi.tiangolo.com/fastapi-cli/)):"
+    },
+    {
+     "code": "$ pip install \"fastapi[standard]\"\n$ fastapi dev main.py\n ⚡️ Starting FastAPI in development mode\n 🐍 Using import string: main:app\n 🌐 Server started at http://127.0.0.1:8000\nINFO:     Application startup complete.",
+     "lang": "console"
+    },
+    {
+     "p": "Тепер запит до `/` повертає код 200 і JSON. У курсі запит і відповідь записано так: `→` — що надіслав клієнт, `←` — що отримав:"
+    },
+    {
+     "code": "→ GET /\n← 200 {\"message\":\"Склад працює\"}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "h": "Документація пишеться сама"
+    },
+    {
+     "p": "Відкрийте `http://127.0.0.1:8000/docs` — це **Swagger UI**: список маршрутів, кнопка «Try it out» надсилає справжній запит. Під капотом — `/openapi.json`, опис усього API за стандартом **OpenAPI** ([перші кроки](https://fastapi.tiangolo.com/tutorial/first-steps/)). З нього інші команди генерують клієнтів."
+    },
+    {
+     "table": [
+      [
+       "Метод",
+       "Для чого"
+      ],
+      [
+       "GET",
+       "прочитати"
+      ],
+      [
+       "POST",
+       "створити"
+      ],
+      [
+       "PUT",
+       "замінити цілком"
+      ],
+      [
+       "PATCH",
+       "змінити частину"
+      ],
+      [
+       "DELETE",
+       "видалити"
+      ]
+     ]
+    },
+    {
+     "note": "Курс написано для FastAPI 0.163 (листопад 2026) і Python 3.11+: з версії 0.162.6 Python 3.10 не підтримується ([список змін](https://fastapi.tiangolo.com/release-notes/)). У старих статтях і відео бувають застарілі прийоми — у курсі про них попереджено."
+    },
+    {
+     "tip": "`fastapi dev` — для розробки: перезапускається після кожного збереження файла й слухає лише 127.0.0.1. `fastapi run` — для сервера: без автоперезапуску, слухає 0.0.0.0."
+    },
+    {
+     "note": "Для Odoo-розробника: `@app.get(\"/items\")` — родич `@http.route('/items', type='http', auth='user')` у контролері Odoo 18. Різниця: FastAPI сам перевіряє параметри за типами й описує їх в OpenAPI, а Odoo віддає вам сирий запит."
+    },
+    {
+     "warn": "❌ `fastapi dev` на бойовому сервері → ✅ `fastapi run`: автоперезапуск з'їдає ресурси й менш стабільний."
+    },
+    {
+     "recall": "Пригадайте: що робить рядок @app.get(\"/items\") над функцією?",
+     "a": "Реєструє функцію як обробник GET-запитів на шлях /items. Повернене значення FastAPI віддасть як JSON."
+    }
+   ],
+   "examples": [
+    {
+     "w": "app = FastAPI()",
+     "note": "об'єкт застосунку"
+    },
+    {
+     "w": "@app.get(\"/\")",
+     "note": "операція шляху: GET на /"
+    },
+    {
+     "w": "@app.post(\"/items\")",
+     "note": "створення запису"
+    },
+    {
+     "w": "return {\"ok\": True}",
+     "note": "dict → JSON {\"ok\":true}"
+    },
+    {
+     "w": "fastapi dev main.py",
+     "note": "запуск для розробки"
+    },
+    {
+     "w": "fastapi run main.py",
+     "note": "запуск на сервері"
+    },
+    {
+     "w": "/docs",
+     "note": "Swagger UI: спробувати API"
+    },
+    {
+     "w": "/openapi.json",
+     "note": "опис API за стандартом OpenAPI"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /ping?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/ping\")\ndef ping():\n    return {\"ok\": True}",
+     "lang": "python",
+     "options": [
+      "200 {\"ok\":true}",
+      "200 {\"ok\":\"True\"}",
+      "201 {\"ok\":true}",
+      "200 \"ok: True\""
+     ],
+     "a": 0,
+     "why": "dict стає JSON: True у Python → true у JSON, код успіху — 200."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /pong?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/ping\")\ndef ping():\n    return {\"ok\": True}",
+     "lang": "python",
+     "options": [
+      "404 {\"detail\":\"Not Found\"}",
+      "405 {\"detail\":\"Not Found\"}",
+      "200 {\"detail\":\"Not Found\"}",
+      "500 {\"detail\":\"Not Found\"}"
+     ],
+     "a": 0,
+     "why": "Маршруту /pong немає — FastAPI відповідає 404 Not Found."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /ping?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/ping\")\ndef ping():\n    return {\"ok\": True}",
+     "lang": "python",
+     "options": [
+      "405 {\"detail\":\"Method Not Allowed\"}",
+      "404 {\"detail\":\"Method Not Allowed\"}",
+      "200 {\"detail\":\"Method Not Allowed\"}",
+      "422 {\"detail\":\"Method Not Allowed\"}"
+     ],
+     "a": 0,
+     "why": "Шлях є, але лише для GET: на інший метод — 405 Method Not Allowed."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/items\")\ndef items():\n    return [\"Шолом\", \"Каска\"]",
+     "lang": "python",
+     "options": [
+      "200 [\"Шолом\",\"Каска\"]",
+      "200 {\"Шолом\",\"Каска\"}",
+      "200 \"Шолом, Каска\"",
+      "500 список не JSON"
+     ],
+     "a": 0,
+     "why": "Список Python стає JSON-масивом; кирилиця йде як є."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /, якщо функція нічого не повертає?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/\")\ndef root():\n    print(\"ok\")",
+     "lang": "python",
+     "options": [
+      "200 null",
+      "204 без тіла",
+      "404 Not Found",
+      "500 Server Error"
+     ],
+     "a": 0,
+     "why": "Функція без return повертає None, а None у JSON — null; код лишається 200."
+    },
+    {
+     "type": "gap",
+     "q": "Створити об'єкт застосунку: app = ◻()",
+     "a": [
+      "FastAPI"
+     ],
+     "why": "Клас FastAPI з пакета fastapi — це і є застосунок."
+    },
+    {
+     "type": "choice",
+     "q": "Що таке операція шляху (path operation)?",
+     "options": [
+      "Метод і шлях із функцією-обробником",
+      "Шлях до файла main.py на диску",
+      "Запит, що повернув помилку 404",
+      "Команда запуску fastapi dev"
+     ],
+     "a": 0,
+     "why": "Пара «метод + шлях» і функція, що обробляє такі запити."
+    },
+    {
+     "type": "choice",
+     "q": "За якою адресою FastAPI сам показує інтерактивну документацію?",
+     "options": [
+      "/docs",
+      "/help",
+      "/info",
+      "/api"
+     ],
+     "a": 0,
+     "why": "/docs — Swagger UI, /redoc — інший вигляд, /openapi.json — сам опис."
+    },
+    {
+     "type": "choice",
+     "q": "Яку команду запускають на бойовому сервері?",
+     "options": [
+      "fastapi run main.py",
+      "fastapi dev main.py",
+      "fastapi go main.py",
+      "fastapi up main.py"
+     ],
+     "a": 0,
+     "why": "run — без автоперезапуску, слухає 0.0.0.0; dev — лише для розробки."
+    },
+    {
+     "type": "choice",
+     "q": "Який HTTP-метод для створення нового запису?",
+     "options": [
+      "POST",
+      "GET",
+      "PUT",
+      "HEAD"
+     ],
+     "a": 0,
+     "why": "POST — створити; GET — прочитати; PUT — замінити цілком."
+    },
+    {
+     "type": "choice",
+     "q": "На яких двох бібліотеках стоїть FastAPI?",
+     "options": [
+      "Starlette і Pydantic",
+      "Flask і Marshmallow",
+      "Django і Requests",
+      "aiohttp і attrs"
+     ],
+     "a": 0,
+     "why": "Starlette дає веб-частину, Pydantic — перевірку й опис даних."
+    },
+    {
+     "type": "choice",
+     "q": "Що лежить за адресою /openapi.json?",
+     "options": [
+      "Опис усього API за стандартом OpenAPI",
+      "Журнал усіх запитів до сервера",
+      "Налаштування сервера Uvicorn",
+      "Список встановлених пакетів"
+     ],
+     "a": 0,
+     "why": "Схема OpenAPI: маршрути, параметри, моделі. З неї будують /docs і клієнтів."
+    },
+    {
+     "type": "order",
+     "q": "Розставте кроки обробки запиту",
+     "items": [
+      "Клієнт надсилає HTTP-запит",
+      "Uvicorn приймає з'єднання",
+      "FastAPI знаходить маршрут",
+      "Pydantic перевіряє дані",
+      "Ваша функція повертає результат",
+      "Клієнт отримує код і JSON"
+     ],
+     "why": "Сервер → маршрут → перевірка → функція → відповідь."
+    },
+    {
+     "type": "choice",
+     "q": "Чому fastapi dev не годиться для бойового сервера?",
+     "options": [
+      "Автоперезапуск їсть ресурси й менш стабільний",
+      "Він не вміє віддавати JSON клієнтам",
+      "Він працює лише з GET-запитами",
+      "Він вимикає документацію /docs"
+     ],
+     "a": 0,
+     "why": "dev стежить за файлами й перезапускає сервер — це для розробки."
+    }
+   ],
+   "typing": [
+    "Операція шляху — це метод, шлях і функція-обробник.",
+    "FastAPI перетворює словник на JSON автоматично.",
+    "Документація живе за адресою /docs і будується з OpenAPI.",
+    "Для розробки — fastapi dev, для сервера — fastapi run.",
+    "Код 404 означає, що такого маршруту немає."
+   ],
+   "tasks": [
+    "Створіть папку, встановіть пакет: pip install \"fastapi[standard]\". Напишіть main.py з двома маршрутами: GET / повертає {\"message\": \"Склад працює\"}, GET /items повертає список із трьох речей.",
+    "Запустіть fastapi dev main.py, відкрийте http://127.0.0.1:8000/docs і виконайте обидва запити кнопкою «Try it out». Змініть текст повідомлення, збережіть файл — сервер має перезапуститися сам."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: перші кроки",
+     "url": "https://fastapi.tiangolo.com/tutorial/first-steps/",
+     "note": "перший застосунок, /docs, OpenAPI — те саме, що в темі, з більшою кількістю деталей",
+     "main": true
+    },
+    {
+     "title": "FastAPI CLI: dev і run",
+     "url": "https://fastapi.tiangolo.com/fastapi-cli/",
+     "note": "чим відрізняються режими запуску"
+    }
+   ]
+  },
+  {
+   "id": "params",
+   "title": "Параметри шляху й запиту",
+   "topic": "/items/{item_id}, ?limit=10, типи, Annotated і 422",
+   "goal": "Приймати параметри з шляху й рядка запиту, обмежувати їх і читати помилку 422",
+   "theory": [
+    {
+     "recall": "Пригадайте: що поверне FastAPI на запит до шляху, якого немає, і на запит не тим методом?",
+     "a": "404 Not Found, якщо шляху немає; 405 Method Not Allowed, якщо шлях є, але для іншого методу."
+    },
+    {
+     "p": "Дані з адреси приходять двома способами. **Параметр шляху** — частина самого шляху: `/items/2`. **Параметр запиту** (query) — після знака питання: `/items?skip=0&limit=10`. FastAPI розрізняє їх сам: що є в шляху у фігурних дужках — параметр шляху, решта аргументів функції — параметри запиту."
+    },
+    {
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\nITEMS = {1: \"Шолом\", 2: \"Плита\",\n         3: \"Аптечка\"}\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    name = ITEMS.get(item_id)\n    return {\"id\": item_id, \"name\": name}\n\n\n@app.get(\"/items\")\ndef list_items(skip: int = 0,\n               limit: int = 10):\n    ids = sorted(ITEMS)[skip:skip + limit]\n    return [ITEMS[i] for i in ids]",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      8,
+      9,
+      15,
+      16
+     ]
+    },
+    {
+     "code": "→ GET /items/2\n← 200 {\"id\":2,\"name\":\"Плита\"}\n→ GET /items?skip=1&limit=1\n← 200 [\"Плита\"]\n→ GET /items/abc\n← 422 {\"detail\":[{\n  \"type\":\"int_parsing\",\n  \"loc\":[\"path\",\"item_id\"],\n  \"msg\":\"Input should be a valid integer…\",\n  …}]}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "h": "Тип — це і перетворення, і перевірка"
+    },
+    {
+     "ul": [
+      "З адреси все приходить текстом. `item_id: int` каже FastAPI: перетвори `\"2\"` на `2`. Не вийшло — функція **не викликається**, клієнт отримує **422** з поясненням.",
+      "`loc` у помилці — де саме проблема: `[\"path\", \"item_id\"]` — у шляху, `[\"query\", \"limit\"]` — у запиті, `[\"body\", …]` — у тілі.",
+      "Є значення за замовчуванням — параметр необов'язковий. Немає — обов'язковий: без нього 422 з `\"type\":\"missing\"`.",
+      "`q: str | None = None` — необов'язковий текст; `active: bool` приймає `true`, `1`, `on`, `yes` (і `false`, `0`, `off`, `no`)."
+     ]
+    },
+    {
+     "h": "Обмеження через Annotated"
+    },
+    {
+     "p": "Межі задають `Query(...)` і `Path(...)` всередині `Annotated[тип, …]`. Щоб рядок не розлазився, обмеження виносять в окремий **псевдонім типу** — його ж можна перевикористати в інших маршрутах ([документація](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/)):"
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import FastAPI, Path, Query\n\napp = FastAPI()\nItemId = Annotated[int, Path(ge=1)]\nLimit = Annotated[int, Query(ge=1, le=50)]\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: ItemId):\n    return item_id\n\n\n@app.get(\"/items\")\ndef list_items(limit: Limit = 10):\n    return limit",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      6,
+      7
+     ]
+    },
+    {
+     "code": "→ GET /items/0\n← 422 {\"detail\":[{\n  \"type\":\"greater_than_equal\",\n  \"loc\":[\"path\",\"item_id\"],…}]}\n→ GET /items?limit=100\n← 422 {\"detail\":[{\n  \"type\":\"less_than_equal\",\n  \"loc\":[\"query\",\"limit\"],…}]}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "table": [
+      [
+       "Обмеження",
+       "Що значить"
+      ],
+      [
+       "`ge=1` / `le=50`",
+       "≥ 1 / ≤ 50"
+      ],
+      [
+       "`gt=0` / `lt=10`",
+       "> 0 / < 10"
+      ],
+      [
+       "`min_length=2`",
+       "текст ≥ 2 знаків"
+      ],
+      [
+       "`max_length=50`",
+       "текст ≤ 50 знаків"
+      ],
+      [
+       "`pattern=\"^[A-Z]\"`",
+       "регулярний вираз"
+      ]
+     ]
+    },
+    {
+     "warn": "❌ `@app.get(\"/items/{item_id}\")` вище за `@app.get(\"/items/me\")` → запит `/items/me` потрапить у перший маршрут і впаде з 422 (\"me\" — не число). ✅ Конкретні шляхи оголошуйте **раніше** за шляхи з параметром: маршрути перевіряються по черзі ([документація](https://fastapi.tiangolo.com/tutorial/path-params/))."
+    },
+    {
+     "tip": "Не перевіряйте межі вручну через `if limit > 50: …` — обмеження в типі видно в /docs, і помилка має однаковий вигляд в усьому API."
+    },
+    {
+     "recall": "Пригадайте: як зробити параметр запиту limit від 1 до 50 зі значенням 10 за замовчуванням?",
+     "a": "Limit = Annotated[int, Query(ge=1, le=50)], а в функції — limit: Limit = 10."
+    }
+   ],
+   "examples": [
+    {
+     "w": "@app.get(\"/items/{item_id}\")",
+     "note": "параметр шляху у фігурних дужках"
+    },
+    {
+     "w": "def read_item(item_id: int)",
+     "note": "\"2\" з адреси стане числом 2"
+    },
+    {
+     "w": "/items?skip=0&limit=10",
+     "note": "параметри запиту після ?"
+    },
+    {
+     "w": "q: str | None = None",
+     "note": "необов'язковий текст"
+    },
+    {
+     "w": "q: str",
+     "note": "без значення за замовчуванням — обов'язковий"
+    },
+    {
+     "w": "Limit = Annotated[int, Query(ge=1, le=50)]",
+     "note": "псевдонім типу з межами"
+    },
+    {
+     "w": "Path(ge=1)",
+     "note": "межа для параметра шляху"
+    },
+    {
+     "w": "\"loc\": [\"query\", \"limit\"]",
+     "note": "де помилка: у запиті, параметр limit"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/7?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\nITEMS = {1: \"Шолом\", 2: \"Плита\"}\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    name = ITEMS.get(item_id)\n    return {\"id\": item_id, \"name\": name}",
+     "lang": "python",
+     "options": [
+      "200 {\"id\":7,\"name\":null}",
+      "404 {\"id\":7,\"name\":null}",
+      "422 {\"id\":7,\"name\":null}",
+      "200 {\"id\":\"7\",\"name\":\"\"}"
+     ],
+     "a": 0,
+     "why": "dict.get дає None → null. FastAPI сам не знає, що «нема» — це 404: це треба сказати явно (тема «Помилки»)."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/2.5?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    return item_id",
+     "lang": "python",
+     "options": [
+      "422 int_parsing",
+      "200 2",
+      "200 2.5",
+      "404 Not Found"
+     ],
+     "a": 0,
+     "why": "\"2.5\" не перетворюється на int без втрат — 422, функція не викликається."
+    },
+    {
+     "type": "number",
+     "q": "Що поверне запит GET /items/007? Введіть число з відповіді.",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    return item_id",
+     "lang": "python",
+     "a": 7,
+     "tol": 0,
+     "why": "\"007\" — коректне ціле число 7: нулі попереду не заважають."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?skip=1&limit=1?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\nITEMS = [\"Шолом\", \"Плита\", \"Аптечка\"]\n\n\n@app.get(\"/items\")\ndef list_items(skip: int = 0,\n               limit: int = 10):\n    return ITEMS[skip:skip + limit]",
+     "lang": "python",
+     "options": [
+      "200 [\"Плита\"]",
+      "200 [\"Шолом\"]",
+      "200 [\"Аптечка\"]",
+      "200 [\"Шолом\",\"Плита\"]"
+     ],
+     "a": 0,
+     "why": "Пропустити 1, взяти 1 — другий елемент списку."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /search?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/search\")\ndef search(q: str):\n    return q",
+     "lang": "python",
+     "options": [
+      "422 Field required",
+      "200 null",
+      "200 порожній рядок",
+      "400 Bad Request"
+     ],
+     "a": 0,
+     "why": "У q немає значення за замовчуванням — параметр обов'язковий, без нього 422 missing."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?limit=100?",
+     "code": "from typing import Annotated\n\nfrom fastapi import FastAPI, Query\n\napp = FastAPI()\nLimit = Annotated[int, Query(ge=1, le=50)]\n\n\n@app.get(\"/items\")\ndef list_items(limit: Limit = 10):\n    return limit",
+     "lang": "python",
+     "options": [
+      "422 less_than_equal",
+      "200 50",
+      "200 100",
+      "200 10"
+     ],
+     "a": 0,
+     "why": "le=50 — не більше 50. FastAPI не обрізає значення, а відмовляє з 422."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/me?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    return item_id\n\n\n@app.get(\"/items/me\")\ndef my_items():\n    return \"мої речі\"",
+     "lang": "python",
+     "options": [
+      "422 int_parsing",
+      "200 \"мої речі\"",
+      "404 Not Found",
+      "405 Not Allowed"
+     ],
+     "a": 0,
+     "why": "Маршрути перевіряються по черзі: /items/{item_id} перехопив запит, а \"me\" — не число."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?active=yes?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/items\")\ndef list_items(active: bool = False):\n    return active",
+     "lang": "python",
+     "options": [
+      "200 true",
+      "200 false",
+      "200 \"yes\"",
+      "422 bool_parsing"
+     ],
+     "a": 0,
+     "why": "bool з адреси приймає true/1/on/yes як True і false/0/off/no як False."
+    },
+    {
+     "type": "choice",
+     "q": "Адреса /items/5?limit=3. Що тут параметр шляху, а що параметр запиту?",
+     "options": [
+      "5 — шляху, limit — запиту",
+      "5 — запиту, limit — шляху",
+      "Обидва — параметри шляху",
+      "Обидва — параметри запиту"
+     ],
+     "a": 0,
+     "why": "Шлях — до знака питання, параметри запиту — після нього."
+    },
+    {
+     "type": "choice",
+     "q": "Як оголосити необов'язковий текстовий параметр запиту q?",
+     "options": [
+      "q: str | None = None",
+      "q: str = Required",
+      "q: Optional = str",
+      "q: None | str"
+     ],
+     "a": 0,
+     "why": "Тип допускає None, а значення за замовчуванням робить параметр необов'язковим."
+    },
+    {
+     "type": "choice",
+     "q": "У помилці 422 стоїть \"loc\": [\"query\", \"limit\"]. Де шукати проблему?",
+     "options": [
+      "Параметр limit у рядку запиту",
+      "Параметр limit у шляху адреси",
+      "Поле limit у тілі запиту",
+      "Змінна limit у коді функції"
+     ],
+     "a": 0,
+     "why": "Перший елемент loc — місце: path, query або body; другий — ім'я."
+    },
+    {
+     "type": "gap",
+     "q": "Межа «не менше 1» для параметра шляху: Annotated[int, Path(◻=1)]",
+     "a": [
+      "ge"
+     ],
+     "why": "ge — greater or equal, ≥; gt — строго більше."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається з GET /items/abc при item_id: int",
+     "items": [
+      "FastAPI знаходить маршрут /items/{item_id}",
+      "Бере з шляху рядок \"abc\"",
+      "Намагається перетворити його на int",
+      "Перетворення не вдається",
+      "Клієнт отримує 422, функція не викликається"
+     ],
+     "why": "Перевірка стоїть перед вашою функцією."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне запит POST /items?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/items\")\ndef list_items():\n    return []",
+     "lang": "python",
+     "options": [
+      "405 Method Not Allowed",
+      "404 Not Found",
+      "200 []",
+      "422 Field required"
+     ],
+     "a": 0,
+     "why": "Шлях /items є, але лише для GET."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що FastAPI робить зі словником, який повернула функція?",
+     "options": [
+      "Перетворює на JSON і віддає з кодом 200",
+      "Віддає як текст у форматі Python",
+      "Зберігає у файл і повертає шлях",
+      "Нічого: dict повертати не можна"
+     ],
+     "a": 0,
+     "why": "dict, list, str, int, None і Pydantic-моделі FastAPI сам перетворює на JSON."
+    }
+   ],
+   "typing": [
+    "Параметр шляху стоїть у фігурних дужках у самому маршруті.",
+    "Параметри запиту йдуть після знака питання.",
+    "Без значення за замовчуванням параметр обов'язковий.",
+    "Якщо тип не збігся, FastAPI повертає 422 і не викликає функцію.",
+    "Конкретні шляхи оголошують раніше за шляхи з параметрами."
+   ],
+   "tasks": [
+    "Додайте в main.py словник ITEMS і два маршрути: GET /items/{item_id} з ItemId = Annotated[int, Path(ge=1)] і GET /items з параметрами skip і limit (1–50).",
+    "У /docs надішліть /items/0, /items/abc і /items?limit=100. Для кожної помилки 422 прочитайте loc і type і поясніть собі, що саме не пройшло."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: параметри шляху",
+     "url": "https://fastapi.tiangolo.com/tutorial/path-params/",
+     "note": "типи, порядок маршрутів, Enum у шляху",
+     "main": true
+    },
+    {
+     "title": "FastAPI: параметри запиту",
+     "url": "https://fastapi.tiangolo.com/tutorial/query-params/",
+     "note": "обов'язкові й необов'язкові, bool"
+    },
+    {
+     "title": "FastAPI: обмеження для рядків і Annotated",
+     "url": "https://fastapi.tiangolo.com/tutorial/query-params-str-validations/",
+     "note": "Query(min_length, max_length, pattern), списки значень"
+    }
+   ]
+  },
+  {
+   "id": "body",
+   "title": "Тіло запиту: Pydantic-моделі",
+   "topic": "BaseModel, Field, вкладені моделі, зайві поля, Content-Type",
+   "goal": "Описати JSON-тіло моделлю Pydantic і прийняти його в POST-маршруті",
+   "theory": [
+    {
+     "recall": "Пригадайте: як FastAPI вирішує, що аргумент функції — параметр шляху, а не параметр запиту?",
+     "a": "Якщо ім'я є в шляху у фігурних дужках ({item_id}) — це параметр шляху; інші прості аргументи — параметри запиту."
+    },
+    {
+     "p": "**Тіло запиту** — JSON, який клієнт надсилає разом із POST, PUT чи PATCH. Його форму описують класом-нащадком `BaseModel` з **Pydantic**: поля з типами й обмеженнями. Аргумент функції з типом моделі FastAPI читає з тіла ([документація](https://fastapi.tiangolo.com/tutorial/body/))."
+    },
+    {
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel, Field\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str = Field(min_length=1,\n                      max_length=50)\n    qty: int = Field(default=0, ge=0)\n    note: str | None = None\n\n\n@app.post(\"/items\")\ndef create_item(item: ItemIn):\n    return item.model_dump()",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      7,
+      8,
+      10,
+      11,
+      15
+     ]
+    },
+    {
+     "code": "→ POST /items {\"name\":\"Шолом\",\"qty\":5}\n← 200 {\"name\":\"Шолом\",\"qty\":5,\n       \"note\":null}\n→ POST /items {\"qty\":1}\n← 422 {\"detail\":[{\"type\":\"missing\",\n  \"loc\":[\"body\",\"name\"],…}]}\n→ POST /items {\"name\":\"\",\"qty\":-1}\n← 422 {\"detail\":[\n  {\"type\":\"string_too_short\",…},\n  {\"type\":\"greater_than_equal\",…}]}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "ul": [
+      "Усередині функції `item` — уже **перевірений об'єкт**: `item.name`, `item.qty`. Перетворити на dict — `item.model_dump()`.",
+      "Поле без значення за замовчуванням (`name`) обов'язкове; `qty` має 0, `note` — None.",
+      "Помилки збираються **всі разом**: за один запит клієнт дізнається і про порожню назву, і про мінус.",
+      "Pydantic поблажливий до форми: `\"5\"` і `5.0` для `int` стануть 5, а `5.5` — уже 422."
+     ]
+    },
+    {
+     "h": "Звідки FastAPI бере кожен аргумент"
+    },
+    {
+     "table": [
+      [
+       "Аргумент функції",
+       "Звідки"
+      ],
+      [
+       "ім'я є в шляху `{…}`",
+       "шлях"
+      ],
+      [
+       "простий тип: int, str…",
+       "рядок запиту"
+      ],
+      [
+       "Pydantic-модель",
+       "тіло JSON"
+      ]
+     ]
+    },
+    {
+     "p": "Їх можна змішувати в одному маршруті: `POST /items/{item_id}/issue?comment=…` з тілом-моделлю дасть три аргументи з трьох місць."
+    },
+    {
+     "h": "Вкладені моделі й зайві поля"
+    },
+    {
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel, Field\n\napp = FastAPI()\n\n\nclass Line(BaseModel):\n    item_id: int\n    qty: int = Field(gt=0)\n\n\nclass Issue(BaseModel):\n    soldier: str\n    lines: list[Line]\n\n\n@app.post(\"/issues\")\ndef create_issue(doc: Issue):\n    total = sum(x.qty for x in doc.lines)\n    return {\"lines\": len(doc.lines),\n            \"total\": total}",
+     "lang": "python",
+     "title": "issues.py",
+     "hl": [
+      13,
+      14
+     ]
+    },
+    {
+     "code": "→ POST /issues {\n  \"soldier\":\"Петренко\",\n  \"lines\":[{\"item_id\":1,\"qty\":2},\n           {\"item_id\":2,\"qty\":3}]}\n← 200 {\"lines\":2,\"total\":5}\n→ POST /issues {\n  \"soldier\":\"Петренко\",\n  \"lines\":[{\"item_id\":1,\"qty\":0}]}\n← 422 {\"detail\":[{\"type\":\"greater_than\",\n  \"loc\":[\"body\",\"lines\",0,\"qty\"],…}]}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "p": "`loc` веде до місця помилки крізь вкладеність: тіло → `lines` → рядок 0 → `qty`. **Зайві поля** модель за замовчуванням мовчки відкидає; щоб відповідати на них 422, додають `model_config = ConfigDict(extra=\"forbid\")` ([моделі Pydantic](https://docs.pydantic.dev/latest/concepts/models/))."
+    },
+    {
+     "warn": "❌ `curl -d '{\"name\":\"Шолом\"}' …/items` → 422: `-d` надсилає `Content-Type: application/x-www-form-urlencoded`. З версії 0.132 FastAPI читає JSON лише з правильним Content-Type ([строга перевірка](https://fastapi.tiangolo.com/advanced/strict-content-type/)). ✅ `curl -H 'Content-Type: application/json' -d …` або `curl --json …`."
+    },
+    {
+     "note": "Для Odoo-розробника: модель Pydantic — не таблиця в базі, а **форма одного запиту**. Найближче — wizard (`TransientModel`) з обмеженнями полів, тільки перевірка тут відбувається до вашого коду й без бази."
+    },
+    {
+     "recall": "Пригадайте: як змусити модель відповідати 422 на поле, якого в ній немає?",
+     "a": "model_config = ConfigDict(extra=\"forbid\"). За замовчуванням зайві поля мовчки відкидаються."
+    }
+   ],
+   "examples": [
+    {
+     "w": "class ItemIn(BaseModel):",
+     "note": "модель тіла запиту"
+    },
+    {
+     "w": "name: str = Field(min_length=1)",
+     "note": "обов'язкове поле з обмеженням"
+    },
+    {
+     "w": "qty: int = Field(default=0, ge=0)",
+     "note": "необов'язкове, не менше 0"
+    },
+    {
+     "w": "def create_item(item: ItemIn)",
+     "note": "аргумент-модель читається з тіла"
+    },
+    {
+     "w": "item.model_dump()",
+     "note": "модель → dict"
+    },
+    {
+     "w": "lines: list[Line]",
+     "note": "вкладений список моделей"
+    },
+    {
+     "w": "model_config = ConfigDict(extra=\"forbid\")",
+     "note": "зайві поля → 422"
+    },
+    {
+     "w": "\"loc\": [\"body\", \"lines\", 0, \"qty\"]",
+     "note": "шлях до помилки крізь вкладеність"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /items {\"name\":\"Каска\",\"qty\":\"3\"}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str\n    qty: int = 0\n\n\n@app.post(\"/items\")\ndef create_item(item: ItemIn):\n    return item",
+     "lang": "python",
+     "options": [
+      "200 {\"name\":\"Каска\",\"qty\":3}",
+      "200 {\"name\":\"Каска\",\"qty\":\"3\"}",
+      "422 {\"name\":\"Каска\",\"qty\":\"3\"}",
+      "200 {\"name\":\"Каска\",\"qty\":0}"
+     ],
+     "a": 0,
+     "why": "Рядок \"3\" Pydantic перетворює на int 3; повернена модель стає JSON."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /items {\"name\":\"Каска\",\"qty\":2.5}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str\n    qty: int = 0\n\n\n@app.post(\"/items\")\ndef create_item(item: ItemIn):\n    return item",
+     "lang": "python",
+     "options": [
+      "422 int_from_float",
+      "200 qty стане 2",
+      "200 qty стане 3",
+      "200 qty стане 0"
+     ],
+     "a": 0,
+     "why": "Дробову частину Pydantic не відкидає мовчки — 422. А от 2.0 пройшло б як 2."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /items {\"name\":\"Каска\",\"color\":\"red\"}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str\n    qty: int = 0\n\n\n@app.post(\"/items\")\ndef create_item(item: ItemIn):\n    return item",
+     "lang": "python",
+     "options": [
+      "200 {\"name\":\"Каска\",\"qty\":0}",
+      "422 {\"name\":\"Каска\",\"qty\":0}",
+      "200 {\"name\":\"Каска\",\"color\":\"red\"}",
+      "400 {\"name\":\"Каска\",\"qty\":0}"
+     ],
+     "a": 0,
+     "why": "Зайве поле color за замовчуванням мовчки відкидається."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /items {\"name\":\"Каска\",\"color\":\"red\"}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel, ConfigDict\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    model_config = ConfigDict(\n        extra=\"forbid\")\n    name: str\n\n\n@app.post(\"/items\")\ndef create_item(item: ItemIn):\n    return item",
+     "lang": "python",
+     "options": [
+      "422 extra_forbidden",
+      "200 color відкинуто",
+      "200 color збережено",
+      "400 Bad Request"
+     ],
+     "a": 0,
+     "why": "extra=\"forbid\" перетворює зайве поле на помилку перевірки."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /items {\"qty\":1}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str\n    qty: int = 0\n\n\n@app.post(\"/items\")\ndef create_item(item: ItemIn):\n    return item",
+     "lang": "python",
+     "options": [
+      "422 missing",
+      "200 name стане null",
+      "200 name стане \"\"",
+      "500 KeyError"
+     ],
+     "a": 0,
+     "why": "name без значення за замовчуванням — обов'язкове поле."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /issues {\"soldier\":\"Іваненко\",\"lines\":[{\"item_id\":1,\"qty\":2},{\"item_id\":5,\"qty\":1}]}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass Line(BaseModel):\n    item_id: int\n    qty: int\n\n\nclass Issue(BaseModel):\n    soldier: str\n    lines: list[Line]\n\n\n@app.post(\"/issues\")\ndef create_issue(doc: Issue):\n    return sum(x.qty for x in doc.lines)",
+     "lang": "python",
+     "options": [
+      "200 3",
+      "200 2",
+      "200 6",
+      "422 list_type"
+     ],
+     "a": 0,
+     "why": "Кожен елемент lines став об'єктом Line; 2 + 1 = 3."
+    },
+    {
+     "type": "choice",
+     "q": "У відповіді 422 стоїть \"loc\": [\"body\", \"lines\", 1, \"qty\"]. Що не так?",
+     "options": [
+      "Поле qty у другому рядку lines",
+      "Поле qty у першому рядку lines",
+      "Параметр qty у рядку запиту",
+      "Перший рядок lines відсутній"
+     ],
+     "a": 0,
+     "why": "Індекси з нуля: 1 — другий елемент списку lines."
+    },
+    {
+     "type": "choice",
+     "q": "Маршрут POST /items/{item_id}/issue, функція issue(item_id: int, line: Line, comment: str | None = None). Звідки береться comment?",
+     "options": [
+      "З рядка запиту після ?",
+      "З тіла запиту в JSON",
+      "З шляху після /issue",
+      "З заголовка запиту"
+     ],
+     "a": 0,
+     "why": "comment — простий тип і не входить у шлях, тож це параметр запиту."
+    },
+    {
+     "type": "choice",
+     "q": "curl -d '{\"name\":\"Шолом\"}' http://127.0.0.1:8000/items повертає 422. Чому?",
+     "options": [
+      "-d шле form-тип, а не JSON-тип",
+      "curl не вміє надсилати кирилицю",
+      "Маршрут /items не приймає POST",
+      "У тілі бракує поля qty"
+     ],
+     "a": 0,
+     "why": "FastAPI читає JSON лише з Content-Type: application/json. Додайте -H або --json."
+    },
+    {
+     "type": "gap",
+     "q": "Перетворити модель на словник: item.◻()",
+     "a": [
+      "model_dump"
+     ],
+     "why": "У Pydantic v2 — model_dump(); .dict() — застаріла назва з v1."
+    },
+    {
+     "type": "choice",
+     "q": "Від якого класу наслідують модель тіла запиту?",
+     "options": [
+      "pydantic.BaseModel",
+      "fastapi.BodyModel",
+      "typing.TypedDict",
+      "dataclasses.Model"
+     ],
+     "a": 0,
+     "why": "BaseModel дає перевірку, перетворення типів і JSON-схему для /docs."
+    },
+    {
+     "type": "choice",
+     "q": "Клієнт надіслав і порожню назву, і qty = −1. Скільки помилок буде в detail?",
+     "options": [
+      "Дві: обидва поля одразу",
+      "Одна: лише перша знайдена",
+      "Жодної: FastAPI їх виправить",
+      "Одна загальна без подробиць"
+     ],
+     "a": 0,
+     "why": "Pydantic перевіряє всі поля й повертає всі помилки разом."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне GET /items?limit=0, якщо limit: Annotated[int, Query(ge=1)] = 10?",
+     "options": [
+      "422 greater_than_equal",
+      "200 і limit стане 1",
+      "200 і limit стане 10",
+      "400 і текст помилки"
+     ],
+     "a": 0,
+     "why": "Обмеження не підправляють значення — вони відмовляють з 422."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне GET /items/me, якщо маршрут /items/{item_id} з item_id: int оголошено раніше за /items/me?",
+     "options": [
+      "422: \"me\" — не число",
+      "200: спрацює /items/me",
+      "404: маршрут не знайдено",
+      "405: метод не дозволено"
+     ],
+     "a": 0,
+     "why": "Маршрути перевіряються по черзі; конкретні шляхи ставлять вище."
+    }
+   ],
+   "typing": [
+    "Тіло запиту описують моделлю, що наслідує BaseModel.",
+    "Аргумент із типом моделі FastAPI читає з тіла JSON.",
+    "Pydantic повертає всі помилки перевірки разом.",
+    "Зайві поля за замовчуванням мовчки відкидаються.",
+    "JSON надсилають із заголовком Content-Type: application/json."
+   ],
+   "tasks": [
+    "Додайте в API складу модель ItemIn (name 1–50 знаків, qty ≥ 0, note необов'язкове) і маршрут POST /items, що додає річ у словник ITEMS і повертає її з новим id.",
+    "Надішліть з терміналу два запити: curl -d '{\"name\":\"Шолом\"}' http://127.0.0.1:8000/items і те саме з --json замість -d. Порівняйте відповіді й поясніть різницю."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: тіло запиту",
+     "url": "https://fastapi.tiangolo.com/tutorial/body/",
+     "note": "моделі, змішування з параметрами шляху й запиту",
+     "main": true
+    },
+    {
+     "title": "Pydantic: моделі",
+     "url": "https://docs.pydantic.dev/latest/concepts/models/",
+     "note": "model_dump, вкладені моделі, extra"
+    },
+    {
+     "title": "FastAPI: строга перевірка Content-Type",
+     "url": "https://fastapi.tiangolo.com/advanced/strict-content-type/",
+     "note": "чому JSON без правильного заголовка відкидається"
+    }
+   ]
+  },
+  {
+   "id": "response",
+   "title": "Відповідь: модель і код статусу",
+   "topic": "тип повернення, response_model, 201 і 204, ItemIn / ItemOut / ItemDB",
+   "goal": "Віддавати клієнту лише потрібні поля й правильний код статусу",
+   "theory": [
+    {
+     "recall": "Пригадайте: що Pydantic-модель запиту робить із полем, якого в ній немає?",
+     "a": "Мовчки відкидає. Щоб відповідати 422, потрібне model_config = ConfigDict(extra=\"forbid\")."
+    },
+    {
+     "p": "Вхід перевіряє модель запиту, а вихід — **модель відповіді**. Вона робить три речі: перевіряє, що ви повертаєте правильні дані, **відкидає зайві поля** і описує відповідь у /docs ([документація](https://fastapi.tiangolo.com/tutorial/response-model/)). Задають її анотацією повернення `-> ItemOut` або параметром `response_model=`."
+    },
+    {
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str\n    qty: int = 0\n\n\nclass ItemOut(ItemIn):\n    id: int\n\n\nclass ItemDB(ItemOut):\n    cost: int\n\n\nDB: dict[int, ItemDB] = {}\n\n\n@app.post(\"/items\", status_code=201)\ndef create_item(item: ItemIn) -> ItemOut:\n    new_id = len(DB) + 1\n    row = ItemDB(id=new_id, cost=1200,\n                 **item.model_dump())\n    DB[new_id] = row\n    return row",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      12,
+      16,
+      23,
+      24
+     ]
+    },
+    {
+     "code": "→ POST /items {\"name\":\"Шолом\",\"qty\":5}\n← 201 {\"name\":\"Шолом\",\"qty\":5,\"id\":1}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "h": "Три моделі однієї сутності"
+    },
+    {
+     "table": [
+      [
+       "Модель",
+       "Що в ній"
+      ],
+      [
+       "`ItemIn`",
+       "що надсилає клієнт"
+      ],
+      [
+       "`ItemOut`",
+       "+ id: що він бачить"
+      ],
+      [
+       "`ItemDB`",
+       "+ службові поля"
+      ]
+     ]
+    },
+    {
+     "ul": [
+      "Функція повертає `ItemDB` із закупівельною ціною `cost`, але клієнт її не бачить: FastAPI пропускає відповідь крізь `ItemOut`.",
+      "Успадкування прибирає дублювання полів, а редактор не свариться: `ItemDB` — нащадок `ItemOut`, тож тип повернення правдивий.",
+      "Порядок полів у JSON — як у класах: спершу поля предка (`name`, `qty`), потім нащадка (`id`)."
+     ]
+    },
+    {
+     "p": "Якщо функція повертає щось зовсім інше — dict чи об'єкт ORM, — пишіть `@app.get(…, response_model=ItemOut)`: він має **пріоритет** над анотацією, і фільтрування працює так само."
+    },
+    {
+     "h": "Код статусу"
+    },
+    {
+     "table": [
+      [
+       "Код",
+       "Коли"
+      ],
+      [
+       "200 OK",
+       "звичайна відповідь"
+      ],
+      [
+       "201 Created",
+       "створено запис"
+      ],
+      [
+       "204 No Content",
+       "успіх без тіла"
+      ]
+     ]
+    },
+    {
+     "code": "from fastapi import FastAPI, status\n\napp = FastAPI()\n\n\n@app.delete(\n    \"/items/{item_id}\",\n    status_code=status.HTTP_204_NO_CONTENT)\ndef delete_item(item_id: int):\n    return None",
+     "lang": "python",
+     "title": "delete.py",
+     "hl": [
+      8
+     ]
+    },
+    {
+     "code": "→ DELETE /items/1\n← 204",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "tip": "`status.HTTP_201_CREATED` замість числа 201 — те саме число, але редактор підкаже назви й не дасть помилитися."
+    },
+    {
+     "warn": "❌ Повернути дані, що не вкладаються в модель відповіді (бракує обов'язкового поля) → клієнт отримає **500 Internal Server Error**, а в журналі — `ResponseValidationError`. Це ваша помилка, не клієнта. ✅ Повертайте все, що вимагає модель."
+    },
+    {
+     "recall": "Пригадайте: як сховати від клієнта поле cost, яке є в об'єкті з бази?",
+     "a": "Повертати через модель відповіді без цього поля: -> ItemOut (якщо ItemDB — нащадок ItemOut) або response_model=ItemOut."
+    }
+   ],
+   "examples": [
+    {
+     "w": "def create_item(item: ItemIn) -> ItemOut:",
+     "note": "анотація повернення = модель відповіді"
+    },
+    {
+     "w": "response_model=ItemOut",
+     "note": "коли повертаєте dict чи об'єкт ORM"
+    },
+    {
+     "w": "class ItemOut(ItemIn): id: int",
+     "note": "вихідна модель успадковує вхідну"
+    },
+    {
+     "w": "status_code=201",
+     "note": "створено"
+    },
+    {
+     "w": "status.HTTP_204_NO_CONTENT",
+     "note": "успіх без тіла"
+    },
+    {
+     "w": "-> list[ItemOut]",
+     "note": "список у відповіді"
+    },
+    {
+     "w": "ResponseValidationError",
+     "note": "повернули не те — 500"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/1?",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemOut(BaseModel):\n    id: int\n    name: str\n\n\n@app.get(\"/items/{item_id}\",\n         response_model=ItemOut)\ndef read_item(item_id: int):\n    return {\"id\": item_id,\n            \"name\": \"Шолом\",\n            \"cost\": 1200}",
+     "lang": "python",
+     "options": [
+      "200 {\"id\":1,\"name\":\"Шолом\"}",
+      "200 {\"id\":1,\"cost\":1200}",
+      "500 {\"id\":1,\"name\":\"Шолом\"}",
+      "200 {\"name\":\"Шолом\",\"cost\":1200}"
+     ],
+     "a": 0,
+     "why": "response_model відкидає поля, яких у ньому немає: cost не потрапить до клієнта."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/1?",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemOut(BaseModel):\n    id: int\n    name: str\n\n\n@app.get(\"/items/{item_id}\",\n         response_model=ItemOut)\ndef read_item(item_id: int):\n    return {\"id\": item_id}",
+     "lang": "python",
+     "options": [
+      "500 Internal Server Error",
+      "422 Unprocessable Content",
+      "200 {\"id\":1,\"name\":null}",
+      "200 {\"id\":1}"
+     ],
+     "a": 0,
+     "why": "Бракує обов'язкового name у відповіді — це помилка сервера: 500 і ResponseValidationError у журналі."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /items {\"name\":\"Каска\"}",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemIn(BaseModel):\n    name: str\n\n\nclass ItemOut(ItemIn):\n    id: int\n\n\n@app.post(\"/items\", status_code=201)\ndef create_item(item: ItemIn) -> ItemOut:\n    return ItemOut(id=7, name=item.name)",
+     "lang": "python",
+     "options": [
+      "201 {\"name\":\"Каска\",\"id\":7}",
+      "200 {\"name\":\"Каска\",\"id\":7}",
+      "201 {\"id\":7,\"name\":\"Каска\"}",
+      "201 {\"name\":\"Каска\"}"
+     ],
+     "a": 0,
+     "why": "Код — із status_code; порядок полів — як у класах: спершу поле предка name, потім id."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит DELETE /items/3?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.delete(\"/items/{item_id}\",\n            status_code=204)\ndef delete_item(item_id: int):\n    return None",
+     "lang": "python",
+     "options": [
+      "204 і порожнє тіло",
+      "200 і тіло null",
+      "204 і тіло null",
+      "404 і тіло null"
+     ],
+     "a": 0,
+     "why": "204 No Content — успіх без тіла; навіть null не надсилається."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?",
+     "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ItemOut(BaseModel):\n    id: int\n    name: str\n\n\nclass ItemDB(ItemOut):\n    cost: int\n\n\n@app.get(\"/items\")\ndef list_items() -> list[ItemOut]:\n    return [ItemDB(id=1, name=\"Шолом\",\n                   cost=900)]",
+     "lang": "python",
+     "options": [
+      "200 [{\"id\":1,\"name\":\"Шолом\"}]",
+      "200 [{\"id\":1,\"cost\":900}]",
+      "200 {\"id\":1,\"name\":\"Шолом\"}",
+      "500 [{\"id\":1,\"name\":\"Шолом\"}]"
+     ],
+     "a": 0,
+     "why": "list[ItemOut] пропускає кожен елемент крізь ItemOut — cost відкидається."
+    },
+    {
+     "type": "choice",
+     "q": "Анотація -> ItemOut і параметр response_model=ItemDetail в одному маршруті. Що піде клієнту?",
+     "options": [
+      "Дані за моделлю ItemDetail",
+      "Дані за моделлю ItemOut",
+      "Помилка під час запуску",
+      "Обидві моделі разом"
+     ],
+     "a": 0,
+     "why": "response_model має пріоритет; анотація лишається для редактора й mypy."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо ItemDB успадковує ItemOut, а не окремо описує всі поля?",
+     "options": [
+      "Без дублювання й з правдивим типом",
+      "Щоб ItemDB зберігався в базі сам",
+      "Бо FastAPI вимагає успадкування",
+      "Щоб клієнт бачив поле cost"
+     ],
+     "a": 0,
+     "why": "Нащадок — теж ItemOut, тож -> ItemOut правдиве, а зайві поля відфільтруються."
+    },
+    {
+     "type": "choice",
+     "q": "Який код повертати після успішного створення запису?",
+     "options": [
+      "201 Created",
+      "200 OK",
+      "204 No Content",
+      "202 Accepted"
+     ],
+     "a": 0,
+     "why": "201 — «створено»; часто разом з тілом нового запису."
+    },
+    {
+     "type": "choice",
+     "q": "Клієнт отримав 500, у журналі ResponseValidationError. Хто винен?",
+     "options": [
+      "Сервер повернув не ті дані",
+      "Клієнт надіслав не ті дані",
+      "Мережа обірвала з'єднання",
+      "У /docs застаріла схема"
+     ],
+     "a": 0,
+     "why": "Помилки вхідних даних — 422; невідповідність моделі відповіді — баг сервера."
+    },
+    {
+     "type": "gap",
+     "q": "Параметр декоратора, що задає модель відповіді, коли функція повертає dict: ◻=ItemOut",
+     "a": [
+      "response_model"
+     ],
+     "why": "response_model перевіряє й фільтрує вихід, навіть якщо функція повертає dict."
+    },
+    {
+     "type": "choice",
+     "q": "Як правильно передати код 204 у декоратор?",
+     "options": [
+      "status_code=status.HTTP_204_NO_CONTENT",
+      "status=status.HTTP_204_NO_CONTENT",
+      "code=status.HTTP_204_NO_CONTENT",
+      "status_code=status.NO_CONTENT_204"
+     ],
+     "a": 0,
+     "why": "Параметр — status_code, константи — у fastapi.status."
+    },
+    {
+     "type": "order",
+     "q": "Розставте шлях даних у POST /items з -> ItemOut",
+     "items": [
+      "Клієнт надсилає JSON",
+      "Pydantic перевіряє його як ItemIn",
+      "Функція повертає ItemDB",
+      "FastAPI пропускає результат крізь ItemOut",
+      "Клієнт отримує JSON без cost"
+     ],
+     "why": "Модель на вході й модель на виході — два різні фільтри."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне POST /items з тілом {\"name\":\"Каска\",\"qty\":\"2\"} для моделі з qty: int?",
+     "options": [
+      "qty прийде числом 2",
+      "422 через рядок \"2\"",
+      "qty лишиться рядком",
+      "qty стане нулем"
+     ],
+     "a": 0,
+     "why": "Pydantic перетворює рядок \"2\" на int 2; 2.5 дало б 422."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: звідки FastAPI бере аргумент item: ItemIn, де ItemIn — Pydantic-модель?",
+     "options": [
+      "З тіла запиту в JSON",
+      "З рядка запиту після ?",
+      "З шляху у фігурних дужках",
+      "З заголовків запиту"
+     ],
+     "a": 0,
+     "why": "Моделі читаються з тіла, прості типи — з шляху або рядка запиту."
+    }
+   ],
+   "typing": [
+    "Модель відповіді відкидає поля, яких у ній немає.",
+    "Після створення запису повертають код 201.",
+    "Код 204 означає успіх без тіла.",
+    "Якщо відповідь не вкладається в модель, клієнт отримає 500.",
+    "Параметр response_model має пріоритет над анотацією."
+   ],
+   "tasks": [
+    "Перебудуйте API складу на три моделі: ItemIn, ItemOut(ItemIn) з id, ItemDB(ItemOut) з cost. POST /items повертає 201 і -> ItemOut, GET /items — -> list[ItemOut], DELETE /items/{item_id} — 204.",
+    "У /docs створіть річ і переконайтеся, що cost у відповідь не потрапляє. Потім навмисно поверніть з GET dict без name і подивіться на 500 у /docs і ResponseValidationError у терміналі."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: модель відповіді",
+     "url": "https://fastapi.tiangolo.com/tutorial/response-model/",
+     "note": "тип повернення, response_model, пріоритет, фільтрування через успадкування",
+     "main": true
+    },
+    {
+     "title": "FastAPI: код статусу відповіді",
+     "url": "https://fastapi.tiangolo.com/tutorial/response-status-code/",
+     "note": "status_code і константи fastapi.status"
+    },
+    {
+     "title": "MDN: коди статусу HTTP",
+     "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
+     "note": "довідник усіх кодів простими словами"
+    }
+   ]
+  },
+  {
+   "id": "errors",
+   "title": "Помилки: HTTPException і власні обробники",
+   "topic": "404, 409, 400 замість «200 з помилкою»; доменні винятки",
+   "goal": "Відповідати на «нема» і «не можна» правильним кодом і зрозумілим detail",
+   "theory": [
+    {
+     "recall": "Пригадайте: чим відрізняються 422 і 500 у FastAPI?",
+     "a": "422 — клієнт надіслав дані, що не пройшли перевірку. 500 — помилка сервера: виняток у коді або відповідь не вклалась у модель."
+    },
+    {
+     "p": "Перевірку **форми** даних FastAPI робить сам (422). Але правила **змісту** — «такої речі немає», «на складі не вистачає» — знає лише ваш код. Про них клієнту кажуть винятком `HTTPException`: його **піднімають** (`raise`), і FastAPI перетворює його на відповідь із потрібним кодом ([документація](https://fastapi.tiangolo.com/tutorial/handling-errors/))."
+    },
+    {
+     "code": "from fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel, Field\n\napp = FastAPI()\nSTOCK = {1: 5, 2: 0}\n\n\nclass IssueIn(BaseModel):\n    qty: int = Field(gt=0)\n\n\ndef get_stock(item_id: int) -> int:\n    if item_id not in STOCK:\n        raise HTTPException(\n            status_code=404,\n            detail=\"Речі не знайдено\")\n    return STOCK[item_id]\n\n\n@app.post(\"/items/{item_id}/issue\")\ndef issue(item_id: int, body: IssueIn):\n    left = get_stock(item_id)\n    if body.qty > left:\n        raise HTTPException(\n            status_code=409,\n            detail=f\"На складі лише {left}\")\n    STOCK[item_id] = left - body.qty\n    return {\"left\": STOCK[item_id]}",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      14,
+      15,
+      16,
+      24,
+      25,
+      26
+     ]
+    },
+    {
+     "code": "→ POST /items/1/issue {\"qty\":2}\n← 200 {\"left\":3}\n→ POST /items/9/issue {\"qty\":1}\n← 404 {\"detail\":\"Речі не знайдено\"}\n→ POST /items/1/issue {\"qty\":10}\n← 409 {\"detail\":\"На складі лише 3\"}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "ul": [
+      "`raise` зупиняє обробку **з будь-якої глибини**: `get_stock` — звичайна функція, а клієнт однаково отримав 404.",
+      "`detail` може бути рядком, словником чи списком — FastAPI зробить з нього JSON.",
+      "`headers=` додає заголовки до відповіді-помилки (знадобиться для 401 у темі про безпеку)."
+     ]
+    },
+    {
+     "h": "Який код обрати"
+    },
+    {
+     "table": [
+      [
+       "Код",
+       "Коли"
+      ],
+      [
+       "400",
+       "запит не має сенсу"
+      ],
+      [
+       "401",
+       "не вказано, хто ви"
+      ],
+      [
+       "403",
+       "відомо хто, але не можна"
+      ],
+      [
+       "404",
+       "такого немає"
+      ],
+      [
+       "409",
+       "конфлікт зі станом"
+      ],
+      [
+       "422",
+       "дані не пройшли схему"
+      ],
+      [
+       "500",
+       "помилка в коді сервера"
+      ]
+     ]
+    },
+    {
+     "p": "409 тут — бо запит правильний, але суперечить поточному стану складу: завтра, після поповнення, той самий запит пройде."
+    },
+    {
+     "h": "Доменні винятки й власний обробник"
+    },
+    {
+     "p": "Бізнес-логіці краще не знати про HTTP: вона піднімає **свій** виняток, а перетворення на відповідь — в одному місці, через `@app.exception_handler` (пригадайте шари з курсу модульності):"
+    },
+    {
+     "code": "from fastapi import FastAPI, Request\nfrom fastapi.responses import JSONResponse\n\napp = FastAPI()\n\n\nclass NotEnough(Exception):\n    def __init__(self, left: int):\n        self.left = left\n\n\n@app.exception_handler(NotEnough)\nasync def not_enough(request: Request,\n                     exc: NotEnough):\n    return JSONResponse(\n        status_code=409,\n        content={\"detail\": \"Не вистачає\",\n                 \"left\": exc.left})\n\n\n@app.post(\"/issue\")\ndef issue():\n    raise NotEnough(left=3)",
+     "lang": "python",
+     "title": "handlers.py",
+     "hl": [
+      12,
+      13
+     ]
+    },
+    {
+     "code": "→ POST /issue\n← 409 {\"detail\":\"Не вистачає\",\"left\":3}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "warn": "❌ `return HTTPException(404, …)` → клієнт отримає **200** і сам виняток як JSON. ❌ `return {\"error\": \"нема\"}` → теж 200. ✅ `raise HTTPException(…)`: клієнти, моніторинг і повторні спроби орієнтуються саме на код."
+    },
+    {
+     "note": "Необроблений виняток (`KeyError`, `ValueError`) дає **500** з текстом `Internal Server Error` — без подробиць, щоб не світити нутрощі. Подробиці — у журналі сервера. Формат 422 теж можна змінити: обробник для `RequestValidationError`."
+    },
+    {
+     "recall": "Пригадайте: чому HTTPException піднімають через raise, а не повертають через return?",
+     "a": "Це виняток: raise зупиняє обробку з будь-якої глибини, і FastAPI робить відповідь із кодом. return віддасть об'єкт як звичайні дані з кодом 200."
+    }
+   ],
+   "examples": [
+    {
+     "w": "raise HTTPException(status_code=404, detail=\"Речі не знайдено\")",
+     "note": "нема такого запису"
+    },
+    {
+     "w": "raise HTTPException(409, detail=\"На складі лише 3\")",
+     "note": "конфлікт зі станом"
+    },
+    {
+     "w": "detail={\"code\": \"not_enough\", \"left\": 3}",
+     "note": "detail-словник для програм-клієнтів"
+    },
+    {
+     "w": "@app.exception_handler(NotEnough)",
+     "note": "доменний виняток → відповідь"
+    },
+    {
+     "w": "JSONResponse(status_code=409, content={…})",
+     "note": "відповідь власного обробника"
+    },
+    {
+     "w": "RequestValidationError",
+     "note": "виняток, з якого FastAPI робить 422"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/9?",
+     "code": "from fastapi import FastAPI, HTTPException\n\napp = FastAPI()\nITEMS = {1: \"Шолом\"}\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    if item_id not in ITEMS:\n        raise HTTPException(\n            status_code=404,\n            detail=\"Немає\")\n    return ITEMS[item_id]",
+     "lang": "python",
+     "options": [
+      "404 {\"detail\":\"Немає\"}",
+      "200 {\"detail\":\"Немає\"}",
+      "404 {\"error\":\"Немає\"}",
+      "500 {\"detail\":\"Немає\"}"
+     ],
+     "a": 0,
+     "why": "HTTPException стає відповіддю з його кодом і JSON {\"detail\": …}."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/9?",
+     "code": "from fastapi import FastAPI, HTTPException\n\napp = FastAPI()\nITEMS = {1: \"Шолом\"}\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    if item_id not in ITEMS:\n        return HTTPException(\n            status_code=404,\n            detail=\"Немає\")\n    return ITEMS[item_id]",
+     "lang": "python",
+     "options": [
+      "200 з полями status_code і detail",
+      "404 {\"detail\":\"Немає\"} як треба",
+      "500 Internal Server Error",
+      "422 через неправильний тип"
+     ],
+     "a": 0,
+     "why": "return замість raise: виняток повернувся як звичайні дані, код — 200."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/9?",
+     "code": "from fastapi import FastAPI\n\napp = FastAPI()\nITEMS = {1: \"Шолом\"}\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int):\n    return ITEMS[item_id]",
+     "lang": "python",
+     "options": [
+      "500 Internal Server Error",
+      "404 {\"detail\":\"Not Found\"}",
+      "200 null",
+      "422 KeyError"
+     ],
+     "a": 0,
+     "why": "KeyError ніхто не обробив — це 500. FastAPI не здогадується, що KeyError означає «нема»."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /issue?",
+     "code": "from fastapi import FastAPI, HTTPException\n\napp = FastAPI()\n\n\n@app.post(\"/issue\")\ndef issue():\n    raise HTTPException(\n        status_code=409,\n        detail={\"left\": 3})",
+     "lang": "python",
+     "options": [
+      "409 {\"detail\":{\"left\":3}}",
+      "409 {\"left\":3}",
+      "200 {\"detail\":{\"left\":3}}",
+      "409 {\"detail\":\"{left: 3}\"}"
+     ],
+     "a": 0,
+     "why": "detail-словник кладеться всередину поля detail як вкладений об'єкт."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /issue?",
+     "code": "from fastapi import FastAPI, Request\nfrom fastapi.responses import JSONResponse\n\napp = FastAPI()\n\n\nclass NotEnough(Exception):\n    pass\n\n\n@app.exception_handler(NotEnough)\nasync def handler(request: Request,\n                  exc: NotEnough):\n    return JSONResponse(\n        status_code=409,\n        content={\"detail\": \"Мало\"})\n\n\n@app.post(\"/issue\")\ndef issue():\n    raise NotEnough()",
+     "lang": "python",
+     "options": [
+      "409 {\"detail\":\"Мало\"}",
+      "500 {\"detail\":\"Мало\"}",
+      "200 {\"detail\":\"Мало\"}",
+      "422 {\"detail\":\"Мало\"}"
+     ],
+     "a": 0,
+     "why": "Для NotEnough зареєстровано обробник — він і будує відповідь."
+    },
+    {
+     "type": "choice",
+     "q": "Видача 10 шоломів, а на складі 3. Запит правильний за схемою. Який код?",
+     "options": [
+      "409 Conflict",
+      "422 Unprocessable",
+      "404 Not Found",
+      "500 Server Error"
+     ],
+     "a": 0,
+     "why": "Схема пройдена, але запит суперечить поточному стану — 409."
+    },
+    {
+     "type": "choice",
+     "q": "Запит до /items/77, а речі з id 77 немає. Який код?",
+     "options": [
+      "404 Not Found",
+      "400 Bad Request",
+      "409 Conflict",
+      "422 Unprocessable"
+     ],
+     "a": 0,
+     "why": "Ресурсу не існує — 404."
+    },
+    {
+     "type": "choice",
+     "q": "Користувач увійшов, але видавати зі складу йому не можна. Який код?",
+     "options": [
+      "403 Forbidden",
+      "401 Unauthorized",
+      "404 Not Found",
+      "409 Conflict"
+     ],
+     "a": 0,
+     "why": "401 — «не знаю, хто ви»; 403 — «знаю, але не можна»."
+    },
+    {
+     "type": "gap",
+     "q": "Виняток у FastAPI не повертають, а ◻ HTTPException(...)",
+     "a": [
+      "raise"
+     ],
+     "why": "raise зупиняє обробку з будь-якої глибини викликів."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо доменний виняток NotEnough і обробник, а не HTTPException прямо в бізнес-логіці?",
+     "options": [
+      "Логіка не залежить від HTTP",
+      "Так працює швидше на сервері",
+      "HTTPException не має коду 409",
+      "Інакше /docs не покаже помилку"
+     ],
+     "a": 0,
+     "why": "Сервіс можна викликати з CLI чи черги; HTTP-відповідь будується в одному місці."
+    },
+    {
+     "type": "choice",
+     "q": "Як змінити формат відповіді 422 для всього API?",
+     "options": [
+      "Обробник для RequestValidationError",
+      "Обробник для HTTPException(422)",
+      "Параметр status_code=422 у app",
+      "Перевизначити клас BaseModel"
+     ],
+     "a": 0,
+     "why": "FastAPI піднімає RequestValidationError на поганих даних — його й перехоплюють."
+    },
+    {
+     "type": "order",
+     "q": "Що відбувається, коли get_stock() піднімає HTTPException(404)",
+     "items": [
+      "get_stock піднімає виняток",
+      "issue() переривається на виклику",
+      "FastAPI перехоплює HTTPException",
+      "Клієнт отримує 404 і detail"
+     ],
+     "why": "Виняток проходить крізь усі виклики аж до FastAPI."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: функція повертає dict без обов'язкового поля моделі відповіді. Що отримає клієнт?",
+     "options": [
+      "500 Internal Server Error",
+      "422 Unprocessable Content",
+      "200 і поле зі значенням null",
+      "200 без цього поля"
+     ],
+     "a": 0,
+     "why": "Невідповідність моделі відповіді — помилка сервера: ResponseValidationError."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне GET /items?limit=abc, якщо limit: int = 10?",
+     "options": [
+      "422 int_parsing",
+      "200 і limit = 10",
+      "400 Bad Request",
+      "500 ValueError"
+     ],
+     "a": 0,
+     "why": "Перевірка типу — до вашої функції; не пройшла — 422."
+    }
+   ],
+   "typing": [
+    "HTTPException піднімають через raise, а не повертають.",
+    "Код 404 означає, що такого запису немає.",
+    "Код 409 означає конфлікт із поточним станом.",
+    "Код 401 — не відомо, хто ви; код 403 — не можна.",
+    "Необроблений виняток дає 500 без подробиць."
+   ],
+   "tasks": [
+    "Додайте в API складу POST /items/{item_id}/issue з тілом {\"qty\": …}: 404, якщо речі немає; 409 з залишком у detail, якщо не вистачає; інакше — новий залишок.",
+    "Винесіть правило «не видати більше, ніж є» в окрему функцію, що піднімає NotEnough, і зареєструйте для нього @app.exception_handler. Перевірте в /docs, що відповідь не змінилась."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: обробка помилок",
+     "url": "https://fastapi.tiangolo.com/tutorial/handling-errors/",
+     "note": "HTTPException, власні обробники, RequestValidationError",
+     "main": true
+    },
+    {
+     "title": "MDN: коди статусу HTTP",
+     "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
+     "note": "400, 401, 403, 404, 409 — коли який"
+    }
+   ]
+  },
+  {
+   "id": "depends",
+   "title": "Залежності: Depends",
+   "topic": "спільні параметри, репозиторій, залежність від залежності, кеш на запит",
+   "goal": "Винести повторювану підготовку маршруту в залежність і підключити її через Annotated",
+   "theory": [
+    {
+     "recall": "Пригадайте: що станеться, якщо звичайна функція, яку викликав маршрут, підніме HTTPException(404)?",
+     "a": "Обробка перерветься, і клієнт отримає 404 з detail — raise працює з будь-якої глибини викликів."
+    },
+    {
+     "p": "**Залежність** — функція, яку FastAPI викликає **перед** маршрутом, а результат передає йому аргументом. Ви лише оголошуєте, що потрібно: `Depends(функція)`. Це **впровадження залежностей** (dependency injection, DI) — знайоме з курсу модульності, тільки «збирає» об'єкти сам FastAPI ([документація](https://fastapi.tiangolo.com/tutorial/dependencies/))."
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\n\n\ndef page(skip: int = 0, limit: int = 10):\n    return {\"skip\": skip, \"limit\": limit}\n\n\nPageDep = Annotated[dict, Depends(page)]\n\n\n@app.get(\"/items\")\ndef list_items(p: PageDep):\n    return p\n\n\n@app.get(\"/soldiers\")\ndef list_soldiers(p: PageDep):\n    return p",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      8,
+      12,
+      16,
+      21
+     ]
+    },
+    {
+     "code": "→ GET /items?limit=5\n← 200 {\"skip\":0,\"limit\":5}\n→ GET /soldiers?skip=10\n← 200 {\"skip\":10,\"limit\":10}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "ul": [
+      "Параметри залежності (`skip`, `limit`) FastAPI бере з запиту **так само**, як параметри маршруту, і показує в /docs.",
+      "`PageDep` — псевдонім: оголосили раз, використовуємо в кожному маршруті. Змінили правила пагінації — змінили в одному місці.",
+      "Передають **саму функцію**: `Depends(page)`. З дужками `Depends(page())` застосунок упаде ще під час запуску з `TypeError`."
+     ]
+    },
+    {
+     "h": "Залежність від залежності"
+    },
+    {
+     "p": "Залежність може сама мати залежності. Типовий ланцюжок: **репозиторій** (доступ до даних) → «знайти річ або 404» → маршрут. Перевірка 404 живе в одному місці, а не в кожному маршруті ([підзалежності](https://fastapi.tiangolo.com/tutorial/dependencies/sub-dependencies/)):"
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import HTTPException\n\napp = FastAPI()\n\n\nclass ItemRepo:\n    def __init__(self):\n        self.rows = {1: \"Шолом\", 2: \"Плита\"}\n\n    def get(self, item_id: int):\n        return self.rows.get(item_id)\n\n\nREPO = ItemRepo()\n\n\ndef get_repo() -> ItemRepo:\n    return REPO\n\n\nRepoDep = Annotated[ItemRepo,\n                    Depends(get_repo)]\n\n\ndef get_item(item_id: int,\n             repo: RepoDep) -> str:\n    name = repo.get(item_id)\n    if name is None:\n        raise HTTPException(404, \"Немає\")\n    return name\n\n\nItemDep = Annotated[str, Depends(get_item)]\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(name: ItemDep):\n    return {\"name\": name}",
+     "lang": "python",
+     "title": "items.py",
+     "hl": [
+      24,
+      28,
+      29,
+      36,
+      40
+     ]
+    },
+    {
+     "code": "→ GET /items/2\n← 200 {\"name\":\"Плита\"}\n→ GET /items/9\n← 404 {\"detail\":\"Немає\"}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "p": "Зверніть увагу: `item_id` прийшов **у залежність** `get_item` прямо з шляху маршруту. А `get_repo` — єдине місце, де вирішується, який репозиторій дати: у тестах його підмінять на фальшивий (тема «Тести»)."
+    },
+    {
+     "table": [
+      [
+       "Запис",
+       "Що робить"
+      ],
+      [
+       "`Depends(fn)`",
+       "викликати fn, дати результат"
+      ],
+      [
+       "`Depends()` з класом",
+       "створити об'єкт класу"
+      ],
+      [
+       "`dependencies=[…]`",
+       "лише перевірка, без значення"
+      ],
+      [
+       "`use_cache=False`",
+       "викликати щоразу"
+      ]
+     ]
+    },
+    {
+     "tip": "За один запит кожна залежність викликається **один раз**, навіть якщо її просять кілька інших — результат кешується до кінця запиту. Тому `get_repo`, потрібний і `get_item`, і маршруту, не створить двох репозиторіїв."
+    },
+    {
+     "note": "Для Odoo-розробника: в Odoo `request.env` доступний звідусіль, як глобальний стан. У FastAPI все, що потрібно маршруту, видно в його сигнатурі — і будь-яку частину можна підмінити, не чіпаючи код маршруту."
+    },
+    {
+     "warn": "❌ Створювати репозиторій чи з'єднання прямо в тілі маршруту → не підміниш у тестах і дублюєш у кожному маршруті. ✅ Віддати його залежністю `RepoDep`."
+    },
+    {
+     "recall": "Пригадайте: скільки разів за один запит викличеться get_repo, якщо його потребують і get_item, і сам маршрут?",
+     "a": "Один раз: результат залежності кешується в межах запиту (якщо не вказано use_cache=False)."
+    }
+   ],
+   "examples": [
+    {
+     "w": "PageDep = Annotated[dict, Depends(page)]",
+     "note": "псевдонім залежності"
+    },
+    {
+     "w": "def list_items(p: PageDep)",
+     "note": "маршрут просить залежність"
+    },
+    {
+     "w": "Depends(get_repo)",
+     "note": "функцію передають без дужок"
+    },
+    {
+     "w": "def get_item(item_id: int, repo: RepoDep)",
+     "note": "залежність має свої залежності"
+    },
+    {
+     "w": "pg: Annotated[Page, Depends()]",
+     "note": "клас як залежність"
+    },
+    {
+     "w": "@app.get(\"/k\", dependencies=[Depends(check_key)])",
+     "note": "перевірка без значення"
+    },
+    {
+     "w": "Depends(dep, use_cache=False)",
+     "note": "вимкнути кеш на запит"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?limit=3?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\n\n\ndef page(skip: int = 0, limit: int = 10):\n    return {\"skip\": skip, \"limit\": limit}\n\n\n@app.get(\"/items\")\ndef list_items(\n        p: Annotated[dict, Depends(page)]):\n    return p",
+     "lang": "python",
+     "options": [
+      "200 {\"skip\":0,\"limit\":3}",
+      "200 {\"skip\":0,\"limit\":10}",
+      "200 {\"limit\":3}",
+      "422 {\"skip\":0,\"limit\":3}"
+     ],
+     "a": 0,
+     "why": "Залежність бере limit з рядка запиту, як і маршрут; skip — значення за замовчуванням."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items/5?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import HTTPException\n\napp = FastAPI()\nROWS = {1: \"Шолом\"}\n\n\ndef get_item(item_id: int) -> str:\n    if item_id not in ROWS:\n        raise HTTPException(404, \"Немає\")\n    return ROWS[item_id]\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(\n        name: Annotated[str,\n                        Depends(get_item)]):\n    return name",
+     "lang": "python",
+     "options": [
+      "404 {\"detail\":\"Немає\"}",
+      "200 null",
+      "422 {\"detail\":\"Немає\"}",
+      "500 {\"detail\":\"Немає\"}"
+     ],
+     "a": 0,
+     "why": "Залежність підняла 404 до виклику маршруту — маршрут не виконався."
+    },
+    {
+     "type": "number",
+     "q": "Скільки разів викличеться counter за один запит GET /x? Введіть число.",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\ncalls = []\n\n\ndef counter():\n    calls.append(1)\n    return len(calls)\n\n\ndef a(n: Annotated[int, Depends(counter)]):\n    return n\n\n\n@app.get(\"/x\")\ndef x(n1: Annotated[int, Depends(a)],\n      n2: Annotated[int, Depends(counter)]):\n    return len(calls)",
+     "lang": "python",
+     "a": 1,
+     "tol": 0,
+     "why": "Залежність кешується в межах запиту: і a, і маршрут отримують той самий результат."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /x?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\ncalls = []\n\n\ndef counter():\n    calls.append(1)\n    return len(calls)\n\n\nN = Annotated[int, Depends(\n    counter, use_cache=False)]\n\n\n@app.get(\"/x\")\ndef x(a: N, b: N):\n    return [a, b]",
+     "lang": "python",
+     "options": [
+      "200 [1,2]",
+      "200 [1,1]",
+      "200 [2,2]",
+      "200 [0,1]"
+     ],
+     "a": 0,
+     "why": "use_cache=False — залежність викликається для кожного аргументу окремо."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /items?skip=5?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\n\n\nclass Page:\n    def __init__(self, skip: int = 0,\n                 limit: int = 10):\n        self.skip = skip\n        self.limit = limit\n\n\n@app.get(\"/items\")\ndef list_items(\n        pg: Annotated[Page, Depends()]):\n    return [pg.skip, pg.limit]",
+     "lang": "python",
+     "options": [
+      "200 [5,10]",
+      "200 [0,10]",
+      "200 [5,5]",
+      "422 [5,10]"
+     ],
+     "a": 0,
+     "why": "Depends() без аргументу з типом-класом: FastAPI створить Page(skip=5, limit=10)."
+    },
+    {
+     "type": "choice",
+     "q": "Що станеться із застосунком, де написано Depends(get_repo()) — з дужками?",
+     "options": [
+      "Впаде при запуску з TypeError",
+      "Працюватиме, як без дужок",
+      "Створить репозиторій на запит",
+      "Поверне 422 на кожен запит"
+     ],
+     "a": 0,
+     "why": "Depends чекає функцію чи клас, а отримав готовий об'єкт — він не викликається."
+    },
+    {
+     "type": "choice",
+     "q": "Перевірку ключа треба виконати, але значення маршруту не потрібне. Як підключити?",
+     "options": [
+      "dependencies=[Depends(check_key)]",
+      "key: Annotated[None, check_key]",
+      "@app.before(check_key) над def",
+      "check_key() першим рядком def"
+     ],
+     "a": 0,
+     "why": "dependencies=[…] у декораторі виконує залежності без передачі результату."
+    },
+    {
+     "type": "choice",
+     "q": "Що таке впровадження залежностей (DI) у FastAPI?",
+     "options": [
+      "Маршрут оголошує, що потрібно, FastAPI дає",
+      "Маршрут сам створює все, що потрібно",
+      "Пакети ставляться з requirements.txt",
+      "Модулі імпортують один одного по колу"
+     ],
+     "a": 0,
+     "why": "Функція-маршрут лише просить залежність у сигнатурі; викликає її FastAPI."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо get_repo, якщо можна звертатися до REPO напряму?",
+     "options": [
+      "Одне місце, де репозиторій підміняють",
+      "Так швидше працює кожен запит",
+      "Без нього не працює /docs",
+      "REPO не можна імпортувати"
+     ],
+     "a": 0,
+     "why": "У тестах dependency_overrides[get_repo] дасть фальшивий репозиторій — маршрути не міняються."
+    },
+    {
+     "type": "gap",
+     "q": "Псевдонім залежності: RepoDep = ◻[ItemRepo, Depends(get_repo)]",
+     "a": [
+      "Annotated"
+     ],
+     "why": "Annotated поєднує тип для редактора і Depends для FastAPI."
+    },
+    {
+     "type": "order",
+     "q": "Порядок викликів для GET /items/2 з ItemDep → get_item → RepoDep",
+     "items": [
+      "FastAPI викликає get_repo",
+      "FastAPI викликає get_item(2, repo)",
+      "get_item повертає назву",
+      "FastAPI викликає read_item(name)"
+     ],
+     "why": "Спочатку найглибші залежності, маршрут — останнім."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як FastAPI перетворює HTTPException(409, detail=\"Мало\")?",
+     "options": [
+      "Код 409 і {\"detail\":\"Мало\"}",
+      "Код 500 і текст «Мало»",
+      "Код 200 і {\"error\":\"Мало\"}",
+      "Код 409 і порожнє тіло"
+     ],
+     "a": 0,
+     "why": "Код — зі status_code, тіло — JSON з полем detail."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: функція повертає ItemDB з полем cost, анотація -> ItemOut без cost. Що бачить клієнт?",
+     "options": [
+      "Поля ItemOut без cost",
+      "Усі поля разом із cost",
+      "Помилку 500 через cost",
+      "Лише поле cost"
+     ],
+     "a": 0,
+     "why": "Модель відповіді відфільтровує все, чого в ній немає."
+    }
+   ],
+   "typing": [
+    "Залежність викликається перед маршрутом, а результат стає аргументом.",
+    "У Depends передають саму функцію, без дужок.",
+    "Залежність може мати власні залежності.",
+    "За один запит кожна залежність викликається один раз.",
+    "Репозиторій, відданий залежністю, легко підмінити в тестах."
+   ],
+   "tasks": [
+    "Перенесіть словник речей у клас ItemRepo з методами get, add, delete. Додайте get_repo, RepoDep і ItemDep (404, якщо речі немає) і перепишіть маршрути складу на них.",
+    "Додайте PageDep з обмеженнями skip ≥ 0 і limit 1–50 і використайте її в GET /items. Подивіться в /docs: параметри залежності мають з'явитися в маршруті."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: залежності",
+     "url": "https://fastapi.tiangolo.com/tutorial/dependencies/",
+     "note": "Depends, Annotated-псевдоніми, навіщо DI",
+     "main": true
+    },
+    {
+     "title": "FastAPI: підзалежності",
+     "url": "https://fastapi.tiangolo.com/tutorial/dependencies/sub-dependencies/",
+     "note": "ланцюжки залежностей і кеш на запит"
+    },
+    {
+     "title": "FastAPI: класи як залежності",
+     "url": "https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/",
+     "note": "Depends() з класом"
+    }
+   ]
+  },
+  {
+   "id": "yield",
+   "title": "Залежності з yield і lifespan",
+   "topic": "відкрити — віддати — закрити: сесія на запит і ресурси на весь застосунок",
+   "goal": "Відкривати й гарантовано закривати ресурс на запит і на весь час роботи застосунку",
+   "theory": [
+    {
+     "recall": "Пригадайте: скільки разів за один запит викликається залежність, яку потребують і маршрут, і інша залежність?",
+     "a": "Один раз: результат кешується в межах запиту."
+    },
+    {
+     "p": "Деякі ресурси треба не лише відкрити, а й **закрити**: сесію бази, файл, з'єднання. Для цього залежність пишуть із `yield`: до `yield` — відкрити, `yield` — віддати маршруту, після — прибрати. Обгортають у `try/finally`, щоб закриття сталося навіть після помилки ([документація](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/))."
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\nlog = []\n\n\nclass Session:\n    def close(self):\n        log.append(\"close\")\n\n\ndef get_session():\n    session = Session()\n    log.append(\"open\")\n    try:\n        yield session\n    finally:\n        session.close()\n\n\nSessionDep = Annotated[\n    Session, Depends(get_session)]\n\n\n@app.get(\"/items\")\ndef list_items(s: SessionDep):\n    log.append(\"handler\")\n    return log",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      17,
+      18,
+      19,
+      20
+     ]
+    },
+    {
+     "code": "→ GET /items\n← 200 [\"open\",\"handler\"]",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "p": "У відповіді немає `close` — бо код після `yield` за замовчуванням виконується **після того, як відповідь пішла клієнту** (і навіть після фонових задач). Для `close` це байдуже, а для `commit` — ні:"
+    },
+    {
+     "img": "img/07-yield.svg",
+     "alt": "Дві часові шкали. Звичайна залежність з yield: відкрити сесію, маршрут, відповідь іде клієнту, фонові задачі, і лише потім commit і close — якщо commit впав, клієнт уже отримав 200. З scope=\"function\": відкрити, маршрут, commit і close, і лише потім відповідь — тоді збій commit дасть 500.",
+     "caption": "Коли виконується код після yield"
+    },
+    {
+     "h": "Commit і rollback"
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends\n\n\nclass Session:\n    def commit(self): ...\n    def rollback(self): ...\n    def close(self): ...\n\n\ndef get_session():\n    s = Session()\n    try:\n        yield s\n        s.commit()\n    except Exception:\n        s.rollback()\n        raise\n    finally:\n        s.close()\n\n\nSessionDep = Annotated[Session, Depends(\n    get_session, scope=\"function\")]",
+     "lang": "python",
+     "title": "db.py",
+     "hl": [
+      16,
+      18,
+      19,
+      25
+     ]
+    },
+    {
+     "ul": [
+      "Виняток із маршруту (зокрема `HTTPException`) **приходить у залежність** у точці `yield` — тому `except` може зробити `rollback`.",
+      "Перехопили — **підніміть знову** (`raise`). Інакше клієнт отримає 500, а в журналі не буде жодного сліду помилки.",
+      "`scope=\"function\"` закриває залежність **до** відповіді: якщо `commit` не вдався, клієнт дізнається про це (500), а не отримає хибне 200."
+     ]
+    },
+    {
+     "h": "Ресурси на весь застосунок: lifespan"
+    },
+    {
+     "p": "Сесія — на один запит. А пул з'єднань, завантажені довідники, HTTP-клієнт створюють **один раз** при старті й закривають при зупинці. Для цього — функція `lifespan` ([події життєвого циклу](https://fastapi.tiangolo.com/advanced/events/)):"
+    },
+    {
+     "code": "from contextlib import asynccontextmanager\nfrom typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import Request\n\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    app.state.units = {\"шт\": \"штука\"}\n    yield\n    app.state.units.clear()\n\n\napp = FastAPI(lifespan=lifespan)\n\n\ndef get_units(request: Request) -> dict:\n    return request.app.state.units\n\n\nUnitsDep = Annotated[\n    dict, Depends(get_units)]\n\n\n@app.get(\"/units\")\ndef units(u: UnitsDep):\n    return u",
+     "lang": "python",
+     "title": "app.py",
+     "hl": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      15
+     ]
+    },
+    {
+     "code": "→ GET /units\n← 200 {\"шт\":\"штука\"}",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "warn": "❌ `@app.on_event(\"startup\")` зі старих статей → у FastAPI 0.163 видає `DeprecationWarning`. ✅ `FastAPI(lifespan=lifespan)`: старт і зупинка в одній функції, ресурс видно з обох боків `yield`."
+    },
+    {
+     "tip": "Ресурс із lifespan віддавайте маршрутам теж **залежністю** (`get_units` через `request.app.state`), а не глобальною змінною: тоді в тестах його підмінять так само, як репозиторій."
+    },
+    {
+     "recall": "Пригадайте: чому commit у залежності з yield варто робити зі scope=\"function\"?",
+     "a": "Без нього код після yield виконується вже після відповіді: збій commit клієнт не побачить — він отримає 200. Зі scope=\"function\" — побачить 500."
+    }
+   ],
+   "examples": [
+    {
+     "w": "try: yield session finally: session.close()",
+     "note": "закрити навіть після помилки"
+    },
+    {
+     "w": "except Exception: s.rollback(); raise",
+     "note": "відкотити й підняти знову"
+    },
+    {
+     "w": "Depends(get_session, scope=\"function\")",
+     "note": "закрити до відповіді"
+    },
+    {
+     "w": "@asynccontextmanager async def lifespan(app):",
+     "note": "старт і зупинка застосунку"
+    },
+    {
+     "w": "FastAPI(lifespan=lifespan)",
+     "note": "підключити lifespan"
+    },
+    {
+     "w": "request.app.state.units",
+     "note": "ресурс із lifespan у залежності"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /x?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\n\napp = FastAPI()\nlog = []\n\n\ndef get_res():\n    log.append(\"open\")\n    try:\n        yield \"r\"\n    finally:\n        log.append(\"close\")\n\n\n@app.get(\"/x\")\ndef x(r: Annotated[str, Depends(get_res)]):\n    log.append(\"use\")\n    return log",
+     "lang": "python",
+     "options": [
+      "200 [\"open\",\"use\"]",
+      "200 [\"open\",\"use\",\"close\"]",
+      "200 [\"use\",\"open\"]",
+      "200 [\"open\",\"close\",\"use\"]"
+     ],
+     "a": 0,
+     "why": "Код після yield за замовчуванням виконується після відправлення відповіді — close туди не встиг."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import HTTPException\nfrom fastapi.testclient import TestClient\n\napp = FastAPI()\nlog = []\n\n\ndef get_s():\n    log.append(\"open\")\n    try:\n        yield \"s\"\n    except Exception:\n        log.append(\"rollback\")\n        raise\n    finally:\n        log.append(\"close\")\n\n\n@app.get(\"/x\")\ndef x(s: Annotated[str, Depends(get_s)]):\n    raise HTTPException(404)\n\n\nwith TestClient(app) as c:\n    c.get(\"/x\")\nprint(log)",
+     "lang": "python",
+     "options": [
+      "['open', 'rollback', 'close']",
+      "['open', 'close']",
+      "['open', 'close', 'rollback']",
+      "['rollback', 'open', 'close']"
+     ],
+     "a": 0,
+     "why": "HTTPException з маршруту приходить у залежність у точці yield: except, потім finally."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "from contextlib import asynccontextmanager\n\nfrom fastapi import FastAPI\nfrom fastapi.testclient import TestClient\n\nlog = []\n\n\n@asynccontextmanager\nasync def lifespan(app):\n    log.append(\"start\")\n    yield\n    log.append(\"stop\")\n\n\napp = FastAPI(lifespan=lifespan)\n\n\n@app.get(\"/\")\ndef root():\n    log.append(\"req\")\n\n\nwith TestClient(app) as c:\n    c.get(\"/\")\n    c.get(\"/\")\nprint(log)",
+     "lang": "python",
+     "options": [
+      "['start', 'req', 'req', 'stop']",
+      "['start', 'req', 'stop', 'start', 'req', 'stop']",
+      "['req', 'req']",
+      "['start', 'stop', 'req', 'req']"
+     ],
+     "a": 0,
+     "why": "lifespan — один раз на весь застосунок: старт до першого запиту, зупинка після останнього."
+    },
+    {
+     "type": "choice",
+     "q": "Залежність із yield робить commit після yield (scope за замовчуванням). Commit упав. Що отримав клієнт?",
+     "options": [
+      "200: відповідь уже пішла",
+      "500: commit не вдався",
+      "409: конфлікт у базі",
+      "422: дані не збережено"
+     ],
+     "a": 0,
+     "why": "Код після yield виконується після відправлення відповіді. Звідси scope=\"function\" для commit."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо try/finally навколо yield у залежності?",
+     "options": [
+      "Щоб закрити ресурс і після помилки",
+      "Щоб FastAPI побачив залежність",
+      "Щоб відповідь пішла швидше",
+      "Щоб yield повернув значення"
+     ],
+     "a": 0,
+     "why": "Виняток з маршруту приходить у точку yield; finally виконається в будь-якому разі."
+    },
+    {
+     "type": "choice",
+     "q": "Залежність перехопила виняток у except і зробила rollback. Що далі?",
+     "options": [
+      "Підняти виняток знову: raise",
+      "Повернути None замість винятку",
+      "Нічого: FastAPI розбереться",
+      "Викликати yield ще раз"
+     ],
+     "a": 0,
+     "why": "Без raise клієнт отримає 500, а в журналі не лишиться сліду помилки."
+    },
+    {
+     "type": "gap",
+     "q": "Закрити залежність до відправлення відповіді: Depends(get_session, scope=\"◻\")",
+     "a": [
+      "function"
+     ],
+     "why": "scope=\"function\" — вихід із залежності одразу після маршруту, до відповіді."
+    },
+    {
+     "type": "choice",
+     "q": "Де створювати пул з'єднань до бази, спільний для всіх запитів?",
+     "options": [
+      "У lifespan при старті застосунку",
+      "У залежності з yield на кожен запит",
+      "У тілі кожного маршруту окремо",
+      "У моделі Pydantic як поле"
+     ],
+     "a": 0,
+     "why": "Пул — ресурс застосунку: один раз при старті, закрити при зупинці."
+    },
+    {
+     "type": "choice",
+     "q": "Код зі статті: @app.on_event(\"startup\"). Що з ним у FastAPI 0.163?",
+     "options": [
+      "Застаріло: краще lifespan",
+      "Видалено: помилка запуску",
+      "Працює й рекомендується",
+      "Працює лише з async def"
+     ],
+     "a": 0,
+     "why": "on_event ще працює, але видає DeprecationWarning; рекомендований спосіб — lifespan."
+    },
+    {
+     "type": "order",
+     "q": "Порядок для залежності з yield (scope за замовчуванням) і фонової задачі",
+     "items": [
+      "Код до yield",
+      "Маршрут",
+      "Відповідь клієнту",
+      "Фонова задача",
+      "Код після yield"
+     ],
+     "why": "Перевірено запуском у FastAPI 0.163: вихід із залежності — останнім."
+    },
+    {
+     "type": "choice",
+     "q": "Як маршруту отримати ресурс, створений у lifespan в app.state?",
+     "options": [
+      "Через залежність з request.app.state",
+      "Імпортувати lifespan у маршрут",
+      "Передати параметром запиту ?state",
+      "Ніяк: lifespan закривається одразу"
+     ],
+     "a": 0,
+     "why": "Залежність get_x(request: Request) читає request.app.state — і її легко підмінити в тестах."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що буде із застосунком, де написано Depends(get_session()) з дужками?",
+     "options": [
+      "TypeError ще під час запуску",
+      "Сесія створиться на кожен запит",
+      "Сесія створиться один раз",
+      "422 на кожен запит"
+     ],
+     "a": 0,
+     "why": "Depends чекає функцію, а отримав генератор — він не викликається як залежність."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: видача більшої кількості, ніж є на складі. Який код?",
+     "options": [
+      "409 Conflict",
+      "404 Not Found",
+      "422 Unprocessable",
+      "403 Forbidden"
+     ],
+     "a": 0,
+     "why": "Запит правильний, але суперечить поточному стану."
+    }
+   ],
+   "typing": [
+    "Залежність із yield відкриває ресурс до yield і закриває після.",
+    "Код після yield за замовчуванням виконується після відповіді.",
+    "Перехоплений виняток у залежності треба підняти знову.",
+    "Пул з'єднань створюють один раз у lifespan.",
+    "Замість on_event використовують lifespan."
+   ],
+   "tasks": [
+    "Додайте в API складу фальшиву Session з методами commit, rollback, close, що друкують своє ім'я, і get_session із try/yield/except/finally. Підключіть до POST /items і подивіться в терміналі порядок викликів при успіху й при 409.",
+    "Зробіть commit таким, що піднімає RuntimeError. Порівняйте, що отримує клієнт у /docs без scope і зі scope=\"function\"."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: залежності з yield",
+     "url": "https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/",
+     "note": "try/finally, винятки, scope=\"function\"",
+     "main": true
+    },
+    {
+     "title": "FastAPI: lifespan",
+     "url": "https://fastapi.tiangolo.com/advanced/events/",
+     "note": "старт і зупинка застосунку, чому не on_event"
+    }
+   ]
+  },
+  {
+   "id": "structure",
+   "title": "Структура проєкту: APIRouter і налаштування",
+   "topic": "пакет app/, роутери з prefix і tags, deps.py, pydantic-settings",
+   "goal": "Розкласти API на модулі з роутерами й читати налаштування зі змінних середовища",
+   "theory": [
+    {
+     "recall": "Пригадайте: де створювати ресурс, спільний для всіх запитів, і як віддати його маршрутам?",
+     "a": "У lifespan при старті (наприклад, у app.state), а маршрутам — через залежність, що читає request.app.state."
+    },
+    {
+     "p": "Поки маршрутів п'ять, вони живуть у `main.py`. Коли їх п'ятдесят — розкладають по модулях за темами: речі, військовослужбовці, видачі. Кожен модуль має свій **`APIRouter`** — «маленький FastAPI» з тими самими декораторами — а `main.py` лише збирає їх докупи ([більші застосунки](https://fastapi.tiangolo.com/tutorial/bigger-applications/))."
+    },
+    {
+     "code": "app/\n├── __init__.py\n├── main.py      FastAPI + роутери\n├── config.py    налаштування\n├── deps.py      спільні залежності\n└── routers/\n    ├── __init__.py\n    ├── items.py\n    └── soldiers.py",
+     "lang": "text",
+     "title": "дерево проєкту"
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends\n\n\nclass ItemRepo:\n    def __init__(self):\n        self.rows = {1: \"Шолом\", 2: \"Плита\"}\n\n    def get(self, item_id: int):\n        return self.rows.get(item_id)\n\n\nREPO = ItemRepo()\n\n\ndef get_repo() -> ItemRepo:\n    return REPO\n\n\nRepoDep = Annotated[ItemRepo,\n                    Depends(get_repo)]",
+     "lang": "python",
+     "title": "app/deps.py"
+    },
+    {
+     "code": "from fastapi import APIRouter, HTTPException\n\nfrom app.deps import RepoDep\n\nrouter = APIRouter(prefix=\"/items\",\n                   tags=[\"items\"])\n\n\n@router.get(\"\")\ndef list_items(repo: RepoDep):\n    return list(repo.rows.values())\n\n\n@router.get(\"/{item_id}\")\ndef read_item(item_id: int, repo: RepoDep):\n    name = repo.get(item_id)\n    if name is None:\n        raise HTTPException(404, \"Немає\")\n    return name",
+     "lang": "python",
+     "title": "app/routers/items.py",
+     "hl": [
+      5,
+      6,
+      9,
+      14
+     ]
+    },
+    {
+     "code": "from fastapi import FastAPI\n\nfrom app.routers import items\n\napp = FastAPI(title=\"Склад спорядження\")\napp.include_router(items.router)",
+     "lang": "python",
+     "title": "app/main.py",
+     "hl": [
+      6
+     ]
+    },
+    {
+     "code": "→ GET /items\n← 200 [\"Шолом\",\"Плита\"]\n→ GET /items/2\n← 200 \"Плита\"\n→ GET /items/\n← 307",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "ul": [
+      "`prefix=\"/items\"` додається до кожного шляху роутера; `tags` групують маршрути в /docs.",
+      "`@router.get(\"\")` дає рівно `/items`. З `\"/\"` вийшло б `/items/`, а запит `/items` отримав би **307** — переадресацію на адресу зі скісною.",
+      "Імпорти йдуть **в один бік**: `main` → `routers` → `deps`. Роутери не імпортують `main` — інакше коло імпортів (пригадайте курс модульності).",
+      "Роутер теж приймає `dependencies=[Depends(…)]`: перевірка ключа на всі маршрути `/admin` — одним рядком."
+     ]
+    },
+    {
+     "h": "Налаштування зі змінних середовища"
+    },
+    {
+     "p": "Адресу бази, ключі, режим налагодження не пишуть у код: вони різні на ноутбуці й на сервері й бувають секретними. Їх читають зі **змінних середовища** класом `BaseSettings` з пакета `pydantic-settings` ([налаштування](https://fastapi.tiangolo.com/advanced/settings/)):"
+    },
+    {
+     "code": "from functools import lru_cache\n\nfrom pydantic_settings import BaseSettings\nfrom pydantic_settings import (\n    SettingsConfigDict)\n\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(\n        env_file=\".env\")\n    app_name: str = \"Склад\"\n    db_url: str\n    debug: bool = False\n\n\n@lru_cache\ndef get_settings() -> Settings:\n    return Settings()",
+     "lang": "python",
+     "title": "app/config.py",
+     "hl": [
+      8,
+      12,
+      16
+     ]
+    },
+    {
+     "code": "DB_URL=postgresql://localhost/sklad\nDEBUG=1",
+     "lang": "text",
+     "title": ".env"
+    },
+    {
+     "ul": [
+      "Змінні читаються **без огляду на регістр**: `DB_URL` → `db_url`, і типи перевіряються, як у будь-якій моделі: `DEBUG=1` → `True`.",
+      "Немає `db_url` ні в середовищі, ні в `.env` — `Settings()` впаде з `ValidationError` одразу при старті, а не на першому запиті до бази.",
+      "`@lru_cache` — щоб `.env` читався один раз, а не на кожен виклик. Маршрутам налаштування віддають залежністю `Depends(get_settings)` — і підміняють у тестах."
+     ]
+    },
+    {
+     "warn": "❌ `.env` із паролями в git → ✅ `.env` у `.gitignore`, а в репозиторії — `.env.example` з назвами змінних без значень."
+    },
+    {
+     "recall": "Пригадайте: чим відрізняються @router.get(\"\") і @router.get(\"/\") у роутері з prefix=\"/items\"?",
+     "a": "\"\" дає шлях /items; \"/\" — /items/, і запит на /items отримає 307-переадресацію."
+    }
+   ],
+   "examples": [
+    {
+     "w": "router = APIRouter(prefix=\"/items\", tags=[\"items\"])",
+     "note": "роутер теми «речі»"
+    },
+    {
+     "w": "@router.get(\"\")",
+     "note": "рівно /items, без скісної"
+    },
+    {
+     "w": "app.include_router(items.router)",
+     "note": "підключити роутер"
+    },
+    {
+     "w": "app.include_router(r, prefix=\"/v1\")",
+     "note": "префікс при підключенні"
+    },
+    {
+     "w": "APIRouter(dependencies=[Depends(check_key)])",
+     "note": "перевірка на всі маршрути роутера"
+    },
+    {
+     "w": "class Settings(BaseSettings): db_url: str",
+     "note": "обов'язкова змінна середовища"
+    },
+    {
+     "w": "@lru_cache def get_settings()",
+     "note": "прочитати налаштування один раз"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /soldiers?",
+     "code": "from fastapi import APIRouter, FastAPI\n\nrouter = APIRouter(prefix=\"/soldiers\")\n\n\n@router.get(\"/\")\ndef list_soldiers():\n    return []\n\n\napp = FastAPI()\napp.include_router(router)",
+     "lang": "python",
+     "options": [
+      "307 переадресація на /soldiers/",
+      "200 і порожній список",
+      "404 шлях не знайдено",
+      "405 метод не дозволено"
+     ],
+     "a": 0,
+     "why": "\"/\" з префіксом дає /soldiers/; запит без скісної переадресовується."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /soldiers?",
+     "code": "from fastapi import APIRouter, FastAPI\n\nrouter = APIRouter(prefix=\"/soldiers\")\n\n\n@router.get(\"\")\ndef list_soldiers():\n    return []\n\n\napp = FastAPI()\napp.include_router(router)",
+     "lang": "python",
+     "options": [
+      "200 []",
+      "307 []",
+      "404 []",
+      "422 []"
+     ],
+     "a": 0,
+     "why": "Порожній шлях \"\" з префіксом дає рівно /soldiers."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /v1/items?",
+     "code": "from fastapi import APIRouter, FastAPI\n\nrouter = APIRouter(prefix=\"/items\")\n\n\n@router.get(\"\")\ndef list_items():\n    return \"речі\"\n\n\napp = FastAPI()\napp.include_router(router, prefix=\"/v1\")",
+     "lang": "python",
+     "options": [
+      "200 \"речі\"",
+      "404 Not Found",
+      "307 Redirect",
+      "405 Not Allowed"
+     ],
+     "a": 0,
+     "why": "Префікси складаються: /v1 при підключенні + /items роутера."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /admin/stats без заголовка X-API-Key?",
+     "code": "from typing import Annotated\n\nfrom fastapi import APIRouter, Depends\nfrom fastapi import FastAPI, Header\nfrom fastapi import HTTPException\n\nApiKey = Annotated[str, Header()]\n\n\ndef check_key(x_api_key: ApiKey):\n    if x_api_key != \"secret\":\n        raise HTTPException(403, \"Ні\")\n\n\nrouter = APIRouter(\n    prefix=\"/admin\",\n    dependencies=[Depends(check_key)])\n\n\n@router.get(\"/stats\")\ndef stats():\n    return \"ok\"\n\n\napp = FastAPI()\napp.include_router(router)",
+     "lang": "python",
+     "options": [
+      "422 missing",
+      "403 Ні",
+      "200 ok",
+      "401 Not authenticated"
+     ],
+     "a": 0,
+     "why": "Заголовок обов'язковий — без нього перевірка схеми дає 422 ще до тіла check_key."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "import os\n\nfrom pydantic_settings import BaseSettings\n\nos.environ[\"DB_URL\"] = \"postgresql://db/s\"\nos.environ[\"DEBUG\"] = \"1\"\n\n\nclass Settings(BaseSettings):\n    db_url: str\n    debug: bool = False\n\n\ns = Settings()\nprint(s.db_url, s.debug)",
+     "lang": "python",
+     "options": [
+      "postgresql://db/s True",
+      "postgresql://db/s 1",
+      "None False",
+      "postgresql://db/s False"
+     ],
+     "a": 0,
+     "why": "DB_URL читається в db_url без огляду на регістр, а \"1\" перетворюється на True."
+    },
+    {
+     "type": "choice",
+     "q": "Змінної DB_URL немає ні в середовищі, ні в .env, а db_url: str без значення за замовчуванням. Коли з'явиться помилка?",
+     "options": [
+      "Одразу при створенні Settings()",
+      "При першому запиті до бази",
+      "Ніколи: db_url стане None",
+      "Лише в режимі debug"
+     ],
+     "a": 0,
+     "why": "Settings — Pydantic-модель: обов'язкове поле без значення дає ValidationError одразу."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо @lru_cache над get_settings?",
+     "options": [
+      "Щоб читати .env лише один раз",
+      "Щоб налаштування стали секретними",
+      "Щоб FastAPI знайшов налаштування",
+      "Щоб змінні мали верхній регістр"
+     ],
+     "a": 0,
+     "why": "Без кешу кожен виклик знову читав би середовище і файл .env."
+    },
+    {
+     "type": "choice",
+     "q": "Роутер items.py імпортує app з main.py, а main.py імпортує роутер. Що буде?",
+     "options": [
+      "Коло імпортів і помилка запуску",
+      "Усе працює, Python розбереться",
+      "FastAPI сам розірве коло",
+      "Маршрути підключаться двічі"
+     ],
+     "a": 0,
+     "why": "Імпорти — в один бік: main → routers → deps. Спільне — у deps.py."
+    },
+    {
+     "type": "gap",
+     "q": "Підключити роутер до застосунку: app.◻(items.router)",
+     "a": [
+      "include_router"
+     ],
+     "why": "include_router додає всі маршрути роутера з його prefix і tags."
+    },
+    {
+     "type": "choice",
+     "q": "Що дає tags=[\"items\"] у APIRouter?",
+     "options": [
+      "Групу маршрутів у /docs",
+      "Префікс /items у шляху",
+      "Перевірку прав доступу",
+      "Окремий процес сервера"
+     ],
+     "a": 0,
+     "why": "tags — лише для документації; шлях задає prefix."
+    },
+    {
+     "type": "choice",
+     "q": "Як правильно тримати .env із паролем бази?",
+     "options": [
+      "У .gitignore, у git — .env.example",
+      "У git, щоб колеги мали пароль",
+      "У коді як значення за замовчуванням",
+      "У tags роутера для /docs"
+     ],
+     "a": 0,
+     "why": "Секрети не потрапляють у репозиторій; .env.example показує, які змінні потрібні."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що виведе GET /items, якщо залежність із yield додає \"close\" у log після yield, а маршрут повертає log?",
+     "options": [
+      "Без \"close\": він після відповіді",
+      "З \"close\" у кінці списку",
+      "Порожній список []",
+      "Помилку 500"
+     ],
+     "a": 0,
+     "why": "Код після yield за замовчуванням виконується після відправлення відповіді."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як віддати маршруту репозиторій так, щоб його можна було підмінити в тестах?",
+     "options": [
+      "Через Depends(get_repo)",
+      "Імпортом глобального REPO",
+      "Створенням у тілі маршруту",
+      "Через параметр запиту ?repo"
+     ],
+     "a": 0,
+     "why": "Залежність — точка підміни: dependency_overrides[get_repo]."
+    }
+   ],
+   "typing": [
+    "APIRouter — маленький FastAPI для однієї теми.",
+    "Префікс роутера додається до кожного його шляху.",
+    "Імпорти йдуть в один бік: main, роутери, залежності.",
+    "Налаштування читають зі змінних середовища.",
+    "Файл .env із паролями не потрапляє в git."
+   ],
+   "tasks": [
+    "Розкладіть API складу на пакет app/: main.py, deps.py, routers/items.py і routers/soldiers.py (список військовослужбовців). Запустіть fastapi dev app/main.py і перевірте в /docs, що маршрути згруповані за tags.",
+    "Встановіть pydantic-settings, додайте config.py з Settings (app_name, db_url без значення за замовчуванням) і .env. Покажіть app_name у title застосунку. Видаліть DB_URL з .env і подивіться, що станеться при старті."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: більші застосунки",
+     "url": "https://fastapi.tiangolo.com/tutorial/bigger-applications/",
+     "note": "APIRouter, prefix, tags, dependencies на роутері",
+     "main": true
+    },
+    {
+     "title": "FastAPI: налаштування й змінні середовища",
+     "url": "https://fastapi.tiangolo.com/advanced/settings/",
+     "note": "BaseSettings, .env, lru_cache, підміна в тестах"
+    }
+   ]
+  },
+  {
+   "id": "async",
+   "title": "async def чи def",
+   "topic": "цикл подій, пул потоків, блокуючі виклики, BackgroundTasks",
+   "goal": "Обирати async def чи def для маршруту й не блокувати сервер",
+   "theory": [
+    {
+     "recall": "Пригадайте: навіщо @lru_cache над get_settings?",
+     "a": "Щоб змінні середовища й .env читалися один раз, а не на кожен виклик."
+    },
+    {
+     "p": "Сервер FastAPI обслуговує багато запитів одним **циклом подій** (event loop): поки один запит **чекає** (на базу, мережу), цикл перемикається на інший. Перемикання можливе лише в точці `await`. Звідси правило: функція `async def` працює **прямо в циклі**, а звичайна `def` — в окремому **пулі потоків**, щоб не заважати циклу ([документація](https://fastapi.tiangolo.com/async/))."
+    },
+    {
+     "code": "import asyncio\nimport time\n\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/bad\")\nasync def bad():\n    time.sleep(0.2)  # блокує цикл\n\n\n@app.get(\"/good\")\nasync def good():\n    await asyncio.sleep(0.2)\n\n\n@app.get(\"/sync\")\ndef sync():\n    time.sleep(0.2)  # у пулі потоків",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      11,
+      16,
+      21
+     ]
+    },
+    {
+     "p": "П'ять одночасних запитів до кожного маршруту (виміряно на FastAPI 0.163, по три прогони):"
+    },
+    {
+     "table": [
+      [
+       "Маршрут",
+       "5 запитів разом"
+      ],
+      [
+       "`/bad`",
+       "1,0 с — по черзі"
+      ],
+      [
+       "`/good`",
+       "0,2 с"
+      ],
+      [
+       "`/sync`",
+       "0,2 с"
+      ]
+     ]
+    },
+    {
+     "img": "img/09-loop.svg",
+     "alt": "Часова шкала від 0 до 1 секунди. async def із time.sleep: п'ять червоних смужок ідуть одна за одною, разом 1 секунда — цикл заблоковано. async def з await asyncio.sleep: п'ять зелених смужок одночасно, 0,2 секунди. def із time.sleep: п'ять синіх смужок одночасно в різних потоках, 0,2 секунди.",
+     "caption": "Що бачать п'ять клієнтів одночасно"
+    },
+    {
+     "p": "`time.sleep` в `async def` зупинив **увесь сервер**: поки один запит «спить», решта чекають. Те саме роблять будь-які блокуючі виклики: `requests.get`, синхронний драйвер бази, читання великого файла."
+    },
+    {
+     "h": "Як обирати"
+    },
+    {
+     "table": [
+      [
+       "Що всередині",
+       "Оголошуйте"
+      ],
+      [
+       "бібліотеки з `await`",
+       "`async def`"
+      ],
+      [
+       "блокуючі бібліотеки",
+       "`def`"
+      ],
+      [
+       "нічого не чекає",
+       "`async def`"
+      ],
+      [
+       "не знаєте",
+       "`def`"
+      ]
+     ]
+    },
+    {
+     "p": "Так радить сама документація: «не знаєте — пишіть звичайний `def`». Правило стосується й залежностей: `def`-залежність теж виконується в пулі потоків."
+    },
+    {
+     "note": "Пул потоків за замовчуванням — **40** потоків (обмежувач бібліотеки AnyIO, на якій стоїть Starlette). 50 одночасних запитів до `/sync` пройшли за 0,46 с — дві «хвилі»: 40 і ще 10."
+    },
+    {
+     "p": "Потрібна блокуюча бібліотека всередині `async def`? Винесіть виклик у пул явно:"
+    },
+    {
+     "code": "import time\n\nfrom fastapi import FastAPI\nfrom fastapi.concurrency import (\n    run_in_threadpool)\n\napp = FastAPI()\n\n\ndef old_report() -> str:\n    time.sleep(0.2)  # стара бібліотека\n    return \"звіт\"\n\n\n@app.get(\"/report\")\nasync def report():\n    return await run_in_threadpool(\n        old_report)",
+     "lang": "python",
+     "title": "report.py",
+     "hl": [
+      17,
+      18
+     ]
+    },
+    {
+     "code": "→ GET /report\n← 200 \"звіт\"",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "h": "Фонові задачі"
+    },
+    {
+     "p": "Щось коротке, що клієнт не мусить чекати — лист, запис у журнал, — додають у `BackgroundTasks`: задача виконається **після** відправлення відповіді, у тому ж процесі ([фонові задачі](https://fastapi.tiangolo.com/tutorial/background-tasks/))."
+    },
+    {
+     "code": "from fastapi import BackgroundTasks, FastAPI\n\napp = FastAPI()\nlog = []\n\n\ndef notify(item: str):\n    log.append(f\"видано: {item}\")\n\n\n@app.post(\"/issue\")\ndef issue(tasks: BackgroundTasks):\n    tasks.add_task(notify, \"Шолом\")\n    return \"ok\"",
+     "lang": "python",
+     "title": "issue.py",
+     "hl": [
+      12,
+      13
+     ]
+    },
+    {
+     "code": "→ POST /issue\n← 200 \"ok\"",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "warn": "❌ Важкі чи критичні задачі в `BackgroundTasks` → перезапуск сервера — і задача зникла, ніхто не повторить. ✅ Для них — черга задач (Celery з брокером RabbitMQ чи Redis): окремі процеси, повтори, кілька серверів. Про це — окремі курси."
+    },
+    {
+     "recall": "Пригадайте: що станеться з іншими запитами, якщо в async def викликати requests.get до повільного сервісу?",
+     "a": "Вони чекатимуть: блокуючий виклик зупиняє цикл подій, і сервер не обслуговує нікого, доки виклик не завершиться."
+    }
+   ],
+   "examples": [
+    {
+     "w": "async def good(): await asyncio.sleep(0.2)",
+     "note": "чекає, не блокуючи цикл"
+    },
+    {
+     "w": "async def bad(): time.sleep(0.2)",
+     "note": "блокує весь сервер"
+    },
+    {
+     "w": "def sync(): time.sleep(0.2)",
+     "note": "виконується в пулі потоків"
+    },
+    {
+     "w": "await run_in_threadpool(old_report)",
+     "note": "блокуючий виклик з async def"
+    },
+    {
+     "w": "tasks.add_task(notify, \"Шолом\")",
+     "note": "після відправлення відповіді"
+    },
+    {
+     "w": "def get_db(): …",
+     "note": "def-залежність теж іде в пул потоків"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "number",
+     "q": "Маршрут async def з time.sleep(0.2). П'ять запитів надійшли одночасно. Приблизно за скільки секунд отримає відповідь останній клієнт?",
+     "a": 1,
+     "tol": 0.15,
+     "unit": " с",
+     "why": "Блокуючий виклик зупиняє цикл: запити обслуговуються по черзі, 5 × 0,2 = 1,0 с."
+    },
+    {
+     "type": "number",
+     "q": "Маршрут def з time.sleep(0.2). П'ять запитів надійшли одночасно. Приблизно за скільки секунд отримає відповідь останній клієнт?",
+     "a": 0.2,
+     "tol": 0.1,
+     "unit": " с",
+     "why": "def виконується в пулі потоків (40 за замовчуванням) — усі п'ять сплять паралельно."
+    },
+    {
+     "type": "choice",
+     "q": "Де виконується маршрут, оголошений через звичайний def?",
+     "options": [
+      "В окремому потоці з пулу",
+      "Прямо в циклі подій",
+      "В окремому процесі сервера",
+      "У фоновій задачі після відповіді"
+     ],
+     "a": 0,
+     "why": "FastAPI запускає def-функції в пулі потоків, щоб вони не блокували цикл."
+    },
+    {
+     "type": "choice",
+     "q": "Бібліотека бази має лише синхронний API (без await). Як оголосити маршрут?",
+     "options": [
+      "def — піде в пул потоків",
+      "async def — так швидше",
+      "async def з time.sleep",
+      "Будь-як, різниці немає"
+     ],
+     "a": 0,
+     "why": "Блокуючий виклик у def не заважає циклу; в async def — заблокує сервер."
+    },
+    {
+     "type": "choice",
+     "q": "Бібліотека має асинхронний API: await client.get(...). Як оголосити маршрут?",
+     "options": [
+      "async def з await",
+      "def з await",
+      "def без await",
+      "async def без await"
+     ],
+     "a": 0,
+     "why": "await можливий лише всередині async def."
+    },
+    {
+     "type": "choice",
+     "q": "Ви не впевнені, чи блокує бібліотека. Що радить документація FastAPI?",
+     "options": [
+      "Звичайний def",
+      "async def завжди",
+      "async def + sleep",
+      "Окремий процес"
+     ],
+     "a": 0,
+     "why": "def у гіршому разі трохи повільніший; заблокований цикл — значно гірше."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /report?",
+     "code": "import time\n\nfrom fastapi import FastAPI\nfrom fastapi.concurrency import (\n    run_in_threadpool)\n\napp = FastAPI()\n\n\ndef slow() -> int:\n    time.sleep(0.1)\n    return 42\n\n\n@app.get(\"/report\")\nasync def report():\n    return await run_in_threadpool(slow)",
+     "lang": "python",
+     "options": [
+      "200 42",
+      "200 null",
+      "500 Server Error",
+      "422 int_parsing"
+     ],
+     "a": 0,
+     "why": "run_in_threadpool виконує slow у пулі потоків і повертає її результат."
+    },
+    {
+     "type": "choice",
+     "q": "Коли виконується задача, додана через tasks.add_task(...)?",
+     "options": [
+      "Після відправлення відповіді",
+      "До виклику маршруту",
+      "Одразу в момент add_task",
+      "За розкладом наступного дня"
+     ],
+     "a": 0,
+     "why": "BackgroundTasks запускаються, коли відповідь уже пішла клієнту."
+    },
+    {
+     "type": "choice",
+     "q": "Що поверне запит POST /issue?",
+     "code": "from fastapi import BackgroundTasks, FastAPI\n\napp = FastAPI()\nlog = []\n\n\n@app.post(\"/issue\")\ndef issue(tasks: BackgroundTasks):\n    tasks.add_task(log.append, \"лист\")\n    return log",
+     "lang": "python",
+     "options": [
+      "200 []",
+      "200 [\"лист\"]",
+      "202 [\"лист\"]",
+      "500 Server Error"
+     ],
+     "a": 0,
+     "why": "Список серіалізується у відповідь до запуску фонової задачі — \"лист\" додасться пізніше."
+    },
+    {
+     "type": "choice",
+     "q": "Сервер перезапустили одразу після відповіді. Що з задачею з BackgroundTasks?",
+     "options": [
+      "Зникла: ніхто її не повторить",
+      "Виконається після перезапуску",
+      "Перейде на інший сервер",
+      "Повториться тричі автоматично"
+     ],
+     "a": 0,
+     "why": "BackgroundTasks живуть у пам'яті процесу. Для надійності — черга задач (Celery)."
+    },
+    {
+     "type": "gap",
+     "q": "Блокуючу функцію з async def викликають так: await ◻(old_report)",
+     "a": [
+      "run_in_threadpool"
+     ],
+     "why": "run_in_threadpool з fastapi.concurrency виносить виклик у пул потоків."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: що поверне GET /items, якщо роутер має prefix=\"/items\" і маршрут @router.get(\"/\")?",
+     "options": [
+      "307 переадресація на /items/",
+      "200 і результат маршруту",
+      "404 маршрут не знайдено",
+      "405 метод не дозволено"
+     ],
+     "a": 0,
+     "why": "\"/\" з префіксом — це /items/; без скісної — 307."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як правильно створити пул з'єднань на весь застосунок?",
+     "options": [
+      "У lifespan, при старті застосунку",
+      "У def-залежності на кожен запит",
+      "У BackgroundTasks після відповіді",
+      "У моделі Pydantic як поле"
+     ],
+     "a": 0,
+     "why": "Ресурс застосунку — один раз при старті, закрити при зупинці."
+    }
+   ],
+   "typing": [
+    "Функція async def виконується прямо в циклі подій.",
+    "Звичайна def виконується в пулі потоків.",
+    "Блокуючий виклик в async def зупиняє весь сервер.",
+    "Якщо не знаєте, що обрати, пишіть звичайний def.",
+    "Фонові задачі виконуються після відправлення відповіді."
+   ],
+   "tasks": [
+    "Додайте в API три маршрути /bad, /good, /sync з цієї теми. Відкрийте /docs у трьох вкладках і майже одночасно запустіть /bad у кожній — порівняйте час відповіді з /sync.",
+    "Додайте до POST /items/{item_id}/issue фонову задачу, що дописує рядок «видано: …» у файл issues.log. Перевірте, що відповідь приходить, а рядок з'являється у файлі."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: конкурентність і async / await",
+     "url": "https://fastapi.tiangolo.com/async/",
+     "note": "коли async def, коли def — з прикладом про бургери",
+     "main": true
+    },
+    {
+     "title": "FastAPI: фонові задачі",
+     "url": "https://fastapi.tiangolo.com/tutorial/background-tasks/",
+     "note": "BackgroundTasks і коли брати Celery"
+    }
+   ]
+  },
+  {
+   "id": "security",
+   "title": "Безпека: хто ви і що вам можна",
+   "topic": "API-ключ, Bearer-токен, поточний користувач, 401 і 403, ролі, CORS",
+   "goal": "Закрити маршрути токеном, визначати поточного користувача й перевіряти роль",
+   "theory": [
+    {
+     "recall": "Пригадайте: де виконується залежність, оголошена звичайним def?",
+     "a": "У пулі потоків, як і def-маршрути, — тож блокуючий виклик у ній не зупинить цикл подій."
+    },
+    {
+     "p": "Два різні питання. **Автентифікація** — хто ви? Не відомо → **401**. **Авторизація** — що вам можна? Відомо, але не можна → **403**. У FastAPI обидва — це звичайні залежності: спершу «дістати облікові дані», потім «знайти користувача», потім «перевірити роль» ([безпека](https://fastapi.tiangolo.com/tutorial/security/))."
+    },
+    {
+     "table": [
+      [
+       "Клас із fastapi.security",
+       "Що читає"
+      ],
+      [
+       "`APIKeyHeader`",
+       "ключ із заголовка"
+      ],
+      [
+       "`HTTPBearer`",
+       "`Authorization: Bearer …`"
+      ],
+      [
+       "`OAuth2PasswordBearer`",
+       "те саме + вхід у /docs"
+      ]
+     ]
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import HTTPException\nfrom fastapi.security import HTTPBearer\nfrom fastapi.security import (\n    HTTPAuthorizationCredentials as Creds)\n\napp = FastAPI()\nbearer = HTTPBearer()\nCredDep = Annotated[Creds, Depends(bearer)]\nTOKENS = {\n    \"ivan\": {\"name\": \"Іван\",\n               \"role\": \"комірник\"},\n    \"petro\": {\"name\": \"Петро\",\n                \"role\": \"солдат\"},\n}\nBEARER = {\"WWW-Authenticate\": \"Bearer\"}\n\n\ndef current_user(cred: CredDep) -> dict:\n    user = TOKENS.get(cred.credentials)\n    if user is None:\n        raise HTTPException(\n            401, \"Невірний токен\",\n            headers=BEARER)\n    return user\n\n\nUserDep = Annotated[dict,\n                    Depends(current_user)]\n\n\ndef keeper(user: UserDep) -> dict:\n    if user[\"role\"] != \"комірник\":\n        raise HTTPException(\n            403, \"Лише комірник\")\n    return user\n\n\nKeeperDep = Annotated[dict, Depends(keeper)]\n\n\n@app.get(\"/me\")\ndef me(user: UserDep):\n    return user[\"name\"]\n\n\n@app.post(\"/issue\")\ndef issue(user: KeeperDep):\n    return f\"Видав {user['name']}\"",
+     "lang": "python",
+     "title": "main.py",
+     "hl": [
+      10,
+      21,
+      22,
+      34,
+      36
+     ]
+    },
+    {
+     "code": "→ GET /me\n← 401 {\"detail\":\"Not authenticated\"}\n→ GET /me | Authorization: Bearer xxx\n← 401 {\"detail\":\"Невірний токен\"}\n→ GET /me | Authorization: Bearer petro\n← 200 \"Петро\"\n→ POST /issue | Authorization: Bearer petro\n← 403 {\"detail\":\"Лише комірник\"}\n→ POST /issue | Authorization: Bearer ivan\n← 200 \"Видав Іван\"",
+     "lang": "text",
+     "title": "запит і відповідь"
+    },
+    {
+     "ul": [
+      "`HTTPBearer` сам відповідає **401** `Not authenticated`, якщо заголовка немає або схема не `Bearer` — маршрут навіть не викликається.",
+      "`current_user` перетворює токен на користувача; невідомий токен — теж 401, із заголовком `WWW-Authenticate: Bearer` (так вимагає стандарт HTTP).",
+      "`keeper` будується **поверх** `current_user`: спершу «хто», потім «чи можна». Будь-який маршрут закривається одним аргументом `user: KeeperDep`."
+     ]
+    },
+    {
+     "warn": "❌ У старих статтях: «без токена FastAPI повертає 403». ✅ З версії 0.122 класи безпеки відповідають **401**, коли облікових даних немає ([список змін](https://fastapi.tiangolo.com/release-notes/)). Тести, що чекали 403, після оновлення впадуть."
+    },
+    {
+     "h": "Звідки береться токен"
+    },
+    {
+     "p": "У прикладі токени — словник. Насправді користувач надсилає логін і пароль на `/token`, сервер перевіряє **хеш** пароля і видає підписаний **JWT** з терміном дії. Документація FastAPI радить для хешів пакет `pwdlib` з алгоритмом **Argon2**, а для JWT — `PyJWT` ([OAuth2 з JWT](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)). Залежності `current_user` і `keeper` при цьому не змінюються — змінюється лише перевірка всередині."
+    },
+    {
+     "warn": "❌ Паролі в базі відкритим текстом чи «зашифровані» оборотно → ✅ лише хеш (Argon2), а порівняння — функцією бібліотеки, не `==`."
+    },
+    {
+     "h": "CORS — не захист"
+    },
+    {
+     "p": "Фронтенд на іншій адресі (`https://sklad.example` → API на `https://api.sklad.example`) браузер не пустить без дозволу **CORS** — `CORSMiddleware` зі списком дозволених джерел ([CORS](https://fastapi.tiangolo.com/tutorial/cors/)):"
+    },
+    {
+     "code": "from fastapi import FastAPI\nfrom fastapi.middleware.cors import (\n    CORSMiddleware)\n\napp = FastAPI()\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=[\"https://sklad.example\"],\n    allow_methods=[\"*\"],\n    allow_headers=[\"*\"],\n)",
+     "lang": "python",
+     "title": "cors.py",
+     "hl": [
+      8
+     ]
+    },
+    {
+     "note": "Перевірено запуском: запит із чужого джерела **сервер виконав** (200) — лише не додав дозвільний заголовок, і браузер не віддав відповідь сторінці. curl чи скрипт CORS не помічають узагалі. Тому CORS — правило для браузера, а доступ закривають токеном."
+    },
+    {
+     "recall": "Пригадайте: користувач із дійсним токеном, але з роллю «солдат», просить видачу, дозволену лише комірнику. Який код?",
+     "a": "403: хто він — відомо (автентифікація пройдена), але дії не дозволено (авторизація)."
+    }
+   ],
+   "examples": [
+    {
+     "w": "bearer = HTTPBearer()",
+     "note": "читає Authorization: Bearer …"
+    },
+    {
+     "w": "APIKeyHeader(name=\"X-API-Key\")",
+     "note": "ключ із заголовка"
+    },
+    {
+     "w": "def current_user(cred: CredDep) -> dict",
+     "note": "токен → користувач або 401"
+    },
+    {
+     "w": "headers={\"WWW-Authenticate\": \"Bearer\"}",
+     "note": "заголовок до відповіді 401"
+    },
+    {
+     "w": "def keeper(user: UserDep)",
+     "note": "роль поверх користувача, інакше 403"
+    },
+    {
+     "w": "def issue(user: KeeperDep)",
+     "note": "маршрут лише для комірника"
+    },
+    {
+     "w": "allow_origins=[\"https://sklad.example\"]",
+     "note": "CORS: явний список джерел"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що поверне запит GET /me без заголовка Authorization?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi.security import HTTPBearer\n\napp = FastAPI()\nbearer = HTTPBearer()\n\n\n@app.get(\"/me\")\ndef me(cred=Depends(bearer)):\n    return cred.credentials",
+     "lang": "python",
+     "options": [
+      "401 {\"detail\":\"Not authenticated\"}",
+      "403 {\"detail\":\"Not authenticated\"}",
+      "422 {\"detail\":\"Not authenticated\"}",
+      "200 {\"detail\":\"Not authenticated\"}"
+     ],
+     "a": 0,
+     "why": "З FastAPI 0.122 класи безпеки без облікових даних повертають 401 (раніше — 403)."
+    },
+    {
+     "type": "choice",
+     "q": "Запит GET /me із заголовком Authorization: Basic abc. Що у відповіді?",
+     "code": "from fastapi import Depends, FastAPI\nfrom fastapi.security import HTTPBearer\n\napp = FastAPI()\nbearer = HTTPBearer()\n\n\n@app.get(\"/me\")\ndef me(cred=Depends(bearer)):\n    return cred.credentials",
+     "lang": "python",
+     "options": [
+      "401 Not authenticated",
+      "200 \"abc\"",
+      "403 Forbidden",
+      "422 missing"
+     ],
+     "a": 0,
+     "why": "HTTPBearer приймає лише схему Bearer; інша — те саме, що відсутній токен."
+    },
+    {
+     "type": "choice",
+     "q": "Запит GET /me із заголовком Authorization: Bearer abc. Що у відповіді?",
+     "code": "from fastapi import Depends, FastAPI\nfrom fastapi.security import HTTPBearer\n\napp = FastAPI()\nbearer = HTTPBearer()\n\n\n@app.get(\"/me\")\ndef me(cred=Depends(bearer)):\n    return cred.credentials",
+     "lang": "python",
+     "options": [
+      "200 \"abc\"",
+      "200 \"Bearer abc\"",
+      "401 Not authenticated",
+      "200 {\"token\":\"abc\"}"
+     ],
+     "a": 0,
+     "why": "credentials — сам токен без слова Bearer; схема лежить у cred.scheme."
+    },
+    {
+     "type": "choice",
+     "q": "Запит GET /k із заголовком x-api-key: s. Що у відповіді?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi.security import APIKeyHeader\n\napp = FastAPI()\nkey = APIKeyHeader(name=\"X-API-Key\")\n\n\n@app.get(\"/k\")\ndef k(v: Annotated[str, Depends(key)]):\n    return v",
+     "lang": "python",
+     "options": [
+      "200 \"s\"",
+      "401 Not authenticated",
+      "422 missing",
+      "403 Forbidden"
+     ],
+     "a": 0,
+     "why": "Назви HTTP-заголовків не залежать від регістру: X-API-Key і x-api-key — те саме."
+    },
+    {
+     "type": "choice",
+     "q": "Клієнт надіслав дійсний токен солдата на маршрут лише для комірника. Який код?",
+     "options": [
+      "403 Forbidden",
+      "401 Unauthorized",
+      "404 Not Found",
+      "422 Unprocessable"
+     ],
+     "a": 0,
+     "why": "Хто він — відомо (не 401); дії не дозволено — 403."
+    },
+    {
+     "type": "choice",
+     "q": "Клієнт надіслав токен, якого немає серед виданих. Який код?",
+     "options": [
+      "401 Unauthorized",
+      "403 Forbidden",
+      "404 Not Found",
+      "409 Conflict"
+     ],
+     "a": 0,
+     "why": "Невідомий токен — «не знаю, хто ви»: 401 з WWW-Authenticate."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо keeper приймає UserDep, а не перевіряє токен сам?",
+     "options": [
+      "Перевірку токена не дублюють",
+      "Так вимагає HTTPBearer",
+      "Щоб keeper став асинхронним",
+      "Щоб /docs показав роль"
+     ],
+     "a": 0,
+     "why": "Ланцюжок залежностей: «хто» — один раз у current_user, «чи можна» — поверх нього."
+    },
+    {
+     "type": "choice",
+     "q": "Як зберігати паролі користувачів?",
+     "options": [
+      "Лише хеш, наприклад Argon2",
+      "Відкритим текстом у базі",
+      "Шифром, що можна розшифрувати",
+      "У JWT-токені користувача"
+     ],
+     "a": 0,
+     "why": "Хеш не розшифровується; Argon2 через pwdlib радить документація FastAPI."
+    },
+    {
+     "type": "choice",
+     "q": "API без токенів, але з CORSMiddleware лише для https://sklad.example. Чи захищене воно від скрипта на іншому сервері?",
+     "options": [
+      "Ні: CORS діє лише в браузері",
+      "Так: сервер відхилить запит",
+      "Так: буде 403 Forbidden",
+      "Лише для POST-запитів"
+     ],
+     "a": 0,
+     "why": "CORS лише не дає браузеру віддати відповідь сторінці; curl і скрипти його не помічають."
+    },
+    {
+     "type": "choice",
+     "q": "Чому allow_origins=[\"*\"] не підійде фронтенду, що надсилає Bearer-токен?",
+     "options": [
+      "\"*\" не дозволяє облікові дані",
+      "\"*\" дозволяє лише GET-запити",
+      "\"*\" вимикає перевірку токена",
+      "\"*\" працює лише на localhost"
+     ],
+     "a": 0,
+     "why": "За документацією, «*» виключає запити з cookies і Authorization — потрібен явний список."
+    },
+    {
+     "type": "gap",
+     "q": "Заголовок, який додають до відповіді 401 для Bearer-токенів: ◻: Bearer",
+     "a": [
+      "WWW-Authenticate"
+     ],
+     "why": "Стандарт HTTP: 401 підказує клієнту схему автентифікації."
+    },
+    {
+     "type": "order",
+     "q": "Порядок перевірок для POST /issue з KeeperDep",
+     "items": [
+      "HTTPBearer дістає токен із заголовка",
+      "current_user шукає користувача",
+      "keeper перевіряє роль",
+      "Маршрут issue виконує видачу"
+     ],
+     "why": "Кожна залежність може зупинити запит: 401, 401, 403."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: де виконується маршрут async def, у якому викликано time.sleep(1)?",
+     "options": [
+      "У циклі подій — і блокує його",
+      "У пулі потоків — без шкоди",
+      "У фоновій задачі після відповіді",
+      "В окремому процесі сервера"
+     ],
+     "a": 0,
+     "why": "async def працює прямо в циклі; блокуючий виклик зупиняє всі запити."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як закрити перевіркою ключа всі маршрути роутера /admin одним рядком?",
+     "options": [
+      "APIRouter(dependencies=[Depends(check_key)])",
+      "APIRouter(tags=[\"check_key\"])",
+      "APIRouter(prefix=check_key)",
+      "app.include_router(check_key)"
+     ],
+     "a": 0,
+     "why": "dependencies у роутері виконуються перед кожним його маршрутом."
+    }
+   ],
+   "typing": [
+    "Автентифікація відповідає на питання, хто ви.",
+    "Авторизація відповідає на питання, що вам можна.",
+    "Без облікових даних клас безпеки повертає 401.",
+    "Паролі зберігають лише як хеш.",
+    "CORS діє в браузері й не замінює автентифікацію."
+   ],
+   "tasks": [
+    "Закрийте API складу: HTTPBearer, словник токенів, current_user і keeper. GET /items — будь-якому користувачу, POST /items/{item_id}/issue — лише комірнику. У /docs натисніть Authorize і перевірте 401, 403 і 200.",
+    "Прочитайте розділ документації «OAuth2 з паролем і JWT» і випишіть, що саме зміниться всередині current_user, якщо замінити словник на JWT."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: безпека — перші кроки",
+     "url": "https://fastapi.tiangolo.com/tutorial/security/first-steps/",
+     "note": "OAuth2PasswordBearer, кнопка Authorize у /docs",
+     "main": true
+    },
+    {
+     "title": "FastAPI: OAuth2 з паролем і JWT",
+     "url": "https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/",
+     "note": "pwdlib з Argon2, PyJWT, термін дії токена"
+    },
+    {
+     "title": "FastAPI: CORS",
+     "url": "https://fastapi.tiangolo.com/tutorial/cors/",
+     "note": "CORSMiddleware, джерела, чому не «*»"
+    }
+   ]
+  },
+  {
+   "id": "testing",
+   "title": "Тести: TestClient і підміна залежностей",
+   "topic": "TestClient, pytest, dependency_overrides, lifespan у тестах",
+   "goal": "Написати тести на API й підмінити репозиторій і користувача без зміни коду маршрутів",
+   "theory": [
+    {
+     "recall": "Пригадайте: навіщо віддавати репозиторій маршруту через Depends(get_repo), а не глобальною змінною?",
+     "a": "get_repo — точка підміни: у тестах на її місце ставлять фальшивий репозиторій, не чіпаючи маршрути."
+    },
+    {
+     "p": "**TestClient** запускає застосунок прямо в пам'яті, без сервера й мережі: `client.get(\"/items/1\")` проходить увесь шлях — маршрут, перевірку, залежності, модель відповіді. Тести пишуть на **pytest**: функції з назвою `test_…` і звичайні `assert` ([тестування](https://fastapi.tiangolo.com/tutorial/testing/))."
+    },
+    {
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi import HTTPException\n\n\nclass ItemRepo:\n    def __init__(self, rows: dict):\n        self.rows = rows\n\n    def get(self, item_id: int):\n        return self.rows.get(item_id)\n\n\nREPO = ItemRepo({1: \"Шолом\"})\n\n\ndef get_repo() -> ItemRepo:\n    return REPO\n\n\nRepoDep = Annotated[ItemRepo,\n                    Depends(get_repo)]\napp = FastAPI()\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id: int, repo: RepoDep):\n    name = repo.get(item_id)\n    if name is None:\n        raise HTTPException(404, \"Немає\")\n    return {\"name\": name}",
+     "lang": "python",
+     "title": "app/main.py"
+    },
+    {
+     "code": "from fastapi.testclient import TestClient\n\nfrom app.main import ItemRepo, app, get_repo\n\nclient = TestClient(app)\n\n\ndef test_read_item():\n    r = client.get(\"/items/1\")\n    assert r.status_code == 200\n    assert r.json() == {\"name\": \"Шолом\"}\n\n\ndef test_missing_item():\n    r = client.get(\"/items/99\")\n    assert r.status_code == 404\n    assert r.json() == {\"detail\": \"Немає\"}\n\n\ndef test_fake_repo():\n    fake = ItemRepo({7: \"Каска\"})\n    app.dependency_overrides[get_repo] = (\n        lambda: fake)\n    try:\n        r = client.get(\"/items/7\")\n    finally:\n        app.dependency_overrides.clear()\n    assert r.json() == {\"name\": \"Каска\"}",
+     "lang": "python",
+     "title": "tests/test_items.py",
+     "hl": [
+      22,
+      23,
+      27
+     ]
+    },
+    {
+     "p": "Запуск з кореня проєкту (вивід справжній):"
+    },
+    {
+     "code": "$ pytest -q tests/test_items.py\n3 passed in 0.04s",
+     "lang": "console"
+    },
+    {
+     "ul": [
+      "`dependency_overrides` — словник «оригінальна залежність → замінник». Ключ — **сама функція** `get_repo`, без дужок.",
+      "Маршрут нічого не знає про підміну: він просить `RepoDep`, а FastAPI дає те, що лежить у словнику.",
+      "Після тесту словник **очищають** — інакше фальшивий репозиторій «протече» в наступні тести."
+     ]
+    },
+    {
+     "h": "Фікстура і lifespan"
+    },
+    {
+     "p": "Щоб не повторювати створення клієнта й очищення в кожному тесті, їх виносять у **фікстуру** pytest у файлі `conftest.py`:"
+    },
+    {
+     "code": "import pytest\nfrom fastapi.testclient import TestClient\n\nfrom app.main import app\n\n\n@pytest.fixture\ndef client():\n    with TestClient(app) as c:\n        yield c\n    app.dependency_overrides.clear()",
+     "lang": "python",
+     "title": "tests/conftest.py",
+     "hl": [
+      9,
+      11
+     ]
+    },
+    {
+     "p": "`with TestClient(app)` запускає **lifespan**: без `with` код старту не виконується, і все, що він кладе в `app.state`, відсутнє — маршрут, що його читає, дає 500 (перевірено запуском). Тест бере фікстуру просто аргументом: `def test_fake_repo(client): …`."
+    },
+    {
+     "h": "Підміна користувача"
+    },
+    {
+     "p": "Так само підміняють `current_user` з теми про безпеку: `app.dependency_overrides[current_user] = lambda: {\"name\": \"Тест\", \"role\": \"комірник\"}`. Тест маршруту видачі не потребує токенів — а саму перевірку токенів тестують окремо, кількома тестами на 401 і 403."
+    },
+    {
+     "warn": "❌ Тестувати лише «200 і правильний JSON» → ✅ на кожен маршрут — і щасливий шлях, і помилки: 404, 409, 422, 401, 403. Саме помилки найчастіше ламаються непомітно."
+    },
+    {
+     "note": "Документація FastAPI (листопад 2026) пише: для TestClient встановіть `httpx`. Але Starlette 1.10 з одним лише `httpx` видає попередження й просить пакет `httpx2`; з ним попередження немає. Встановлюйте обидва або лише `httpx2` — перевірте вивід pytest."
+    },
+    {
+     "recall": "Пригадайте: чому фікстура створює клієнт через with TestClient(app)?",
+     "a": "with запускає lifespan (старт і зупинку застосунку). Без нього ресурси з lifespan не створяться."
+    }
+   ],
+   "examples": [
+    {
+     "w": "client = TestClient(app)",
+     "note": "застосунок у пам'яті, без сервера"
+    },
+    {
+     "w": "assert r.status_code == 404",
+     "note": "перевірка коду"
+    },
+    {
+     "w": "assert r.json() == {\"name\": \"Шолом\"}",
+     "note": "перевірка тіла"
+    },
+    {
+     "w": "app.dependency_overrides[get_repo] = lambda: fake",
+     "note": "підміна залежності"
+    },
+    {
+     "w": "app.dependency_overrides.clear()",
+     "note": "прибрати підміни після тесту"
+    },
+    {
+     "w": "with TestClient(app) as c: yield c",
+     "note": "фікстура з lifespan"
+    },
+    {
+     "w": "$ pytest -q",
+     "note": "запустити всі тести тихо"
+    }
+   ],
+   "exercises": [
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi.testclient import TestClient\n\napp = FastAPI()\n\n\ndef get_unit() -> str:\n    return \"шт\"\n\n\n@app.get(\"/u\")\ndef u(x: Annotated[str, Depends(get_unit)]):\n    return x\n\n\napp.dependency_overrides[get_unit] = (\n    lambda: \"пара\")\nc = TestClient(app)\nprint(c.get(\"/u\").json())",
+     "lang": "python",
+     "options": [
+      "пара",
+      "шт",
+      "None",
+      "get_unit"
+     ],
+     "a": 0,
+     "why": "Підміна стоїть у словнику — FastAPI викликає лямбду замість get_unit."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi.testclient import TestClient\n\napp = FastAPI()\n\n\ndef get_unit() -> str:\n    return \"шт\"\n\n\n@app.get(\"/u\")\ndef u(x: Annotated[str, Depends(get_unit)]):\n    return x\n\n\nc = TestClient(app)\napp.dependency_overrides[get_unit] = (\n    lambda: \"пара\")\na = c.get(\"/u\").json()\napp.dependency_overrides.clear()\nb = c.get(\"/u\").json()\nprint(a, b)",
+     "lang": "python",
+     "options": [
+      "пара шт",
+      "шт шт",
+      "пара пара",
+      "шт пара"
+     ],
+     "a": 0,
+     "why": "Після clear() знову працює оригінальна залежність."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "from contextlib import asynccontextmanager\n\nfrom fastapi import FastAPI, Request\nfrom fastapi.testclient import TestClient\n\n\n@asynccontextmanager\nasync def lifespan(app):\n    app.state.unit = \"шт\"\n    yield\n\n\napp = FastAPI(lifespan=lifespan)\n\n\n@app.get(\"/u\")\ndef u(request: Request):\n    return request.app.state.unit\n\n\nc = TestClient(\n    app, raise_server_exceptions=False)\nprint(c.get(\"/u\").status_code)",
+     "lang": "python",
+     "options": [
+      "500",
+      "200",
+      "404",
+      "422"
+     ],
+     "a": 0,
+     "why": "Без with TestClient(app) lifespan не запускається — app.state.unit немає, маршрут падає."
+    },
+    {
+     "type": "choice",
+     "q": "Що надрукує цей код?",
+     "code": "from typing import Annotated\n\nfrom fastapi import Depends, FastAPI\nfrom fastapi.security import HTTPBearer\nfrom fastapi.testclient import TestClient\n\napp = FastAPI()\nbearer = HTTPBearer()\n\n\ndef current_user(cred=Depends(bearer)):\n    return {\"name\": \"з токена\"}\n\n\n@app.get(\"/me\")\ndef me(u: Annotated[dict,\n                    Depends(current_user)]):\n    return u[\"name\"]\n\n\napp.dependency_overrides[current_user] = (\n    lambda: {\"name\": \"Тест\"})\nr = TestClient(app).get(\"/me\")\nprint(r.status_code, r.json())",
+     "lang": "python",
+     "options": [
+      "200 Тест",
+      "401 Not authenticated",
+      "200 з токена",
+      "403 Forbidden"
+     ],
+     "a": 0,
+     "why": "Підмінено весь current_user разом із його залежністю bearer — токен не потрібен."
+    },
+    {
+     "type": "choice",
+     "q": "Що робить TestClient(app)?",
+     "options": [
+      "Запускає застосунок у пам'яті без сервера",
+      "Запускає справжній сервер на порту 8000",
+      "Перевіряє код лінтером перед запуском",
+      "Генерує тести за схемою OpenAPI"
+     ],
+     "a": 0,
+     "why": "Запити йдуть прямо в застосунок, без мережі — тести швидкі."
+    },
+    {
+     "type": "choice",
+     "q": "Що є ключем у app.dependency_overrides?",
+     "options": [
+      "Оригінальна функція-залежність",
+      "Назва параметра маршруту",
+      "Шлях маршруту, наприклад /items",
+      "Рядок з ім'ям залежності"
+     ],
+     "a": 0,
+     "why": "dependency_overrides[get_repo] — саме об'єкт функції, без дужок і лапок."
+    },
+    {
+     "type": "choice",
+     "q": "Навіщо app.dependency_overrides.clear() після тесту?",
+     "options": [
+      "Щоб підміна не протекла в інші тести",
+      "Щоб тест виконався швидше",
+      "Щоб pytest знайшов наступний тест",
+      "Щоб звільнити порт сервера"
+     ],
+     "a": 0,
+     "why": "app — один на всі тести; підміна живе, доки її не прибрали."
+    },
+    {
+     "type": "gap",
+     "q": "Словник підмін залежностей: app.◻[get_repo] = lambda: fake",
+     "a": [
+      "dependency_overrides"
+     ],
+     "why": "FastAPI шукає залежність спершу в dependency_overrides."
+    },
+    {
+     "type": "choice",
+     "q": "Як pytest знаходить тести?",
+     "options": [
+      "Функції test_… у файлах test_….py",
+      "Функції з декоратором @app.test",
+      "Усі функції у папці app/",
+      "Лише функції з assert"
+     ],
+     "a": 0,
+     "why": "Конвенція pytest: файли test_*.py і функції test_*."
+    },
+    {
+     "type": "order",
+     "q": "Розставте кроки тесту з підміною репозиторію",
+     "items": [
+      "Створити фальшивий ItemRepo",
+      "Покласти його в dependency_overrides",
+      "Надіслати запит через client",
+      "Перевірити код і JSON через assert",
+      "Очистити dependency_overrides"
+     ],
+     "why": "Підготовка → дія → перевірка → прибирання."
+    },
+    {
+     "type": "choice",
+     "q": "Які випадки варто покрити тестами для POST /items/{item_id}/issue?",
+     "options": [
+      "Успіх і всі помилки: 404, 409, 422, 401",
+      "Лише успішну видачу з кодом 200",
+      "Лише помилки, успіх видно в /docs",
+      "Нічого: FastAPI перевіряє сам"
+     ],
+     "a": 0,
+     "why": "Помилки ламаються непомітно; кожна гілка — окремий тест."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: користувач без заголовка Authorization звертається до маршруту з HTTPBearer. Що він отримає у FastAPI 0.163?",
+     "options": [
+      "401 Not authenticated",
+      "403 Not authenticated",
+      "422 missing header",
+      "200 з порожнім токеном"
+     ],
+     "a": 0,
+     "why": "З версії 0.122 — 401; тести, що чекали 403, треба оновити."
+    },
+    {
+     "type": "choice",
+     "q": "Повторення: як зробити, щоб збій commit у залежності з yield клієнт побачив як 500?",
+     "options": [
+      "Depends(..., scope=\"function\")",
+      "Depends(..., use_cache=False)",
+      "BackgroundTasks для commit",
+      "async def замість def"
+     ],
+     "a": 0,
+     "why": "scope=\"function\" закриває залежність до відправлення відповіді."
+    }
+   ],
+   "typing": [
+    "TestClient запускає застосунок у пам'яті без сервера.",
+    "Підміну залежності кладуть у dependency_overrides.",
+    "Після тесту підміни очищають.",
+    "Конструкція with TestClient запускає lifespan.",
+    "Тести перевіряють і успіх, і помилки."
+   ],
+   "tasks": [
+    "Встановіть pytest і httpx2. Напишіть для API складу тести: читання речі, 404, видача з фальшивим репозиторієм, 409 при нестачі. Запустіть pytest -q.",
+    "Додайте фікстуру client у conftest.py і тест на POST /items/{item_id}/issue з підміненим current_user (роль «комірник») і з роллю «солдат» — чекайте 200 і 403."
+   ],
+   "media": [
+    {
+     "title": "FastAPI: тестування",
+     "url": "https://fastapi.tiangolo.com/tutorial/testing/",
+     "note": "TestClient, pytest, тести в окремих файлах",
+     "main": true
+    },
+    {
+     "title": "FastAPI: підміна залежностей у тестах",
+     "url": "https://fastapi.tiangolo.com/advanced/testing-dependencies/",
+     "note": "dependency_overrides і очищення"
+    }
+   ]
+  }
+ ]
+}
