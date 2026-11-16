@@ -57,6 +57,29 @@
   color-scheme: light;
 }
 
+/* Непомітні теми «Сайт»: як звичайна сторінка — системний шрифт, сірі кнопки, сині посилання, без клітинки й фону.
+   «Сайт · темний» ще й приглушена: текст ~8:1 замість ~15:1, нічого не світиться */
+:root[data-theme="site"] {
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f6f6f7; --line: #e1e3e6; --line-strong: #8f959c;
+  --rule: transparent; --margin: transparent;
+  --text: #202122; --muted: #54595d; --accent: #3366cc; --accent-ink: #ffffff; --accent-soft: rgb(51 102 204 / .07);
+  --good: #14866d; --bad: #b32424; --bad-soft: rgb(179 36 36 / .07); --warn: #8a5d00; --star: #8a5d00;
+  color-scheme: light;
+}
+:root[data-theme="site-dark"] {
+  --bg: #1c1e22; --surface: #202226; --surface-2: #26292e; --line: #303339; --line-strong: #666b73;
+  --rule: transparent; --margin: transparent;
+  --text: #b4b8bf; --muted: #8a8f97; --accent: #8aa4c8; --accent-ink: #15171a; --accent-soft: rgb(138 164 200 / .08);
+  --good: #7fa892; --bad: #c88a8a; --bad-soft: rgb(200 138 138 / .08); --warn: #b59a62; --star: #b59a62;
+  --f1: #a8737c; --f2: #a88a62; --f3: #7f9a76; --f4: #6f8fa8; --ft: #8a82a8;
+  color-scheme: dark;
+}
+:root:is([data-theme="site"], [data-theme="site-dark"]) { --display: var(--sans); --radius: 6px; }
+:root:is([data-theme="site"], [data-theme="site-dark"]) :is(h1, h2, h3, b, strong) { font-weight: 600; letter-spacing: 0; }
+:root:is([data-theme="site"], [data-theme="site-dark"]) :is(.btn.primary, .toc.utabs a.on) { background: var(--surface-2); border-color: var(--line-strong); color: var(--text); }
+:root:is([data-theme="site"], [data-theme="site-dark"]) .brand svg { filter: grayscale(1); opacity: .55; }
+:root:is([data-theme="site"], [data-theme="site-dark"]) .brand small { display: none; }
+
 /* Нічна: темна тема, уся сторінка яскравістю в червоний канал, щоб не збивати нічний зір (як у Shooter's Log) */
 :root[data-theme="night"] { --bg: #000000; filter: url(#night-red); }
 /* Монітори-кінескопи (Фосфор — зелений, Бурштин — янтарний, Білий фосфор): уся сторінка в один колір, свічення, рядки
@@ -460,7 +483,9 @@ details.fold.ref { margin-bottom: 8px; }
 
 /* Блок коду курсу (js/code.js): довгий рядок гортається всередині блока, а не всією сторінкою */
 :root { --code-bg: var(--surface-2); --code-text: #e6edf3; --code-kw: #ff7b72; --code-str: #a5d6ff; --code-com: #9aa4b2; --code-num: #79c0ff; --code-dec: #d2a8ff; --code-hl: rgb(255 214 102 / .16); }
-:root[data-theme="light"] { --code-bg: #f6f8fa; --code-text: #1f2328; --code-kw: #cf222e; --code-str: #0a3069; --code-com: #5d6478; --code-num: #0550ae; --code-dec: #8250df; --code-hl: #fff1b8; }
+:root[data-theme="site"] { --code-hl: #f7f3e6; }
+:root[data-theme="site-dark"] { --code-text: #b4b8bf; --code-kw: #c49a96; --code-str: #9fb3c8; --code-com: #7c8189; --code-num: #9fb3c8; --code-dec: #ab9fc0; --code-hl: rgb(200 180 120 / .1); }
+:root:is([data-theme="light"], [data-theme="site"]) { --code-bg: #f6f8fa; --code-text: #1f2328; --code-kw: #cf222e; --code-str: #0a3069; --code-com: #5d6478; --code-num: #0550ae; --code-dec: #8250df; --code-hl: #fff1b8; }
 .code { margin: 12px 0; max-width: 720px; border: 1px solid var(--line); border-radius: 10px; background: var(--code-bg); overflow: hidden; }
 .code figcaption { padding: 6px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font: 600 calc(13px * var(--fs)) var(--mono); }
 .code pre { margin: 0; padding: 10px 0; overflow-x: auto; color: var(--code-text); font: calc(13.5px * var(--fs))/1.55 var(--mono); tab-size: 4; }
@@ -508,6 +533,12 @@ th { color: var(--muted); font-weight: 600; font-size: calc(13px * var(--fs)); }
 /* Цілі переходів зі змісту — не під шапкою й змістом */
 #view [id^="u-"], #course-ref { scroll-margin-top: calc(var(--topbar-h, 64px) + 64px); }
 .toc a { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; font-size: calc(13px * var(--fs)); }
+/* Вкладки теми: відкрита — залита, панелі під смугою по одній */
+.toc.utabs a { color: var(--text); font-weight: 600; }
+.toc.utabs a.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.u-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.u-panel[hidden] { display: none; }
+.u-panel > .panel-next, .u-panel > .next-topic { align-self: flex-start; margin-top: 4px; }
 .examples { display: flex; flex-wrap: wrap; gap: 8px; }
 .ex { padding: 6px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; display: flex; flex-direction: column; }
 .ex small { font-weight: 400; color: var(--muted); font-size: calc(12px * var(--fs)); }

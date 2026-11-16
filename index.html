@@ -14,7 +14,7 @@
       var pref = 'auto';
       try { pref = localStorage.getItem('bukvoid:theme') || 'auto'; } catch (e) { /* приватний режим */ }
       var light = pref === 'light' || (pref === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
-      document.documentElement.dataset.theme = ['night', 'phosphor', 'amber', 'white'].indexOf(pref) >= 0 ? pref : light ? 'light' : 'dark';
+      document.documentElement.dataset.theme = ['night', 'phosphor', 'amber', 'white', 'site', 'site-dark'].indexOf(pref) >= 0 ? pref : light ? 'light' : 'dark';
       // Фон під картками — теж до першого кадру; у спецрежимах його немає
       var th = document.documentElement.dataset.theme, bk = { dark: 'bukvoid:bg', light: 'bukvoid:bg-light' }[th];
       if (bk) { var bg = null; try { bg = localStorage.getItem(bk); } catch (e) { /* приватний режим */ } document.documentElement.dataset.bg = bg || (th === 'light' ? 'l-plain' : 'plain'); }

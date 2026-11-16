@@ -585,6 +585,9 @@ function pairHtml(en, uk, say, lang) {
   return `<div class="pair">${lang === 'en' ? `<button type="button" class="say" data-say="${esc(say)}" aria-label="Озвучити">${SPEAKER}</button>` : ''}<span class="en">${en}</span><span class="uk muted">${uk}</span></div>`;
 }
 
+// Відкрита вкладка кожної теми — у цьому відкритті застосунку
+const unitTabs = new Map();
+
 function renderCourseUnit(cid, uid) {
   const pack = Courses.get(cid);
   const i = pack ? pack.units.findIndex((u) => u.id === uid) : -1;
@@ -595,27 +598,35 @@ function renderCourseUnit(cid, uid) {
   try { localStorage.setItem(LAST_UNIT_KEY + cid, uid); } catch { /* приватний режим */ }
   SRS.enroll(cid, t);
   const pairs = t.examples?.length && t.examples.every((x) => x && typeof x === 'object' && x.en);
-  // Зміст — для довгих тем, де, крім правила й тесту, є фрази чи відео
+  // Тема — вкладками, на екрані одна панель: теорія, приклади, тест, практика.
   // «Правило» — у мовних курсах; в інших — «Теорія»
   const ruleWord = cid === S.SPELLING_COURSE || lang === 'en' ? 'Правило' : 'Теорія';
-  const toc = [['u-theory', ruleWord], t.examples?.length && ['u-examples', 'Приклади'], t.words?.length && ['u-words', 'Фрази'],
-    t.media?.length && ['u-media', 'Відео й аудіо'], t.exercises.length && ['u-test', 'Тест'], t.tasks?.length && ['u-tasks', 'Завдання'], pack.reference?.length && [`kurs/${esc(cid)}/ref`, 'Довідник'], t.typing?.length && ['u-typing', 'Друк']].filter(Boolean);
+  const tabs = [['theory', ruleWord], (t.examples?.length || t.words?.length) && ['examples', 'Приклади'],
+    t.exercises.length && ['test', 'Тест'], ['practice', t.tasks?.length ? 'Практика' : 'Друк']].filter(Boolean);
+  // Кінець панелі: «Далі» на наступну вкладку, в останній — наступна тема
+  const panelEnd = (k) => {
+    const j = tabs.findIndex(([id]) => id === k);
+    if (tabs[j + 1]) return `<button type="button" class="btn primary panel-next" data-tab-go="${tabs[j + 1][0]}">Далі: ${tabs[j + 1][1]} ›</button>`;
+    return next ? `<a class="btn next-topic" href="#k/${esc(cid)}/${esc(next.id)}">Наступна тема: ${esc(next.title)} ›</a>` : '';
+  };
+  const panel = (k, html) => `<section class="u-panel" id="p-${k}" data-panel="${k}" role="tabpanel" aria-label="${tabs.find(([id]) => id === k)[1]}">${html}${panelEnd(k)}</section>`;
   view().innerHTML = `
     ${head(t.title, `#kurs/${esc(cid)}`, esc(t.topic ? `${t.topic} · ${pack.title}` : t.goal || ''))}
     ${t.topic && t.goal ? `<p class="goal">${inline(t.goal)}</p>` : ''}
-    ${t.words?.length || t.media?.length || t.tasks?.length || pack.reference?.length ? `<nav class="toc">${toc.map(([id, label]) => `<a href="#${id}"${id.includes('/') ? ' data-route' : ''}>${label}</a>`).join('')}</nav>` : ''}
-    <article class="prose card" id="u-theory">${blocksHtml(t.theory, { src: Courses.src(cid), sections: true })}</article>
-    ${t.examples?.length ? `<h2 class="section-title" id="u-examples">Приклади</h2>${pairs
-    ? `<div class="card pairs">${t.examples.map((x) => pairHtml(inline(x.en), inline(x.uk), x.en, lang)).join('')}</div>`
-    : examplesHtml(t.examples)}` : ''}
-    ${t.words?.length ? `<h2 class="section-title" id="u-words">Фрази теми <span class="muted">уже в колоді повторення</span></h2>
-    <div class="card pairs">${t.words.map((w) => pairHtml(`<b>${esc(w.en)}</b>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}`, esc(w.uk), w.ex || w.en, lang)).join('')}</div>` : ''}
+    <div id="u-tabs-top"></div>
+    <nav class="toc utabs" role="tablist" aria-label="Частини теми">${tabs.map(([id, label]) => `<a href="#p-${id}" role="tab" data-tab="${id}" aria-controls="p-${id}">${label}</a>`).join('')}</nav>
+    ${panel('theory', `<article class="prose card" id="u-theory">${blocksHtml(t.theory, { src: Courses.src(cid), sections: true })}</article>
     ${t.media?.length ? `<h2 class="section-title" id="u-media">Відео й матеріали</h2><div class="media">${[...t.media].sort((a, b) => Boolean(b.main) - Boolean(a.main)).map((m) => `<a class="tile${m.main ? ' main' : ''}" href="${esc(m.url)}" target="_blank" rel="noopener"><b>${m.main ? 'Головне джерело · ' : ''}${mediaLabel(m)} · ${esc(m.title)}</b>${m.note ? `<span class="muted">${esc(m.note)}</span>` : ''}</a>`).join('')}</div>` : ''}
-    ${t.exercises.length ? '<h2 class="section-title" id="u-test">Тест</h2><div id="quiz" class="card"></div>' : ''}
-    ${t.tasks?.length ? tasksHtml(cid, t) : ''}
+    ${pack.reference?.length ? `<p><a href="#kurs/${esc(cid)}/ref">Довідник курсу ›</a></p>` : ''}`)}
+    ${t.examples?.length || t.words?.length ? panel('examples', `${t.examples?.length ? `<div id="u-examples">${pairs
+    ? `<div class="card pairs">${t.examples.map((x) => pairHtml(inline(x.en), inline(x.uk), x.en, lang)).join('')}</div>`
+    : examplesHtml(t.examples)}</div>` : ''}
+    ${t.words?.length ? `<h2 class="section-title" id="u-words">Фрази теми <span class="muted">уже в колоді повторення</span></h2>
+    <div class="card pairs">${t.words.map((w) => pairHtml(`<b>${esc(w.en)}</b>${w.ex ? `<small>${esc(w.ex)}</small>` : ''}`, esc(w.uk), w.ex || w.en, lang)).join('')}</div>` : ''}`) : ''}
+    ${t.exercises.length ? panel('test', '<div id="quiz" class="card"></div>') : ''}
+    ${panel('practice', `${t.tasks?.length ? tasksHtml(cid, t) : ''}
     <h2 class="section-title" id="u-typing">${lang === 'en' ? 'Надрукуйте фрази' : cid === S.SPELLING_COURSE ? 'Надрукуйте правильно' : 'Надрукуйте головне'}</h2>
-    <div id="typer" class="card"></div><div id="after"></div>
-    ${next ? `<a class="btn next-topic" href="#k/${esc(cid)}/${esc(next.id)}">Наступна тема: ${esc(next.title)} ›</a>` : ''}`;
+    <div id="typer" class="card"></div><div id="after"></div>`)}`;
   view().querySelectorAll('[data-say]').forEach((b) => { b.onclick = () => speak(b.dataset.say); });
   const all = view().querySelector('[data-sec-all]');
   if (all) {
@@ -633,9 +644,31 @@ function renderCourseUnit(cid, uid) {
     tocBar.addEventListener('scroll', more, { passive: true });
     new ResizeObserver(more).observe(tocBar);
   }
-  view().querySelectorAll('.toc a:not([data-route])').forEach((a) => {
-    a.onclick = (e) => { e.preventDefault(); document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' }); };
+  // Вкладка — без зміни адреси: тест, почату панель і друк не перемальовуємо. Остання вкладка теми пам'ятається до перезапуску
+  const key = `${cid}/${uid}`;
+  const showTab = (k, scroll) => {
+    view().querySelectorAll('[data-panel]').forEach((x) => { x.hidden = x.dataset.panel !== k; });
+    view().querySelectorAll('.toc [data-tab]').forEach((a) => {
+      const on = a.dataset.tab === k;
+      a.classList.toggle('on', on);
+      a.setAttribute('aria-selected', String(on));
+      // Вкладка за краєм смуги — прокрутити смугу (лише вбік, сторінку не чіпаємо)
+      const bar = a.parentElement;
+      if (on && (a.offsetLeft < bar.scrollLeft || a.offsetLeft + a.offsetWidth > bar.scrollLeft + bar.clientWidth)) bar.scrollLeft = a.offsetLeft - 16;
+    });
+    unitTabs.set(key, k);
+    // Нова панель — з її початку, якщо сторінку вже прокрутили нижче вкладок
+    const top = $('u-tabs-top');
+    if (scroll && top) {
+      const y = top.getBoundingClientRect().top + window.scrollY - (document.querySelector('.topbar')?.getBoundingClientRect().height || 0);
+      if (window.scrollY > y) window.scrollTo(0, y);
+    }
+  };
+  view().querySelectorAll('.toc [data-tab]').forEach((a) => {
+    a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.tab, true); };
   });
+  view().querySelectorAll('[data-tab-go]').forEach((b) => { b.onclick = () => showTab(b.dataset.tabGo, true); });
+  showTab(tabs.some(([id]) => id === unitTabs.get(key)) ? unitTabs.get(key) : 'theory', false);
   if (t.exercises.length) {
     mountQuiz($('quiz'), t.exercises, {
       src: Courses.src(cid),
@@ -846,7 +879,10 @@ function renderProgress() {
 const SET_OPEN_KEY = 'bukvoid:set-open';
 const SIZES = [['s', 'Менший', 0.9], ['m', 'Звичайний', 1], ['l', 'Більший', 1.12], ['xl', 'Великий', 1.25]];
 // Спецрежими — як у Shooter's Log і Хобі-плані: Нічна (усе червоним) і монітори-кінескопи
-const THEMES = [['auto', 'Як у системі'], ['dark', 'Темна'], ['light', 'Світла'], ['night', 'Нічна'], ['phosphor', 'Фосфор'], ['amber', 'Бурштин'], ['white', 'Білий фосфор']];
+// Непомітні — схожі на звичайну сторінку сайту: читати, не привертаючи уваги
+const THEMES = [['auto', 'Як у системі'], ['dark', 'Темна'], ['light', 'Світла'], ['site', 'Сайт'], ['site-dark', 'Сайт · темний'],
+  ['night', 'Нічна'], ['phosphor', 'Фосфор'], ['amber', 'Бурштин'], ['white', 'Білий фосфор']];
+const QUIET_THEMES = ['site', 'site-dark'];
 const SPECIAL_THEMES = ['night', 'phosphor', 'amber', 'white'];
 // Фон під картками — як у Shooter's Log, без камуфляжів: свій набір для темної й світлої теми, перший (без малюнка) — за
 // замовчуванням; у спецрежимах фону немає. Вибір — лише на цьому пристрої
@@ -1025,7 +1061,10 @@ function renderSettings(section) {
           ${SIZES.map(([val, label, k]) => `<label class="size-opt${(s.fontSize || 'm') === val ? ' on' : ''}"><input type="radio" name="fontSize" value="${val}"${(s.fontSize || 'm') === val ? ' checked' : ''}><span style="font-size:${Math.round(18 * k * k)}px">Аа</span><small>${label}</small></label>`).join('')}
         </div>`),
     setRow('theme', 'palette', 'Тема', v.theme, `
-        ${THEMES.filter(([val]) => !SPECIAL_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
+        ${THEMES.filter(([val]) => !SPECIAL_THEMES.includes(val) && !QUIET_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
+        <h3 class="sub-title">Непомітні</h3>
+        ${THEMES.filter(([val]) => QUIET_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
+        <p class="muted">Як звичайна сторінка сайту: без кольорових кнопок і великих заголовків. «Сайт · темний» — ще й приглушена.</p>
         <h3 class="sub-title">Спецрежими</h3>
         ${THEMES.filter(([val]) => SPECIAL_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
         <label class="night-level" id="night-level"${s.theme === 'night' ? '' : ' hidden'}><span>Яскравість червоного</span><input type="range" id="night-range" min="20" max="100" step="5" value="${nightLevel()}"></label>
@@ -1437,7 +1476,7 @@ const FONT_SCALE = { s: 0.9, m: 1, l: 1.12, xl: 1.25 };
 function applyTheme() {
   const pref = set().theme;
   const light = pref === 'light' || (pref === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
-  document.documentElement.dataset.theme = SPECIAL_THEMES.includes(pref) ? pref : light ? 'light' : 'dark';
+  document.documentElement.dataset.theme = SPECIAL_THEMES.includes(pref) || QUIET_THEMES.includes(pref) ? pref : light ? 'light' : 'dark';
   const bg = backdropPref(document.documentElement.dataset.theme);
   if (bg) document.documentElement.dataset.bg = bg; else delete document.documentElement.dataset.bg;
   try { localStorage.setItem('bukvoid:theme', pref); } catch { /* приватний режим */ }
