@@ -892,6 +892,11 @@ const BACKDROPS = {
 };
 const BG_KEY = { dark: 'bukvoid:bg', light: 'bukvoid:bg-light' };
 
+/** Ряд тем одним сегментом; радіо сховане в підписі, як у «Розмірі тексту» — підсвічування .on оновлює обробник налаштувань. */
+function themeSeg(list, cur, label) {
+  return `<div class="seg seg-theme" role="radiogroup" aria-label="${label}">${list.map(([val, name]) => `<label class="size-opt theme-opt${cur === val ? ' on' : ''}"><input type="radio" name="theme" value="${val}"${cur === val ? ' checked' : ''}><span>${name}</span></label>`).join('')}</div>`;
+}
+
 function backdropPref(theme) {
   const list = BACKDROPS[theme];
   if (!list) return null;
@@ -1060,15 +1065,14 @@ function renderSettings(section) {
         <div class="seg seg-size" role="radiogroup" aria-label="Розмір тексту">
           ${SIZES.map(([val, label, k]) => `<label class="size-opt${(s.fontSize || 'm') === val ? ' on' : ''}"><input type="radio" name="fontSize" value="${val}"${(s.fontSize || 'm') === val ? ' checked' : ''}><span style="font-size:${Math.round(18 * k * k)}px">Аа</span><small>${label}</small></label>`).join('')}
         </div>`),
+    // Теми — сегментами по групах, як у Shooter's Log: звичайні, непомітні, спецрежими
     setRow('theme', 'palette', 'Тема', v.theme, `
-        ${THEMES.filter(([val]) => !SPECIAL_THEMES.includes(val) && !QUIET_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
-        <h3 class="sub-title">Непомітні</h3>
-        ${THEMES.filter(([val]) => QUIET_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
-        <p class="muted">Як звичайна сторінка сайту: без кольорових кнопок і великих заголовків. «Сайт · темний» — ще й приглушена.</p>
-        <h3 class="sub-title">Спецрежими</h3>
-        ${THEMES.filter(([val]) => SPECIAL_THEMES.includes(val)).map(([val, label]) => radio('theme', val, label, s.theme)).join('')}
-        <label class="night-level" id="night-level"${s.theme === 'night' ? '' : ' hidden'}><span>Яскравість червоного</span><input type="range" id="night-range" min="20" max="100" step="5" value="${nightLevel()}"></label>
-        <p class="muted">Нічна — усе червоним, щоб не збивати нічний зір. Фосфор, Бурштин і Білий фосфор — як старі монітори-кінескопи.</p>`),
+        ${themeSeg(THEMES.filter(([val]) => !SPECIAL_THEMES.includes(val) && !QUIET_THEMES.includes(val)), s.theme, 'Тема')}
+        <h3 class="sub-title theme-group">Непомітні <span class="muted">як звичайний сайт</span></h3>
+        ${themeSeg(THEMES.filter(([val]) => QUIET_THEMES.includes(val)), s.theme, 'Непомітні')}
+        <h3 class="sub-title theme-group">Спецрежими</h3>
+        ${themeSeg(THEMES.filter(([val]) => SPECIAL_THEMES.includes(val)), s.theme, 'Спецрежими')}
+        <label class="night-level" id="night-level"${s.theme === 'night' ? '' : ' hidden'}><span>Яскравість червоного</span><input type="range" id="night-range" min="20" max="100" step="5" value="${nightLevel()}"></label>`),
     backdropRow()])}`;
   mountRows();
   mountServer();

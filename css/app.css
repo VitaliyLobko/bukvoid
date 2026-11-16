@@ -318,6 +318,11 @@ main { max-width: 920px; margin: 0 auto; padding: 18px max(16px, env(safe-area-i
 .size-opt small { font-size: 12px; font-weight: 500; }
 .size-opt.on { background: var(--accent-soft); color: var(--accent); }
 .size-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Теми: сегмент на групу; довга назва («Білий фосфор») переноситься на два рядки, а не обрізається */
+.size-opt.theme-opt { min-height: var(--tap); padding: 4px 6px; text-align: center; }
+.size-opt.theme-opt span { font: 600 calc(14px * var(--fs))/1.15 var(--sans); }
+.theme-group { margin: 12px 0 6px; }
+.theme-group .muted { font-weight: 400; font-size: calc(13px * var(--fs)); }
 
 .tiles, .media { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .tile {
